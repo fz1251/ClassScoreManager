@@ -1,0 +1,328 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>800</width>
+    <height>600</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>班级积分管理系统</string>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <widget class="QTableView" name="tableView">
+    <property name="geometry">
+     <rect>
+      <x>0</x>
+      <y>0</y>
+      <width>800</width>
+      <height>550</height>
+     </rect>
+    </property>
+    <property name="acceptDrops">
+     <bool>true</bool>
+    </property>
+    <property name="showDropIndicator" stdset="0">
+     <bool>true</bool>
+    </property>
+    <property name="dragEnabled">
+     <bool>true</bool>
+    </property>
+    <property name="dragDropOverwriteMode">
+     <bool>false</bool>
+    </property>
+    <property name="dragDropMode">
+     <enum>QAbstractItemView::DragDropMode::InternalMove</enum>
+    </property>
+    <property name="defaultDropAction">
+     <enum>Qt::DropAction::MoveAction</enum>
+    </property>
+    <property name="selectionMode">
+     <enum>QAbstractItemView::SelectionMode::SingleSelection</enum>
+    </property>
+    <property name="selectionBehavior">
+     <enum>QAbstractItemView::SelectionBehavior::SelectRows</enum>
+    </property>
+   </widget>
+  </widget>
+  <widget class="QMenuBar" name="menubar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>800</width>
+     <height>25</height>
+    </rect>
+   </property>
+   <widget class="QMenu" name="menu_File">
+    <property name="title">
+     <string>文件(&amp;F)</string>
+    </property>
+    <addaction name="action_OpenFile"/>
+    <addaction name="action_NewFile"/>
+    <addaction name="action_SaveFile"/>
+    <addaction name="action_CloseFile"/>
+    <addaction name="separator"/>
+    <addaction name="action_ExitApp"/>
+   </widget>
+   <widget class="QMenu" name="menu_Score">
+    <property name="title">
+     <string>积分(&amp;S)</string>
+    </property>
+    <addaction name="action_NewScoreRecord"/>
+    <addaction name="action_UseScoreTemplate"/>
+    <addaction name="action_SaveScoreRecord"/>
+    <addaction name="action_ExportScoreSum"/>
+    <addaction name="separator"/>
+    <addaction name="action_ShowRecordHistory"/>
+    <addaction name="action_HideRecordHistory"/>
+    <addaction name="action_DeleteRecordHistory"/>
+    <addaction name="action_ClearRecords"/>
+   </widget>
+   <widget class="QMenu" name="menu_ScoreTemplate">
+    <property name="title">
+     <string>积分模板(&amp;T)</string>
+    </property>
+    <addaction name="action_NewTemplate"/>
+    <addaction name="action_EditTemplate"/>
+    <addaction name="action_ShowTemplate"/>
+    <addaction name="action_HideTemplate"/>
+    <addaction name="action_DeleteTemplate"/>
+    <addaction name="action_ClearTemplates"/>
+   </widget>
+   <widget class="QMenu" name="menu_About">
+    <property name="title">
+     <string>关于(A)</string>
+    </property>
+    <addaction name="action_AboutApp"/>
+    <addaction name="action_AboutQt"/>
+   </widget>
+   <widget class="QMenu" name="menu_Student">
+    <property name="title">
+     <string>学生(&amp;S)</string>
+    </property>
+    <addaction name="action_AddStudent"/>
+    <addaction name="action_ImportStudents"/>
+    <addaction name="action_DeleteStudent"/>
+    <addaction name="action_ClearStudents"/>
+   </widget>
+   <addaction name="menu_File"/>
+   <addaction name="menu_Student"/>
+   <addaction name="menu_Score"/>
+   <addaction name="menu_ScoreTemplate"/>
+   <addaction name="menu_About"/>
+  </widget>
+  <widget class="QStatusBar" name="statusbar"/>
+  <action name="action_OpenFile">
+   <property name="icon">
+    <iconset theme="QIcon::ThemeIcon::DocumentOpen"/>
+   </property>
+   <property name="text">
+    <string>打开</string>
+   </property>
+  </action>
+  <action name="action_NewFile">
+   <property name="icon">
+    <iconset theme="QIcon::ThemeIcon::DocumentNew"/>
+   </property>
+   <property name="text">
+    <string>新建</string>
+   </property>
+  </action>
+  <action name="action_SaveFile">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="icon">
+    <iconset theme="QIcon::ThemeIcon::DocumentSave"/>
+   </property>
+   <property name="text">
+    <string>保存</string>
+   </property>
+  </action>
+  <action name="action_CloseFile">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="icon">
+    <iconset theme="QIcon::ThemeIcon::WindowClose"/>
+   </property>
+   <property name="text">
+    <string>关闭</string>
+   </property>
+  </action>
+  <action name="action_ExitApp">
+   <property name="icon">
+    <iconset theme="QIcon::ThemeIcon::ApplicationExit"/>
+   </property>
+   <property name="text">
+    <string>退出程序</string>
+   </property>
+  </action>
+  <action name="action_DebugPrint">
+   <property name="text">
+    <string>输出全部数据</string>
+   </property>
+  </action>
+  <action name="action_ShowRecordHistory">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>查看历史记录</string>
+   </property>
+  </action>
+  <action name="action_HideRecordHistory">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>关闭历史记录预览</string>
+   </property>
+  </action>
+  <action name="action_ShowTemplate">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>查看积分模板</string>
+   </property>
+  </action>
+  <action name="action_HideTemplate">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>关闭积分模板预览</string>
+   </property>
+  </action>
+  <action name="action_NewTemplate">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>新建积分模板</string>
+   </property>
+  </action>
+  <action name="action_EditTemplate">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>更改积分模板描述</string>
+   </property>
+  </action>
+  <action name="action_NewScoreRecord">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>新建积分记录</string>
+   </property>
+  </action>
+  <action name="action_SaveScoreRecord">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>保存积分记录</string>
+   </property>
+  </action>
+  <action name="action_UseScoreTemplate">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>应用积分模板</string>
+   </property>
+  </action>
+  <action name="action_ExportScoreSum">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>积分求和统计</string>
+   </property>
+  </action>
+  <action name="action_AboutApp">
+   <property name="text">
+    <string>关于本程序</string>
+   </property>
+  </action>
+  <action name="action_AboutQt">
+   <property name="text">
+    <string>关于Qt</string>
+   </property>
+  </action>
+  <action name="action_DeleteRecordHistory">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>删除一项历史记录</string>
+   </property>
+  </action>
+  <action name="action_DeleteTemplate">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>删除一个积分模板</string>
+   </property>
+  </action>
+  <action name="action_AddStudent">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>添加学生</string>
+   </property>
+  </action>
+  <action name="action_DeleteStudent">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>删除一个学生</string>
+   </property>
+  </action>
+  <action name="action_ImportStudents">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>批量导入学生</string>
+   </property>
+  </action>
+  <action name="action_ClearStudents">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>清空班级信息</string>
+   </property>
+  </action>
+  <action name="action_ClearRecords">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>清空积分记录</string>
+   </property>
+  </action>
+  <action name="action_ClearTemplates">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>清空积分模板</string>
+   </property>
+  </action>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>
