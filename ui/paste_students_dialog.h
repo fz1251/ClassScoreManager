@@ -1,5 +1,5 @@
-#ifndef PASTESTUDENTSDIALOG_H
-#define PASTESTUDENTSDIALOG_H
+#ifndef PASTE_STUDENTS_DIALOG_H
+#define PASTE_STUDENTS_DIALOG_H
 
 #include <QDialog>
 #include <QString>
@@ -29,4 +29,4 @@ private:
     Ui::PasteStudentsDialog *ui;
 };
 
-#endif // PASTESTUDENTSDIALOG_H
+#endif // PASTE_STUDENTS_DIALOG_H

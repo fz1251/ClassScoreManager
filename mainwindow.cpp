@@ -194,7 +194,7 @@ void MainWindow::on_action_UseScoreTemplate_triggered()
 
 void MainWindow::on_action_ExportScoreSum_triggered()
 {
-    ExportSumDialog dialog;
+    SumExportDialog dialog;
     dialog.setSortingConfig(manager->getSettings());
     dialog.setRecordText(manager->getRecordList());
     if(dialog.exec()==QDialog::Accepted)
@@ -282,7 +282,7 @@ void MainWindow::on_action_NewTemplate_triggered()
     ScoreTemplate newTemplate;
     newTemplate.description=tr("未命名-%1").arg(QDateTime::currentDateTime()
                                                 .toString("yy/MM/dd hh:mm:ss:zzz"));
-    newTemplate.values=std::move(QList<qint32>(manager->getStudents().count()));
+    newTemplate.values=QList<qint32>(manager->getStudents().count());
     modal->newScoreTemplate(newTemplate);
 
     ui->action_HideTemplate->setDisabled(false);
@@ -359,8 +359,9 @@ void MainWindow::on_action_ClearTemplates_triggered()
 /*关于菜单(menu_About)功能实现*/
 void MainWindow::on_action_AboutApp_triggered()
 {
-    AboutInfoDialog dialog;
-    dialog.exec();
+    AboutInfoDialog* dialog=new AboutInfoDialog();
+    dialog->setAttribute(Qt::WA_DeleteOnClose);
+    dialog->show();
 }
 
 void MainWindow::on_action_AboutQt_triggered()

@@ -1,0 +1,6 @@
+<RCC>
+    <qresource prefix="/icons">
+        <file>resources/dialog-close.png</file>
+        <file>resources/dialog-close-hovered.png</file>
+    </qresource>
+</RCC>

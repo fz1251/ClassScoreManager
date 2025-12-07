@@ -1,12 +1,12 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
-#include "aboutinfodialog.h"
-#include "itemselectiondialog.h"
-#include "pastestudentsdialog.h"
-#include "exportsumdialog.h"
-#include "classtablemodal.h"
-#include "scoreexprdelegate.h"
+#include "ui/about_info_dialog.h"
+#include "ui/item_selection_dialog.h"
+#include "ui/paste_students_dialog.h"
+#include "ui/sum_export_dialog.h"
+#include "class_table_modal.h"
+#include "score_expr_delegate.h"
 #include <QMainWindow>
 #include <QLabel>
 #include <QMessageBox>

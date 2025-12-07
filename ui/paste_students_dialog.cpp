@@ -1,5 +1,5 @@
-#include "pastestudentsdialog.h"
-#include "ui_pastestudentsdialog.h"
+#include "paste_students_dialog.h"
+#include "ui_paste_students_dialog.h"
 
 PasteStudentsDialog::PasteStudentsDialog(QWidget *parent) :
     QDialog(parent),

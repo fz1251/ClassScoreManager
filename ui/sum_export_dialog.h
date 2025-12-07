@@ -1,7 +1,7 @@
-#ifndef EXPORTSUMDIALOG_H
-#define EXPORTSUMDIALOG_H
+#ifndef SUM_EXPORT_DIALOG_H
+#define SUM_EXPORT_DIALOG_H
 
-#include <scoresumreport.h>
+#include <data_types.h>
 #include <QDialog>
 #include <QStringList>
 
@@ -9,13 +9,13 @@ namespace Ui {
 class ExportSumDialog;
 }
 
-class ExportSumDialog : public QDialog
+class SumExportDialog : public QDialog
 {
     Q_OBJECT
 
 public:
-    explicit ExportSumDialog(QWidget *parent = nullptr);
-    ~ExportSumDialog();
+    explicit SumExportDialog(QWidget *parent = nullptr);
+    ~SumExportDialog();
     void setRecordText(QStringList records);
     void setSortingConfig(SortSetting settings);
     int getBeginIndex();
@@ -39,4 +39,4 @@ private:
     SortSetting sortConfig;
 };
 
-#endif // EXPORTSUMDIALOG_H
+#endif // SUM_EXPORT_DIALOG_H

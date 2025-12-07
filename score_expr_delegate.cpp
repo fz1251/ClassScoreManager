@@ -1,4 +1,6 @@
-#include "scoreexprdelegate.h"
+#include "score_expr_delegate.h"
+#include <QRegularExpression>
+#include <QRegularExpressionValidator>
 
 ScoreParseResult parseScoreExpression(const QString &expr)
 {

@@ -1,5 +1,6 @@
-#include "scoresumreport.h"
-
+#include "score_sum_report.h"
+#include <algorithm>
+#include <map>
 
 namespace ScoreSumReport {
 

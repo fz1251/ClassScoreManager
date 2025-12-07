@@ -1,12 +1,10 @@
-#ifndef SCOREEXPRDELEGATE_H
-#define SCOREEXPRDELEGATE_H
+#ifndef SCORE_EXPR_DELEGATE_H
+#define SCORE_EXPR_DELEGATE_H
 
 #include <QString>
 #include <QStringList>
 #include <QLineEdit>
 #include <QStyledItemDelegate>
-#include <QRegularExpression>
-#include <QRegularExpressionValidator>
 
 // 解析结果结构体
 struct ScoreParseResult {
@@ -28,4 +26,4 @@ private:
     static const inline QString scoreRegExpStr="^(?:[+-]?\\d+)(?:[+-]\\d+)*$";
 };
 
-#endif // SCOREEXPRDELEGATE_H
+#endif // SCORE_EXPR_DELEGATE_H

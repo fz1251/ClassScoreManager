@@ -1,43 +1,43 @@
-#include "exportsumdialog.h"
-#include "ui_exportsumdialog.h"
+#include "sum_export_dialog.h"
+#include "ui_sum_export_dialog.h"
 
-ExportSumDialog::ExportSumDialog(QWidget *parent) :
+SumExportDialog::SumExportDialog(QWidget *parent) :
     QDialog(parent),
     ui(new Ui::ExportSumDialog)
 {
     ui->setupUi(this);
-    connect(ui->beginTimeComboBox,&QComboBox::currentIndexChanged,this,&ExportSumDialog::updateRecordList);
-    connect(ui->endTimeComboBox,&QComboBox::currentIndexChanged,this,&ExportSumDialog::updateRecordList);
+    connect(ui->beginTimeComboBox,&QComboBox::currentIndexChanged,this,&SumExportDialog::updateRecordList);
+    connect(ui->endTimeComboBox,&QComboBox::currentIndexChanged,this,&SumExportDialog::updateRecordList);
 }
 
-ExportSumDialog::~ExportSumDialog()
+SumExportDialog::~SumExportDialog()
 {
     delete ui;
 }
 
-void ExportSumDialog::setRecordText(QStringList records)
+void SumExportDialog::setRecordText(QStringList records)
 {
     recordList=records;
     ui->beginTimeComboBox->addItems(recordList);
     ui->endTimeComboBox->addItems(recordList);
 }
 
-void ExportSumDialog::setSortingConfig(SortSetting settings)
+void SumExportDialog::setSortingConfig(SortSetting settings)
 {
     sortConfig=settings;
 }
 
-int ExportSumDialog::getBeginIndex()
+int SumExportDialog::getBeginIndex()
 {
     return ui->beginTimeComboBox->currentIndex();
 }
 
-int ExportSumDialog::getEndIndex()
+int SumExportDialog::getEndIndex()
 {
     return ui->endTimeComboBox->currentIndex();
 }
 
-quint8 ExportSumDialog::getCurrentConfig()
+quint8 SumExportDialog::getCurrentConfig()
 {
     quint8 mode=0;
     if(ui->box_HideStudentNumber->isChecked())
@@ -57,7 +57,7 @@ quint8 ExportSumDialog::getCurrentConfig()
     return mode;
 }
 
-void ExportSumDialog::updateRecordList(int unused_index)
+void SumExportDialog::updateRecordList(int unused_index)
 {
     Q_UNUSED(unused_index);
     ui->recordListWidget->clear();
@@ -65,7 +65,7 @@ void ExportSumDialog::updateRecordList(int unused_index)
         new QListWidgetItem(recordList.at(i),ui->recordListWidget);
 }
 
-void ExportSumDialog::setConfig(quint8 mode)
+void SumExportDialog::setConfig(quint8 mode)
 {
     ui->box_HideStudentNumber->setChecked(mode&SortSetting::hideStudentNumber);
     ui->box_SortByStudentSum->setChecked((mode&SortSetting::sortByStudentSum));
@@ -77,25 +77,25 @@ void ExportSumDialog::setConfig(quint8 mode)
 }
 
 
-void ExportSumDialog::on_studentDefaultBtn_clicked()
+void SumExportDialog::on_studentDefaultBtn_clicked()
 {
     setConfig(sortConfig.studentDefault);
 }
 
 
-void ExportSumDialog::on_groupDefaultBtn_clicked()
+void SumExportDialog::on_groupDefaultBtn_clicked()
 {
     setConfig(sortConfig.groupDefault);
 }
 
 
-void ExportSumDialog::on_studentPreviousBtn_clicked()
+void SumExportDialog::on_studentPreviousBtn_clicked()
 {
     setConfig(sortConfig.studentPrevious);
 }
 
 
-void ExportSumDialog::on_groupPreviousBtn_clicked()
+void SumExportDialog::on_groupPreviousBtn_clicked()
 {
     setConfig(sortConfig.groupPrevious);
 }
