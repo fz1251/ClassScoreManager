@@ -1,12 +1,18 @@
 #include "mainwindow.h"
+#include "score_sum_report.h"
 #include "ui_mainwindow.h"
+#include "ui/about_info_dialog.h"
+#include "ui/item_selection_dialog.h"
+#include "ui/paste_students_dialog.h"
+#include "ui/sum_export_dialog.h"
+#include "score_expr_delegate.h"
+#include "score_sum_report.h"
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
     , manager(new ClassDataManager(this))
     , modal(new ClassTableModal(this,manager))
-    // , delegate())
 {
     ui->setupUi(this);
 
@@ -15,9 +21,10 @@ MainWindow::MainWindow(QWidget *parent)
     // ui->statusbar->setSizeGripEnabled(false);
     ui->statusbar->setVisible(false);
 
-    this->setCentralWidget(ui->tableView);
+    this->setCentralWidget(ui->stackedWidget);
+    ui->stackedWidget->setCurrentIndex(0);
 
-    ui->tableView->setItemDelegateForColumn(CurrentRecord,new ScoreExprDelegate(this));
+    ui->tableView->setItemDelegateForColumn(ClassTableModal::CurrentRecord,new ScoreExprDelegate(this));
 
     connect(manager,&ClassDataManager::dirtyStateChanged,this,&MainWindow::setWindowModified);
     connect(modal,&ClassTableModal::showColumnRequested,ui->tableView,&QTableView::showColumn);
@@ -108,8 +115,7 @@ void MainWindow::on_action_AddStudent_triggered()
                                               QLineEdit::Normal,QString(),&ok);
     if(ok)
     {
-        manager->addStudent(studentName);
-        modal->resetTable();
+        modal->addStudent(studentName);
     }
 }
 
@@ -118,8 +124,7 @@ void MainWindow::on_action_ImportStudents_triggered()
     PasteStudentsDialog dialog;
     if(dialog.exec()==QDialog::Accepted)
     {
-        manager->importStudents(dialog.getNameList());
-        modal->resetTable();
+        modal->importStudents(dialog.getNameList());
     }
 }
 
@@ -131,8 +136,7 @@ void MainWindow::on_action_DeleteStudent_triggered()
         int index=dialog.selectedIndex();
         if(index!=-1)
         {
-            manager->removeStudent(index);
-            modal->resetTable();
+            modal->removeStudent(index);
         }
     }
 }
@@ -144,9 +148,7 @@ void MainWindow::on_action_ClearStudents_triggered()
                              .arg(manager->getTemplates().size())
                              .arg(manager->getRecords().size())))
     {
-        manager->clearStudents();
-        //TODO: fix it
-        modal->resetTable();
+        modal->clearStudents();
     }
 }
 
@@ -269,9 +271,7 @@ void MainWindow::on_action_ClearRecords_triggered()
 {
     if(confirmClearOperation(tr("积分记录(共%1条)").arg(manager->getRecords().size())))
     {
-        manager->clearRecords();
-        //TODO: fix it
-        modal->resetTable();
+        modal->clearScoreRecord();
     }
 }
 
@@ -349,9 +349,7 @@ void MainWindow::on_action_ClearTemplates_triggered()
 {
     if(confirmClearOperation(tr("积分模板(共%1个)").arg(manager->getTemplates().size())))
     {
-        manager->clearTemplates();
-        //TODO: fix it
-        modal->resetTable();
+        modal->clearScoreTemplate();
     }
 }
 
@@ -372,7 +370,8 @@ void MainWindow::on_action_AboutQt_triggered()
 
 void MainWindow::onFileLoaded()
 {
-    //NOTE: temporarily disable clear operations
+    ui->stackedWidget->setCurrentIndex(1);
+
     ui->action_OpenFile->setDisabled(true);
     ui->action_NewFile->setDisabled(true);
     ui->action_SaveFile->setDisabled(false);
@@ -381,22 +380,24 @@ void MainWindow::onFileLoaded()
     ui->action_AddStudent->setDisabled(false);
     ui->action_ImportStudents->setDisabled(false);
     ui->action_DeleteStudent->setDisabled(false);
-    // ui->action_ClearStudents->setDisabled(false);
+    ui->action_ClearStudents->setDisabled(false);
 
     ui->action_NewScoreRecord->setDisabled(false);
     ui->action_ExportScoreSum->setDisabled(false);
     ui->action_ShowRecordHistory->setDisabled(false);
     ui->action_DeleteRecordHistory->setDisabled(false);
-    // ui->action_ClearRecords->setDisabled(false);
+    ui->action_ClearRecords->setDisabled(false);
 
     ui->action_NewTemplate->setDisabled(false);
     ui->action_ShowTemplate->setDisabled(false);
     ui->action_DeleteTemplate->setDisabled(false);
-    // ui->action_ClearTemplates->setDisabled(false);
+    ui->action_ClearTemplates->setDisabled(false);
 }
 
 void MainWindow::onFileClosed()
 {
+    ui->stackedWidget->setCurrentIndex(0);
+
     ui->action_OpenFile->setDisabled(false);
     ui->action_NewFile->setDisabled(false);
     ui->action_SaveFile->setDisabled(true);
@@ -405,7 +406,7 @@ void MainWindow::onFileClosed()
     ui->action_AddStudent->setDisabled(true);
     ui->action_ImportStudents->setDisabled(true);
     ui->action_DeleteStudent->setDisabled(true);
-    // ui->action_ClearStudents->setDisabled(true);
+    ui->action_ClearStudents->setDisabled(true);
 
     ui->action_NewScoreRecord->setDisabled(true);
     ui->action_UseScoreTemplate->setDisabled(true);
@@ -414,14 +415,14 @@ void MainWindow::onFileClosed()
     ui->action_ShowRecordHistory->setDisabled(true);
     ui->action_HideRecordHistory->setDisabled(true);
     ui->action_DeleteRecordHistory->setDisabled(true);
-    // ui->action_ClearRecords->setDisabled(true);
+    ui->action_ClearRecords->setDisabled(true);
 
     ui->action_NewTemplate->setDisabled(true);
     ui->action_EditTemplate->setDisabled(true);
     ui->action_ShowTemplate->setDisabled(true);
     ui->action_HideTemplate->setDisabled(true);
     ui->action_DeleteTemplate->setDisabled(true);
-    // ui->action_ClearTemplates->setDisabled(true);
+    ui->action_ClearTemplates->setDisabled(true);
 }
 
 void MainWindow::updateWindowTitle(const QString &fileName)

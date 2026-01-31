@@ -446,22 +446,21 @@ struct WindowCompositionAttributeData
 typedef BOOL(WINAPI* pSetWindowCompositionAttribute)(HWND, WindowCompositionAttributeData*);
 #endif
 
-void AboutInfoDialog::enableEffects()
-{
-    /*旧版关闭按钮样式：
-    QPushButton#pushButton {
+/* 旧版关闭按钮样式：
+QPushButton#pushButton {
     color: #fff;
     border-radius: 6px;
     padding: 8px 20px;
     font-weight: 500;
     background: qlineargradient(x1:0, y1:0, x2:0, y2:1,stop:0 rgba(6,14,131,255),stop:1 rgba(12,25,180,255));
     border: none;
-    }
+}
 
-    QPushButton#pushButton:hover {
+QPushButton#pushButton:hover {
     background: qlineargradient(x1:0, y1:0, y2:1,stop:0 rgba(0,3,255,255),stop:1 rgba(2,126,251,255));
-    }
-    */
+} */
+void AboutInfoDialog::enableEffects()
+{
     repaint();//重绘窗口，使背景更新，显示透明
     auto animateWidgetFadeOut = [this](QWidget * widget, int duration_ms = 2000)
     {

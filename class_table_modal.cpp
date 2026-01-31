@@ -1,14 +1,14 @@
 #include "class_table_modal.h"
 
-ClassTableModal::ClassTableModal(QObject *parent,ClassDataManager* dataManager)
+ClassTableModal::ClassTableModal(QObject *parent, ClassDataManager* dataManager)
     : QAbstractTableModel(parent)
     , manager(dataManager)
     , students(manager->getStudents())
     , templates(manager->getTemplates())
     , records(manager->getRecords())
-    , templateIndex(-1)
-    , recordIndex(-1)
-    , activatedTemplateIndex(-1)
+    , templateIndex(INVALID_INDEX)
+    , recordIndex(INVALID_INDEX)
+    , activatedTemplateIndex(INVALID_INDEX)
 {
 }
 
@@ -42,8 +42,8 @@ QVariant ClassTableModal::data(const QModelIndex &index, int role) const
             return students.at(rowToIndex[index.row()]).name;
         case GroupNumber:
         {
-            const int groupNum=students.at(rowToIndex[index.row()]).groupNumber;
-            if(groupNum==StudentInfo::NoGroup)
+            const int groupNum = students.at(rowToIndex[index.row()]).groupNumber;
+            if(groupNum == StudentInfo::NoGroup)
                 return QObject::tr("未分组");
             else
                 return groupNum;
@@ -51,7 +51,7 @@ QVariant ClassTableModal::data(const QModelIndex &index, int role) const
         case CurrentRecord:
             return manager->getTempRecord().at(rowToIndex[index.row()]);
         case CurrentTemplate:
-            if(activatedTemplateIndex>=0)
+            if(isValidIndex(activatedTemplateIndex))
                 return templates.at(activatedTemplateIndex).values.at(rowToIndex[index.row()]);
             else
                 return 0;
@@ -71,9 +71,9 @@ QVariant ClassTableModal::data(const QModelIndex &index, int role) const
         {
         case CurrentRecord:
             // return getScoreColor(manager->getTempRecord().at(rowToIndex[index.row()]));
-            return getScoreColor(manager->getTempRecord().value(rowToIndex[index.row()],0));
+            return getScoreColor(manager->getTempRecord().value(rowToIndex[index.row()], 0));
         case CurrentTemplate:
-            if(activatedTemplateIndex>=0)
+            if(isValidIndex(activatedTemplateIndex))
                 return getScoreColor(templates.at(activatedTemplateIndex).values.at(rowToIndex[index.row()]));
             else
                 return getScoreColor(0);
@@ -86,10 +86,10 @@ QVariant ClassTableModal::data(const QModelIndex &index, int role) const
         }
     }
     case Qt::CheckStateRole:
-        if(index.column()==GroupNumber)
+        if(index.column() == GroupNumber)
         {
-            int groupNum=students.at(rowToIndex[index.row()]).groupNumber;
-            if(groupNum==StudentInfo::NoGroup)
+            int groupNum = students.at(rowToIndex[index.row()]).groupNumber;
+            if(groupNum == StudentInfo::NoGroup)
                 return Qt::Unchecked;
             else
                 return Qt::Checked;
@@ -103,9 +103,9 @@ QVariant ClassTableModal::data(const QModelIndex &index, int role) const
 
 QVariant ClassTableModal::headerData(int section, Qt::Orientation orientation, int role) const
 {
-    if(role!=Qt::DisplayRole)
+    if(role != Qt::DisplayRole)
         return QVariant();
-    if(orientation==Qt::Horizontal)
+    if(orientation == Qt::Horizontal)
     {
         switch(section)
         {
@@ -127,7 +127,7 @@ QVariant ClassTableModal::headerData(int section, Qt::Orientation orientation, i
     }
     else
     {
-        return QString::number(section+1);
+        return QString::number(section + 1);
     }
 }
 
@@ -135,22 +135,22 @@ bool ClassTableModal::setData(const QModelIndex &index, const QVariant &value, i
 {
     if(!validateModalIndex(index))
         return false;
-    if(role==Qt::EditRole)
+    if(role == Qt::EditRole)
     {
         switch(index.column())
         {
         case StudentName:
         {
-            manager->studentAt(rowToIndex[index.row()]).name=value.toString();
+            manager->studentAt(rowToIndex[index.row()]).name = value.toString();
             return true;
         }
         case GroupNumber:
         {
             bool ok;
-            const int val=value.toInt(&ok);
-            if(ok&&val>=0)
+            const int val = value.toInt(&ok);
+            if(ok && val >= 0)
             {
-                manager->studentAt(rowToIndex[index.row()]).groupNumber=val;
+                manager->studentAt(rowToIndex[index.row()]).groupNumber = val;
                 return true;
             }
             else
@@ -161,31 +161,31 @@ bool ClassTableModal::setData(const QModelIndex &index, const QVariant &value, i
         case CurrentRecord:
         {
             bool ok;
-            const int val=value.toInt(&ok);
+            const int val = value.toInt(&ok);
             if(ok)
-                manager->getTempRecord()[rowToIndex[index.row()]]=val;
+                manager->getTempRecord()[rowToIndex[index.row()]] = val;
             return ok;
         }
         case ScoreTemplatePreview:
         {
             bool ok;
-            const int val=value.toInt(&ok);
+            const int val = value.toInt(&ok);
             if(ok)
-                manager->templateAt(templateIndex).values[rowToIndex[index.row()]]=val;
+                manager->templateAt(templateIndex).values[rowToIndex[index.row()]] = val;
             return ok;
         }
         default:
             return false;
         }
     }
-    else if(role==Qt::CheckStateRole)
+    else if(role == Qt::CheckStateRole)
     {
-        int checked=value.toInt();
-        int& groupNum=manager->studentAt(rowToIndex[index.row()]).groupNumber;
+        int checked = value.toInt();
+        int& groupNum = manager->studentAt(rowToIndex[index.row()]).groupNumber;
         if(checked)
-            groupNum=0;
+            groupNum = 0;
         else
-            groupNum=StudentInfo::NoGroup;
+            groupNum = StudentInfo::NoGroup;
         return true;
     }
     return false;
@@ -194,19 +194,19 @@ bool ClassTableModal::setData(const QModelIndex &index, const QVariant &value, i
 Qt::ItemFlags ClassTableModal::flags(const QModelIndex &index) const
 {
     if(!validateModalIndex(index))
-        return Qt::ItemIsEnabled|Qt::ItemIsDropEnabled;
-    Qt::ItemFlags baseFlag=Qt::ItemIsEnabled|Qt::ItemIsSelectable|Qt::ItemIsDragEnabled|Qt::ItemIsDropEnabled;
+        return Qt::ItemIsEnabled | Qt::ItemIsDropEnabled;
+    Qt::ItemFlags baseFlag = Qt::ItemIsEnabled | Qt::ItemIsSelectable | Qt::ItemIsDragEnabled | Qt::ItemIsDropEnabled;
     switch(index.column())
     {
     case StudentName:
     case CurrentRecord:
     case ScoreTemplatePreview:
-        baseFlag|=Qt::ItemIsEditable;
+        baseFlag |= Qt::ItemIsEditable;
         break;
     case GroupNumber:
-        baseFlag|=Qt::ItemIsUserCheckable;
-        if(students.at(rowToIndex[index.row()]).groupNumber!=StudentInfo::NoGroup)
-            baseFlag|=Qt::ItemIsEditable;
+        baseFlag |= Qt::ItemIsUserCheckable;
+        if(students.at(rowToIndex[index.row()]).groupNumber != StudentInfo::NoGroup)
+            baseFlag |= Qt::ItemIsEditable;
         break;
     default:
         break;
@@ -223,11 +223,11 @@ QMimeData* ClassTableModal::mimeData(const QModelIndexList &indexes) const
 {
     if(indexes.isEmpty())
         return nullptr;
-    QMimeData* mimeData=new QMimeData;
+    QMimeData* mimeData = new QMimeData;
     QByteArray encodedData;
-    QDataStream stream(&encodedData,QIODevice::WriteOnly);
-    stream<<indexes.first().row();
-    mimeData->setData(moveRowDataType,encodedData);
+    QDataStream stream(&encodedData, QIODevice::WriteOnly);
+    stream << indexes.first().row();
+    mimeData->setData(moveRowDataType, encodedData);
     return mimeData;
 }
 
@@ -236,7 +236,7 @@ bool ClassTableModal::canDropMimeData(const QMimeData *data, Qt::DropAction acti
     Q_UNUSED(row);
     Q_UNUSED(column);
     Q_UNUSED(parent);
-    if(action==Qt::MoveAction&&data->hasFormat(moveRowDataType))
+    if(action == Qt::MoveAction && data->hasFormat(moveRowDataType))
         return true;
     else
         return false;
@@ -245,77 +245,96 @@ bool ClassTableModal::canDropMimeData(const QMimeData *data, Qt::DropAction acti
 bool ClassTableModal::dropMimeData(const QMimeData *data, Qt::DropAction action, int row, int column, const QModelIndex &parent)
 {
     Q_UNUSED(column);
-    if(action!=Qt::MoveAction)
+    if(action != Qt::MoveAction)
         return false;
-    if(row==-1)
+    if(!isValidIndex(row))
         return false;
     if(!data->hasFormat(moveRowDataType))
         return false;
-    QByteArray encodedData=data->data(moveRowDataType);
-    QDataStream stream(&encodedData,QIODevice::ReadOnly);
+    QByteArray encodedData = data->data(moveRowDataType);
+    QDataStream stream(&encodedData, QIODevice::ReadOnly);
     int sourceRow;
-    stream>>sourceRow;
-    beginMoveRows(parent,sourceRow,sourceRow,parent,row);
-    if(row>sourceRow)
+    stream >> sourceRow;
+    beginMoveRows(parent, sourceRow, sourceRow, parent, row);
+    if(row > sourceRow)
     {
-        for(int i=sourceRow;i<row-1;i++)
+        for(int i = sourceRow; i < row - 1; i++)
         {
             std::swap(manager->studentAt(rowToIndex[i]).displayOrder,
-                      manager->studentAt(rowToIndex[i+1]).displayOrder);
-            std::swap(rowToIndex[i],rowToIndex[i+1]);
+                      manager->studentAt(rowToIndex[i + 1]).displayOrder);
+            std::swap(rowToIndex[i], rowToIndex[i + 1]);
         }
     }
     else
     {
-        for(int i=sourceRow;i>row;i--)
+        for(int i = sourceRow; i > row; i--)
         {
             std::swap(manager->studentAt(rowToIndex[i]).displayOrder,
-                      manager->studentAt(rowToIndex[i+1]).displayOrder);
-            std::swap(rowToIndex[i],rowToIndex[i-1]);
+                      manager->studentAt(rowToIndex[i - 1]).displayOrder);
+            std::swap(rowToIndex[i], rowToIndex[i - 1]);
         }
     }
     endMoveRows();
     return true;
 }
 
-void ClassTableModal::newScoreRecord(const QString &newRecordName)
+void ClassTableModal::addStudent(const QString& newName)
 {
-    manager->newRecord(newRecordName);
-    activatedTemplateIndex=-1;
-    showColumnWrapper(CurrentRecord);
-    showColumnWrapper(CurrentTemplate);
+    const int newIndex = students.size();
+    beginInsertRows(QModelIndex(), newIndex, newIndex);
+    manager->addStudent(newName);
+    rowToIndex.append(newIndex);
+    endInsertRows();
 }
 
-void ClassTableModal::activateTemplate(int index)
+void ClassTableModal::importStudents(const QStringList& newNames)
 {
-    activatedTemplateIndex=index;
+    const int beginIndex = students.size();
+    const int endIndex = beginIndex + newNames.size() - 1;
+    beginInsertRows(QModelIndex(), beginIndex, endIndex);
+    manager->importStudents(newNames);
+    for(int i = beginIndex; i <= endIndex; i++)
+        rowToIndex.append(i);
+    endInsertRows();
 }
 
-void ClassTableModal::saveScoreRecord()
+void ClassTableModal::removeStudent(int displayIndex)
 {
-    manager->saveRecord(activatedTemplateIndex);
-    activatedTemplateIndex=-1;
-    hideColumnWrapper(CurrentRecord);
-    hideColumnWrapper(CurrentTemplate);
+    qDebug() << displayIndex;
+    // 从显示表格中的索引获得底层索引
+    const int realIndex = rowToIndex.at(displayIndex);
+    beginRemoveRows(QModelIndex(), displayIndex, displayIndex);
+    // 将显示顺序在其后面的学生displayOrder向前移一个
+    manager->removeStudent(realIndex);
+    // 要得到相同学生的索引，比原来更靠前一行
+    for(int i = displayIndex; i < rowToIndex.size() - 1; i++)
+        rowToIndex[i] = rowToIndex[i + 1];
+    rowToIndex.removeLast();
+    // 真实索引在其后面的学生索引向前移一个
+    for(int& i : rowToIndex)
+        if(i > realIndex)
+            i--;
+    endRemoveRows();
+#ifdef QT_DEBUG
+    QList<int> expected;
+    expected.resize(students.size());
+    if(!students.isEmpty())
+        for(int i = 0; i < students.size(); i++)
+            expected[students.at(i).displayOrder - 1] = i;
+    if(rowToIndex != expected)
+    {
+        qFatal() << "adjusted:" << rowToIndex << Qt::endl << "expected:" << rowToIndex;
+    }
+#endif
 }
 
-void ClassTableModal::newScoreTemplate(const ScoreTemplate& newTemplate)
+void ClassTableModal::clearStudents()
 {
-    manager->addTemplate(newTemplate);
-    showScoreTemplate(manager->getTemplates().count()-1);
+    manager->clearStudents();
+    resetTable();
 }
 
-void ClassTableModal::setTemplateDescription(const QString &newDescription)
-{
-    if(templateIndex>=0)
-        manager->templateAt(templateIndex).description=newDescription;
-}
-
-int ClassTableModal::getCurTemplateIndex() const
-{
-    return templateIndex;
-}
-
+// 积分记录相关函数
 int ClassTableModal::getCurRecordIndex() const
 {
     return recordIndex;
@@ -323,57 +342,111 @@ int ClassTableModal::getCurRecordIndex() const
 
 void ClassTableModal::showRecordHistory(int index)
 {
-    recordIndex=index;
+    recordIndex = index;
     showColumnWrapper(RecordHistoryPreview);
 }
 
 void ClassTableModal::hideRecordHistory()
 {
-    recordIndex=-1;
+    recordIndex = INVALID_INDEX;
     hideColumnWrapper(RecordHistoryPreview);
+}
+
+void ClassTableModal::newScoreRecord(const QString &newRecordName)
+{
+    manager->newRecord(newRecordName);
+    activatedTemplateIndex = INVALID_INDEX;
+    showColumnWrapper(CurrentRecord);
+    showColumnWrapper(CurrentTemplate);
+}
+
+void ClassTableModal::activateTemplate(int index)
+{
+    activatedTemplateIndex = index;
+}
+
+void ClassTableModal::saveScoreRecord()
+{
+    manager->saveRecord(activatedTemplateIndex);
+    activatedTemplateIndex = INVALID_INDEX;
+    hideColumnWrapper(CurrentRecord);
+    hideColumnWrapper(CurrentTemplate);
+}
+
+void ClassTableModal::deleteRecordHistory(int index)
+{
+    if(index == recordIndex)
+        hideRecordHistory();
+    else if(index < recordIndex)
+        recordIndex--;
+    manager->removeRecord(index);
+}
+
+void ClassTableModal::clearScoreRecord()
+{
+    if(isValidIndex(recordIndex))
+        hideRecordHistory();
+    manager->clearRecords();
+}
+
+// 积分模板相关函数
+int ClassTableModal::getCurTemplateIndex() const
+{
+    return templateIndex;
 }
 
 void ClassTableModal::showScoreTemplate(int index)
 {
-    templateIndex=index;
+    templateIndex = index;
     showColumnWrapper(ScoreTemplatePreview);
 }
 
 void ClassTableModal::hideScoreTemplate()
 {
-    templateIndex=-1;
+    templateIndex = INVALID_INDEX;
     hideColumnWrapper(ScoreTemplatePreview);
 }
 
-void ClassTableModal::deleteRecordHistory(int index)
+void ClassTableModal::newScoreTemplate(const ScoreTemplate& newTemplate)
 {
-    if(index==recordIndex)
-        hideRecordHistory();
-    else if(index<recordIndex)
-        recordIndex--;
-    manager->removeRecord(index);
+    manager->addTemplate(newTemplate);
+    showScoreTemplate(manager->getTemplates().count() - 1);
+}
+
+void ClassTableModal::setTemplateDescription(const QString &newDescription)
+{
+    if(isValidIndex(templateIndex))
+        manager->templateAt(templateIndex).description = newDescription;
 }
 
 void ClassTableModal::deleteScoreTemplate(int index)
 {
-    if(index==templateIndex)
+    if(index == templateIndex)
         hideScoreTemplate();
-    else if(index<templateIndex)
+    else if(index < templateIndex)
         templateIndex--;
-    if(activatedTemplateIndex==index)
-        activatedTemplateIndex=-1;
-    else if(index<activatedTemplateIndex)
+    if(activatedTemplateIndex == index)
+        activatedTemplateIndex = INVALID_INDEX;
+    else if(index < activatedTemplateIndex)
         activatedTemplateIndex--;
     manager->removeTemplate(index);
+}
+
+void ClassTableModal::clearScoreTemplate()
+{
+    if(isValidIndex(templateIndex))
+        hideScoreTemplate();
+    manager->clearTemplates();
 }
 
 void ClassTableModal::resetTable()
 {
     beginResetModel();
     rowToIndex.resize(students.size());
+    //displayOrder取值为[1,size]，将其减一变成在[0,size-1]之间
     if(!students.isEmpty())
-        for(int i=0;i<students.size();i++)
-            rowToIndex[students.at(i).displayOrder-1]=i;
+        for(int i = 0; i < students.size(); i++)
+            rowToIndex[students.at(i).displayOrder - 1] = i;
     endResetModel();
     showColumnWrapper(StudentName);
     showColumnWrapper(GroupNumber);
@@ -385,27 +458,35 @@ void ClassTableModal::resetTable()
 
 bool ClassTableModal::validateModalIndex(const QModelIndex &index) const
 {
-    return index.isValid()&&columnIsVisible[index.column()];
+    return index.isValid() &&
+           columnIsVisible[index.column()] &&
+           index.row() >= 0 &&
+           index.row() <= students.size();
+}
+
+bool ClassTableModal::isValidIndex(int index) const
+{
+    return index != INVALID_INDEX;
 }
 
 void ClassTableModal::showColumnWrapper(int column)
 {
-    columnIsVisible[column]=true;
+    columnIsVisible[column] = true;
     emit showColumnRequested(column);
 }
 
 void ClassTableModal::hideColumnWrapper(int column)
 {
-    columnIsVisible[column]=false;
+    columnIsVisible[column] = false;
     emit hideColumnRequested(column);
 }
 
 QBrush ClassTableModal::getScoreColor(int scoreValue)
 {
-    if(scoreValue>0)
-        return QBrush(QColor(39,174,96));
-    else if(scoreValue<0)
-        return QBrush(QColor(231,76,60));
+    if(scoreValue > 0)
+        return QBrush(QColor(39, 174, 96));
+    else if(scoreValue < 0)
+        return QBrush(QColor(231, 76, 60));
     else
-        return QBrush(QColor(127,140,141));
+        return QBrush(QColor(127, 140, 141));
 }

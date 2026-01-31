@@ -1,7 +1,7 @@
 #ifndef CLASS_DATA_MANAGER_H
 #define CLASS_DATA_MANAGER_H
 
-#include "score_sum_report.h"
+#include "data_types.h"
 #include <QObject>
 #include <QDebug>
 #include <QFile>
@@ -60,9 +60,9 @@ public:
 private:
     static constexpr quint64 CorrectFileHeader=0x0123456789abcdefull;
     void setDirty(bool isDirty);
-    bool m_hasData  =false;
-    bool m_isNewFile=false;
-    bool m_isDirty  =false;
+    bool m_hasData   = false;
+    bool m_isNewFile = false;
+    bool m_isDirty   = false;
     ScoreRecord tempRecord;
     QString filePath;
     HeaderData header;

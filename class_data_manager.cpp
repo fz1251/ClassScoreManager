@@ -25,19 +25,21 @@ void ClassDataManager::debugPrint()
 
     // 3. 学生信息列表
     qDebug() << "[Student List] (" << students.size() << "students)";
-    for (int i = 0; i < students.size(); ++i) {
+    for (int i = 0; i < students.size(); ++i)
+    {
         const auto& s = students[i];
         qDebug().nospace()
-            << "  #" << i
-            << " | Name: " << s.name
-            << " | Order: " << s.displayOrder
-            << " | Group: " << (s.groupNumber == StudentInfo::NoGroup ? "No" : QString::number(s.groupNumber));
+                << "  #" << i
+                << " | Name: " << s.name
+                << " | Order: " << s.displayOrder
+                << " | Group: " << (s.groupNumber == StudentInfo::NoGroup ? "No" : QString::number(s.groupNumber));
     }
     qDebug() << "-----------------------------------------------";
 
     // 4. 积分模板列表
     qDebug() << "[Score Templates] (" << templates.size() << "templates)";
-    for (int i = 0; i < templates.size(); ++i) {
+    for (int i = 0; i < templates.size(); ++i)
+    {
         const auto& t = templates[i];
         qDebug() << "  Template #" << i;
         qDebug() << "    Description: " << t.description;
@@ -47,13 +49,14 @@ void ClassDataManager::debugPrint()
 
     // 5. 积分记录列表
     qDebug() << "[Score Records] (" << records.size() << "records)";
-    for (int i = 0; i < records.size(); ++i) {
+    for (int i = 0; i < records.size(); ++i)
+    {
         const auto& r = records[i];
         qDebug() << "  Record #" << i;
         qDebug() << "    Time: " << r.saveTime.toString("yyyy-MM-dd hh:mm:ss");
         qDebug() << "    Description: " << r.description;
         qDebug() << "    Scores (" << r.scores.size() << "entries):";
-        qDebug() << "    "<<r.scores;
+        qDebug() << "    " << r.scores;
     }
     qDebug() << "===== End of Debug Information =====";
 }
@@ -61,72 +64,72 @@ void ClassDataManager::debugPrint()
 
 QString ClassDataManager::openFile(const QString& openFilePath)
 {
-    filePath=openFilePath;
+    filePath = openFilePath;
     QFile file(filePath);
     if(!file.open(QIODevice::ReadOnly))
     {
         return QObject::tr("无法打开名为%1的文件")
-                .arg(filePath);
+               .arg(filePath);
     }
     QDataStream stream(&file);
-    stream>>header;
-    if(header.fileHeader!=CorrectFileHeader)
+    stream >> header;
+    if(header.fileHeader != CorrectFileHeader)
     {
         return QObject::tr("错误的文件头，文件格式不正确或已损坏");
     }
-    stream>>settings;
-    stream>>students;
-    if(header.studentCount!=students.size())
+    stream >> settings;
+    stream >> students;
+    if(header.studentCount != students.size())
     {
         return QObject::tr("学生信息不正确，应为%1条，实际为%2条")
-                .arg(header.studentCount)
-                .arg(students.size());
+               .arg(header.studentCount)
+               .arg(students.size());
     }
-    stream>>templates;
-    if(header.templateCount!=templates.size())
+    stream >> templates;
+    if(header.templateCount != templates.size())
     {
         return QObject::tr("积分模板信息不正确，应为%1条，实际为%2条")
-                .arg(header.templateCount)
-                .arg(templates.size());
+               .arg(header.templateCount)
+               .arg(templates.size());
     }
-    stream>>records;
-    if(header.recordCount!=records.size())
+    stream >> records;
+    if(header.recordCount != records.size())
     {
         return QObject::tr("积分记录信息不正确，应为%1条，实际为%2条")
-                .arg(header.recordCount)
-                .arg(records.size());
+               .arg(header.recordCount)
+               .arg(records.size());
     }
     file.close();
-    m_hasData=true;
+    m_hasData = true;
     return QString();
 }
 
 void ClassDataManager::newFile()
 {
-    m_hasData=true;
-    m_isNewFile=true;
-    m_isDirty=true;
+    m_hasData = true;
+    m_isNewFile = true;
+    m_isDirty = true;
 }
 
 void ClassDataManager::saveNewFile(const QString &saveFilePath)
 {
-    filePath=saveFilePath;
+    filePath = saveFilePath;
     saveFile();
 
-    m_isNewFile=false;
+    m_isNewFile = false;
 }
 
 void ClassDataManager::saveFile()
 {
     QFile file(filePath);
-    if(!file.open(QIODevice::WriteOnly|QIODevice::Truncate))
+    if(!file.open(QIODevice::WriteOnly | QIODevice::Truncate))
         return;
     QDataStream stream(&file);
-    stream<<HeaderData{CorrectFileHeader,students.size(),templates.size(),records.size()};
-    stream<<settings;
-    stream<<students;
-    stream<<templates;
-    stream<<records;
+    stream << HeaderData{CorrectFileHeader, students.size(), templates.size(), records.size()};
+    stream << settings;
+    stream << students;
+    stream << templates;
+    stream << records;
     file.close();
 
     if(!this->isRecordUnsaved())
@@ -141,8 +144,8 @@ void ClassDataManager::closeFile()
     templates.clear();
     records.clear();
 
-    m_hasData=false;
-    m_isNewFile=false;
+    m_hasData = false;
+    m_isNewFile = false;
     setDirty(false);
 }
 
@@ -168,10 +171,10 @@ bool ClassDataManager::isRecordUnsaved() const
 
 void ClassDataManager::setPreviousSettings(quint8 mode)
 {
-    if(mode&SortSetting::sortAsGroup)
-        settings.groupPrevious=mode;
+    if(mode & SortSetting::sortAsGroup)
+        settings.groupPrevious = mode;
     else
-        settings.studentPrevious=mode;
+        settings.studentPrevious = mode;
 }
 
 StudentInfo& ClassDataManager::studentAt(int index)
@@ -191,34 +194,34 @@ const ScoreRecord& ClassDataManager::recordAt(int index)
     return records[index];
 }
 
-const SortSetting &ClassDataManager::getSettings() const
+const SortSetting& ClassDataManager::getSettings() const
 {
     return settings;
 }
 
-const QList<StudentInfo> &ClassDataManager::getStudents() const
+const QList<StudentInfo>& ClassDataManager::getStudents() const
 {
     return students;
 }
 
-const QList<ScoreTemplate> &ClassDataManager::getTemplates() const
+const QList<ScoreTemplate>& ClassDataManager::getTemplates() const
 {
     return templates;
 }
 
-const QList<ScoreRecord> &ClassDataManager::getRecords() const
+const QList<ScoreRecord>& ClassDataManager::getRecords() const
 {
     return records;
 }
 
 QStringList ClassDataManager::getStudentList() const
 {
-    std::map<qint32,QString> sortedList;
-    for(const auto& i:students)
-        sortedList.insert({i.displayOrder,i.name});
+    std::map<qint32, QString> sortedList;
+    for(const auto& i : students)
+        sortedList.insert({i.displayOrder, i.name});
     QStringList studentList;
     studentList.reserve(students.size());
-    for(const auto& i:sortedList)
+    for(const auto& i : sortedList)
         studentList.append(tr("[%1号] %2").arg(i.first).arg(i.second));
     return studentList;
 }
@@ -227,7 +230,7 @@ QStringList ClassDataManager::getTemplateList() const
 {
     QStringList templateList;
     templateList.reserve(templates.size());
-    for(const auto& i:templates)
+    for(const auto& i : templates)
         templateList.append(i.description);
     return templateList;
 }
@@ -236,7 +239,7 @@ QStringList ClassDataManager::getRecordList() const
 {
     QStringList recordList;
     recordList.reserve(records.size());
-    for(const auto& i:records)
+    for(const auto& i : records)
         recordList.append(tr("%1 [%2]").arg(i.description).arg(i.saveTime.toString("yyyy/M/d")));
     return recordList;
 }
@@ -245,8 +248,8 @@ bool ClassDataManager::verifyTemplateName(const QString &templateName)
 {
     if(templateName.isEmpty())
         return false;
-    for(const ScoreTemplate& i:templates)
-        if(i.description==templateName)
+    for(const ScoreTemplate& i : templates)
+        if(i.description == templateName)
             return false;
     return true;
 }
@@ -255,19 +258,19 @@ bool ClassDataManager::verifyRecordName(const QString &recordName)
 {
     if(recordName.isEmpty())
         return false;
-    for(const ScoreRecord& i:records)
-        if(i.description==recordName)
+    for(const ScoreRecord& i : records)
+        if(i.description == recordName)
             return false;
     return true;
 }
 
 void ClassDataManager::addStudent(const QString &newName)
 {
-    const int newId=students.size()+1;
-    students.append({newName,newId,StudentInfo::NoGroup});
-    for(auto& i:records)
+    const int newId = students.size() + 1;
+    students.append({newName, newId, StudentInfo::NoGroup});
+    for(auto& i : records)
         i.scores.append(0);
-    for(auto& i:templates)
+    for(auto& i : templates)
         i.values.append(0);
     setDirty(true);
 }
@@ -280,7 +283,7 @@ void ClassDataManager::addTemplate(const ScoreTemplate &newTemplate)
 
 void ClassDataManager::newRecord(const QString &recordName)
 {
-    tempRecord.description=recordName;
+    tempRecord.description = recordName;
     tempRecord.scores.resize(students.size());
     tempRecord.scores.fill(0);
     setDirty(true);
@@ -288,45 +291,45 @@ void ClassDataManager::newRecord(const QString &recordName)
 
 void ClassDataManager::saveRecord(int templateIndex)
 {
-    tempRecord.saveTime=QDateTime::currentDateTime();
-    if(templateIndex>=0&&templateIndex<templates.size())
-        for(int i=0;i<tempRecord.scores.size();i++)
-            tempRecord.scores[i]+=templates.at(templateIndex).values[i];
+    tempRecord.saveTime = QDateTime::currentDateTime();
+    if(templateIndex >= 0 && templateIndex < templates.size())
+        for(int i = 0; i < tempRecord.scores.size(); i++)
+            tempRecord.scores[i] += templates.at(templateIndex).values[i];
     records.append(tempRecord);
     tempRecord.scores.clear();
 }
 
-QList<qint32> &ClassDataManager::getTempRecord()
+QList<qint32>& ClassDataManager::getTempRecord()
 {
     return tempRecord.scores;
 }
 
 void ClassDataManager::importStudents(const QStringList &newNames)
 {
-    const int beginId=students.size()+1;
+    const int beginId = students.size() + 1;
     QList<StudentInfo> newStudents;
     newStudents.reserve(newNames.size());
-    for(int i=0;i<newNames.size();i++)
-        newStudents.append({newNames.at(i),beginId+i,StudentInfo::NoGroup});
+    for(int i = 0; i < newNames.size(); i++)
+        newStudents.append({newNames.at(i), beginId + i, StudentInfo::NoGroup});
     students.append(std::move(newStudents));
-    QList<qint32> zeros(newNames.size(),0);
-    for(auto& i:records)
+    QList<qint32> zeros(newNames.size(), 0);
+    for(auto& i : records)
         i.scores.append(zeros);
-    for(auto& i:templates)
+    for(auto& i : templates)
         i.values.append(zeros);
     setDirty(true);
 }
 
 void ClassDataManager::removeStudent(int index)
 {
-    const int removedPlace=students.at(index).displayOrder;
+    const int removedPlace = students.at(index).displayOrder;
     students.removeAt(index);
-    for(auto& i:students)
-        if(i.displayOrder>removedPlace)
+    for(auto& i : students)
+        if(i.displayOrder > removedPlace)
             i.displayOrder--;
-    for(auto& i:records)
+    for(auto& i : records)
         i.scores.removeAt(index);
-    for(auto& i:templates)
+    for(auto& i : templates)
         i.values.removeAt(index);
     setDirty(true);
 }
@@ -365,9 +368,9 @@ void ClassDataManager::clearRecords()
 
 void ClassDataManager::setDirty(bool isDirty)
 {
-    if(m_isDirty!=isDirty)
+    if(m_isDirty != isDirty)
     {
-        m_isDirty=isDirty;
+        m_isDirty = isDirty;
         emit dirtyStateChanged(isDirty);
     }
 }
