@@ -1,12 +1,17 @@
 #include "mainwindow.h"
-#include "score_sum_report.h"
 #include "ui_mainwindow.h"
 #include "ui/about_info_dialog.h"
 #include "ui/item_selection_dialog.h"
 #include "ui/paste_students_dialog.h"
 #include "ui/sum_export_dialog.h"
+#include "score_sum_report.h"
 #include "score_expr_delegate.h"
 #include "score_sum_report.h"
+#include <QPushButton>
+#include <QInputDialog>
+#include <QDir>
+#include <QFileDialog>
+#include <QSplitter>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -21,14 +26,50 @@ MainWindow::MainWindow(QWidget *parent)
     // ui->statusbar->setSizeGripEnabled(false);
     ui->statusbar->setVisible(false);
 
-    this->setCentralWidget(ui->stackedWidget);
     ui->stackedWidget->setCurrentIndex(0);
 
     ui->tableView->setItemDelegateForColumn(ClassTableModal::CurrentRecord,new ScoreExprDelegate(this));
 
+    //设置表格右侧操作面板
+    QWidget* secondPage = ui->stackedWidget->widget(StudentTablePage);
+    ui->rightPanelLayout->addStretch();
+    QSplitter* splitter = new QSplitter(secondPage);
+    splitter->addWidget(ui->tableView);
+    splitter->addWidget(ui->rightPanelWidget);
+    QVBoxLayout* centralLayout = new QVBoxLayout(secondPage);
+    centralLayout->addWidget(splitter);
+    secondPage->setLayout(centralLayout);
+
+
+    ui->cb_dragStudent->setCheckState(Qt::Checked);
+    ui->cb_editName->setCheckState(Qt::Checked);
+    ui->cb_editGroup->setCheckState(Qt::Checked);
+
+
     connect(manager,&ClassDataManager::dirtyStateChanged,this,&MainWindow::setWindowModified);
     connect(modal,&ClassTableModal::showColumnRequested,ui->tableView,&QTableView::showColumn);
     connect(modal,&ClassTableModal::hideColumnRequested,ui->tableView,&QTableView::hideColumn);
+
+    connect(ui->cb_dragStudent,&QCheckBox::checkStateChanged,this,[this](Qt::CheckState state){
+        bool checked=state==Qt::Checked;
+        if(checked)
+        {
+            ui->tableView->setDragDropMode(QAbstractItemView::InternalMove);
+            ui->tableView->setDefaultDropAction(Qt::MoveAction);
+        }
+        else
+        {
+            ui->tableView->setDragDropMode(QAbstractItemView::NoDragDrop);
+        }
+    });
+    connect(ui->cb_editName,&QCheckBox::checkStateChanged,this,[this](Qt::CheckState state){
+        bool checked=state==Qt::Checked;
+        modal->setStudentEditable(checked);
+    });
+    connect(ui->cb_editGroup,&QCheckBox::checkStateChanged,this,[this](Qt::CheckState state){
+        bool checked=state==Qt::Checked;
+        modal->setGroupEditable(checked);
+    });
 }
 
 MainWindow::~MainWindow()
@@ -370,7 +411,7 @@ void MainWindow::on_action_AboutQt_triggered()
 
 void MainWindow::onFileLoaded()
 {
-    ui->stackedWidget->setCurrentIndex(1);
+    ui->stackedWidget->setCurrentIndex(StudentTablePage);
 
     ui->action_OpenFile->setDisabled(true);
     ui->action_NewFile->setDisabled(true);
@@ -396,7 +437,7 @@ void MainWindow::onFileLoaded()
 
 void MainWindow::onFileClosed()
 {
-    ui->stackedWidget->setCurrentIndex(0);
+    ui->stackedWidget->setCurrentIndex(WelcomePage);
 
     ui->action_OpenFile->setDisabled(false);
     ui->action_NewFile->setDisabled(false);
@@ -525,3 +566,37 @@ bool MainWindow::confirmClearOperation(const QString &description)
     msgBox.exec();
     return msgBox.clickedButton()==confirmBtn;
 }
+
+void MainWindow::on_recordToggleBtn_toggled(bool checked)
+{
+    if(checked)
+    {
+        ui->recordToggleBtn->setText(tr("查看积分记录：开启"));
+        ui->selectRecordLabel->setEnabled(true);
+        ui->selectRecordBox->setEnabled(true);
+    }
+    else
+    {
+        ui->recordToggleBtn->setText(tr("查看积分记录：关闭"));
+        ui->selectRecordLabel->setEnabled(false);
+        ui->selectRecordBox->setEnabled(false);
+    }
+}
+
+
+void MainWindow::on_templateToggleBtn_toggled(bool checked)
+{
+    if(checked)
+    {
+        ui->recordToggleBtn->setText(tr("查看积分模板：开启"));
+        ui->selectTemplateLabel->setEnabled(true);
+        ui->selectTemplateBox->setEnabled(true);
+    }
+    else
+    {
+        ui->recordToggleBtn->setText(tr("查看积分模板：关闭"));
+        ui->selectTemplateLabel->setEnabled(false);
+        ui->selectTemplateBox->setEnabled(false);
+    }
+}
+

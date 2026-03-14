@@ -13,9 +13,6 @@
   <property name="windowTitle">
    <string>关于</string>
   </property>
-  <property name="styleSheet">
-   <string notr="true"/>
-  </property>
   <layout class="QVBoxLayout" name="OuterVLayout" stretch="0">
    <property name="spacing">
     <number>0</number>
@@ -92,7 +89,7 @@ Powered by Qt 6.8.3
 Copyright© 2025 孟繁臻 mengfanzhen0501@163.com
 鸣谢：战奕辰提供软件图标
 由开源项目提供Windows7运行支持,项目地址:github.com/crystalidea/qt6windows7
-本程序附带一份GNU通用公共许可协议v3的副本，您也可以访问www.gnu.org/licenses获取</string>
+本程序按MIT协议开源</string>
        </property>
        <property name="wordWrap">
         <bool>true</bool>

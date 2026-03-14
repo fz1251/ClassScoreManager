@@ -20,7 +20,8 @@ public:
         CurrentRecord,
         CurrentTemplate,
         RecordHistoryPreview,
-        ScoreTemplatePreview
+        ScoreTemplatePreview,
+        MaxColumnCount
     };
 
     // 表格模型所用函数
@@ -62,24 +63,30 @@ public:
     void clearScoreTemplate();
 
     void resetTable();
-
+public slots:
+    void setStudentEditable(bool editable);
+    void setGroupEditable(bool editable);
 signals:
     void showColumnRequested(int column);
     void hideColumnRequested(int column);
 private:
+    static const inline QString moveRowDataType = "application/row_data";
+    static const inline int INVALID_INDEX = -1;
+
     bool validateModalIndex(const QModelIndex& index) const;
     bool isValidIndex(int index)const;
-    bool columnIsVisible[8];
     void showColumnWrapper(int column);
     void hideColumnWrapper(int column);
-    static const inline QString moveRowDataType = "application/row_data";
     static QBrush getScoreColor(int scoreValue);
     ClassDataManager* manager;
     const QList<StudentInfo>& students;
     const QList<ScoreTemplate>& templates;
     const QList<ScoreRecord>& records;
+
+    bool columnIsVisible[MaxColumnCount];
+    bool canEditStudent = true;
+    bool canEditGroup   = true;
     QList<int> rowToIndex; // rowIndex[0,size-1]=>students[0,size-1]
-    static const inline int INVALID_INDEX = -1;
     int templateIndex, recordIndex;
     int activatedTemplateIndex;
 };

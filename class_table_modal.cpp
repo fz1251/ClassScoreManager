@@ -22,7 +22,7 @@ int ClassTableModal::columnCount(const QModelIndex &parent) const
 {
     Q_UNUSED(parent);
     if(manager->hasData())
-        return 6;
+        return MaxColumnCount;
     else
         return 0;
 }
@@ -195,18 +195,26 @@ Qt::ItemFlags ClassTableModal::flags(const QModelIndex &index) const
 {
     if(!validateModalIndex(index))
         return Qt::ItemIsEnabled | Qt::ItemIsDropEnabled;
-    Qt::ItemFlags baseFlag = Qt::ItemIsEnabled | Qt::ItemIsSelectable | Qt::ItemIsDragEnabled | Qt::ItemIsDropEnabled;
+    Qt::ItemFlags baseFlag = Qt::ItemIsEnabled | Qt::ItemIsSelectable | Qt::ItemIsDragEnabled;
     switch(index.column())
     {
     case StudentName:
-    case CurrentRecord:
-    case ScoreTemplatePreview:
-        baseFlag |= Qt::ItemIsEditable;
+        if(canEditStudent)
+        {
+            baseFlag |= Qt::ItemIsEditable;
+        }
         break;
     case GroupNumber:
+        if(canEditGroup)
+        {
         baseFlag |= Qt::ItemIsUserCheckable;
         if(students.at(rowToIndex[index.row()]).groupNumber != StudentInfo::NoGroup)
             baseFlag |= Qt::ItemIsEditable;
+        }
+        break;
+    case CurrentRecord:
+    case ScoreTemplatePreview:
+        baseFlag |= Qt::ItemIsEditable;
         break;
     default:
         break;
@@ -454,6 +462,18 @@ void ClassTableModal::resetTable()
     hideColumnWrapper(CurrentTemplate);
     hideColumnWrapper(RecordHistoryPreview);
     hideColumnWrapper(ScoreTemplatePreview);
+}
+
+void ClassTableModal::setStudentEditable(bool editable)
+{
+    canEditStudent = editable;
+    emit dataChanged(index(0,StudentName),index(rowCount()-1,StudentName),{Qt::EditRole});
+}
+
+void ClassTableModal::setGroupEditable(bool editable)
+{
+    canEditGroup = editable;
+    emit dataChanged(index(0,GroupNumber),index(rowCount()-1,GroupNumber),{Qt::EditRole});
 }
 
 bool ClassTableModal::validateModalIndex(const QModelIndex &index) const

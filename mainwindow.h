@@ -6,10 +6,6 @@
 #include <QMainWindow>
 #include <QLabel>
 #include <QMessageBox>
-#include <QPushButton>
-#include <QInputDialog>
-#include <QDir>
-#include <QFileDialog>
 #include <QDragEnterEvent>
 #include <QDropEvent>
 #include <QCloseEvent>
@@ -66,7 +62,19 @@ private slots:
     void on_action_AboutApp_triggered();
     void on_action_AboutQt_triggered();
 
+
+    void on_recordToggleBtn_toggled(bool checked);
+
+    void on_templateToggleBtn_toggled(bool checked);
+
 private:
+    enum StackedPageIndex
+    {
+        WelcomePage,
+        StudentTablePage,
+        // ScoreRecordPage,
+        // ScoreTemplatePage
+    };
     void onFileLoaded();
     void onFileClosed();
     void updateWindowTitle(const QString& fileName);
