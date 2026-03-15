@@ -2,11 +2,126 @@
 #include <algorithm>
 #include <map>
 
-namespace ScoreSumReport {
+//FIXME:移除不再有效的状态，优化小组信息传参
 
+//前向声明
 namespace
 {
-const QString HTMLTemplate=QStringLiteral(R"(
+using namespace ScoreSumReport;
+namespace student
+{
+QString generate(QList<SummaryData> dataList, SortSetting::SortMode mode);
+} // namespace student
+namespace group
+{
+QString generate(QList<SummaryData> dataList, SortSetting::SortMode mode);
+} // namespace group
+} // namespace anonymous
+
+namespace ScoreSumReport
+{
+
+Sorter::Sorter(SortSetting::SortMode mode)
+{
+    auto setStudentCmp = [mode](getFunc & get_, cmpFunc & cmp_) -> void
+    {
+        bool sortBySum = mode & SortSetting::sortByStudentSum;
+        bool filpSorting = mode & SortSetting::flipStudentSorting;
+        if(sortBySum)
+            get_ = studentSum;
+        else
+            get_ = studentNumber;
+        if(sortBySum ^ filpSorting)
+            cmp_ = bigToLittle;
+        else
+            cmp_ = littleToBig;
+    };
+    if(mode & SortSetting::sortAsGroup)
+    {
+        bool sortBySum = mode & SortSetting::sortByGroupSum;
+        bool filpSorting = mode & SortSetting::flipGroupSorting;
+        if(sortBySum)
+            get1 = groupSum;
+        else
+            get1 = groupNumber;
+        if(sortBySum ^ filpSorting)
+            cmp1 = bigToLittle;
+        else
+            cmp1 = littleToBig;
+        setStudentCmp(get2, cmp2);
+    }
+    else
+    {
+        setStudentCmp(get1, cmp1);
+        get2 = studentNumber;
+        cmp2 = littleToBig;
+    }
+}
+
+bool Sorter::operator()(const SummaryData &lhs, const SummaryData &rhs)
+{
+    if(get1(lhs) == get1(rhs))
+        return cmp2(get2(lhs), get2(rhs));
+    else
+        return cmp1(get1(lhs), get1(rhs));
+}
+
+qint32 studentNumber(const SummaryData &obj)
+{
+    return obj.studentNum;
+}
+
+qint32 groupNumber(const SummaryData &obj)
+{
+    return obj.groupNum;
+}
+
+qint32 studentSum(const SummaryData &obj)
+{
+    return obj.studentScore;
+}
+
+qint32 groupSum(const SummaryData &obj)
+{
+    return obj.groupScore;
+}
+
+qint32 emptyGet(const SummaryData &obj)
+{
+    Q_UNUSED(obj);
+    return 0;
+}
+
+bool littleToBig(qint32 lhs, qint32 rhs)
+{
+    return lhs < rhs;
+}
+
+bool bigToLittle(qint32 lhs, qint32 rhs)
+{
+    return lhs > rhs;
+}
+
+bool emptyCmp(qint32 lhs, qint32 rhs)
+{
+    Q_UNUSED(lhs);
+    Q_UNUSED(rhs);
+    return true;
+}
+
+QString generateHtmlString(QList<SummaryData> dataList, SortSetting::SortMode mode)
+{
+    if(mode & SortSetting::sortAsGroup)
+        return group::generate(dataList, mode);
+    else
+        return student::generate(dataList, mode);
+}
+} // namespace ScoreSumReport
+namespace
+{
+namespace student
+{
+const QString HTMLTemplate = QStringLiteral(R"(
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -14,20 +129,6 @@ const QString HTMLTemplate=QStringLiteral(R"(
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>积分求和导出表格</title>
     <style>
-    %1
-    %2
-    </style>
-</head>
-<body>
-    <div class="table-container">
-        <h1>积分求和结果</h1>
-        %3
-    </div>
-</body>
-</html>
-)");
-
-const QString CSSBasic=QStringLiteral(R"(
         * {
             margin: 0;
             padding: 0;
@@ -103,6 +204,10 @@ const QString CSSBasic=QStringLiteral(R"(
             color: #333333;
         }
 
+        .data-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
         .positive-sum {
             color: #27ae60 !important;
             font-weight: 600;
@@ -117,112 +222,21 @@ const QString CSSBasic=QStringLiteral(R"(
             color: #7f8c8d !important;
             font-weight: 600;
         }
+    </style>
+</head>
+<body>
+    <div class="table-container">
+        <h1>积分求和结果</h1>
+            <table class="data-table">
+                <thead> <tr> %1 </tr> </thead>
+                <tbody> %2 </tbody>
+            </table>
+    </div>
+</body>
+</html>
 )");
 
-const QString CSSStudent=QStringLiteral(R"(
-        .data-table tbody tr {
-            transition: all 0.25s ease;
-        }
-
-        .data-table tbody tr:hover {
-            background-color: #f0f7ff;
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(50, 89, 105, 0.1);
-        }
-
-        .data-table tbody tr:last-child td {
-            border-bottom: none;
-        }
-)");
-
-const QString CSSGroup=QStringLiteral(R"(
-        .group-divider {
-            border-right: 2px solid #e1e8ed;
-        }
-
-        .data-table th:nth-child(1),
-        .data-table td:nth-child(1) {
-            width: 15%;
-        }
-
-        .data-table th:nth-child(2),
-        .data-table td:nth-child(2) {
-            width: 15%;
-        }
-
-        .ranking-section {
-            margin-bottom: 30px;
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
-            padding: 25px 30px;
-        }
-
-        .ranking-title {
-            text-align: center;
-            font-size: 1.6rem;
-            color: #2c3e50;
-            margin-bottom: 20px;
-            padding-bottom: 12px;
-            border-bottom: 2px solid #e1e8ed;
-            position: relative;
-        }
-
-        .ranking-title:after {
-            content: '';
-            position: absolute;
-            bottom: -2px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 144px;
-            height: 3px;
-            background: linear-gradient(135deg, #6c8fa9 0%, #5a7b95 100%);
-            border-radius: 3px;
-        }
-
-        .ranking-list {
-            counter-reset: ranking;
-            list-style: none;
-            padding: 0;
-        }
-
-        .ranking-list li {
-            counter-increment: ranking;
-            padding: 16px 20px;
-            margin-bottom: 12px;
-            background: #f8f9fa;
-            border-radius: 8px;
-            font-size: 1.3rem;
-            display: flex;
-            align-items: center;
-            transition: all 0.3s ease;
-            border-left: 4px solid transparent;
-        }
-
-        .ranking-list li:hover {
-            transform: translateX(5px);
-            background: #f0f7ff;
-            border-left: 4px solid #5a7b95;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
-        }
-
-        .ranking-list li::before {
-            content: counter(ranking);
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 32px;
-            height: 32px;
-            background: linear-gradient(135deg, #6c8fa9 0%, #5a7b95 100%);
-            color: white;
-            border-radius: 50%;
-            margin-right: 15px;
-            font-weight: 600;
-            font-size: 1.1rem;
-        }
-)");
-
-const QString getSumTextColor(int score)
+const QString getSumTextClass(int score)
 {
     if(score>0)
         return "positive-sum";
@@ -232,164 +246,239 @@ const QString getSumTextColor(int score)
         return "zero-sum";
 }
 
-const QString HTMLListTemplate=QStringLiteral(R"(
-        <div class="ranking-section">
-            <h2 class="ranking-title">小组积分排名一览</h2>
-            <ol class="ranking-list">
-            %1
-            </ol>
-        </div>
-)");
-
-const QString HTMLListItem=QStringLiteral(R"(
-                <li>%1组(%2分)</li>
-)");
-
-const QString HTMLTableTemplate=QStringLiteral(R"(
-<table class="data-table">
-    <thead>
-        <tr>
-            %1
-        </tr>
-    </thead>
-    <tbody>
-        %2
-    </tbody>
-</table>
-)");
-
 const QString HTMLTableHeadBase=QStringLiteral(R"(
-            <th>姓名</th>
-            <th>积分</th>
+<th>姓名</th>
+<th>积分</th>
 )");
 
 const QString HTMLTableHeadStudent=QStringLiteral(R"(
-            <th>编号</th>
-)");
-
-const QString HTMLTableHeadGroup=QStringLiteral(R"(
-            <th>小组号</th>
-            <th>小组总分</th>
+<th>编号</th>
 )");
 
 const QString HTMLTableRowTemplate=QStringLiteral(R"(
-        <tr>
-            %1
-        </tr>
+<tr> %1 </tr>
 )");
 
 const QString HTMLTableItemBase=QStringLiteral(R"(
-            <td>%1</td>
-            <td class="%3">%2</td>
+<td> %1 </td>
+<td class="%3"> %2 </td>
 )");
 
 const QString HTMLTableItemStudent=QStringLiteral(R"(
-            <td>%1</td>
+<td> %1 </td>
 )");
 
-const QString HTMLTableItemGroup=QStringLiteral(R"(
-            <td rowspan="%1" class="group-divider">%2</td>
-            <td rowspan="%1" class="%4 group-divider">%3</td>
+QString generate(QList<SummaryData> dataList, SortSetting::SortMode mode)
+{
+    QString tableHead,tableBody;
+    if(!(mode&SortSetting::hideStudentNumber))
+        tableHead+=HTMLTableHeadStudent;
+    tableHead+=HTMLTableHeadBase;
+    for(const SummaryData& i:dataList)
+    {
+        QString tableItem;
+        if(!(mode&SortSetting::hideStudentNumber))
+            tableItem+=HTMLTableItemStudent.arg(i.studentNum);
+        tableItem+=HTMLTableItemBase.arg(i.name).arg(i.studentScore).arg(getSumTextClass(i.studentScore));
+
+        tableBody+=HTMLTableRowTemplate.arg(tableItem);
+    }
+    return HTMLTemplate.arg(tableHead,tableBody);
+}
+} // namespace student
+
+namespace group {
+const QString HTMLTemplate=QStringLiteral(R"(
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>积分求和导出表格</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, "Microsoft YaHei", "PingFang SC", sans-serif;
+      background: #f5f7fa;
+      margin: 20px;
+      color: #333;
+      line-height: 1.2;
+    }
+
+    .groups-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      width: 100%;
+    }
+
+    .group-card {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+      padding: 20px;
+      flex: 1 1 auto;
+      min-width: 300px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 2px solid #f0f2f5;
+      padding-bottom: 10px;
+      margin-bottom: 20px;
+      flex-shrink: 0;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: baseline;
+      gap: 16px;
+      overflow: hidden;
+    }
+
+    .group-name {
+      font-size: 1.5rem;
+      color: #2c3e50;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .group-summary {
+      font-size: 1rem;
+      color: #7f8c8d;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+
+    .group-index {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #3498db;
+      white-space: nowrap;
+      background: #ebf5fb;
+      padding: 8px 16px;
+      border-radius: 20px;
+    }
+
+    .card-body {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      flex: 1;
+      min-height: 0;
+    }
+
+    .stats-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .stat-item {
+      display: flex;
+      align-items: center;
+      flex: 1 0 auto;
+      padding: 16px 20px;
+      background: #fafbfc;
+      border: 1px solid #eef2f7;
+      border-radius: 8px;
+    }
+
+    .stat-head {
+      font-size: 1.25rem;
+      color: #2c3e50;
+      font-weight: 600;
+      flex-shrink: 0;
+      white-space: nowrap;
+      margin-right: auto;
+    }
+
+    .stat-content {
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+
+    .stat-number {
+      font-size: 1.8rem;
+      font-weight: 1000;
+      white-space: nowrap;
+      font-variant-numeric: tabular-nums;
+      line-height: 1;
+    }
+
+    .stat-unit {
+      flex-shrink: 0;
+      color: #95a5a6;
+      font-size: 1rem;
+      font-weight: 400;
+      line-height: 1.2;
+    }
+
+    .positive-number { color: #27ae60 !important; }
+    .negative-number { color: #e74c3c !important; }
+    .zero-number { color: #95a5a6 !important; }
+  </style>
+</head>
+<body>
+  <div class="groups-row">
+    %1
+  </div>
+</body>
+</html>
 )");
-}
-
-Sorter::Sorter(SortSetting::SortMode mode)
-{
-    auto setStudentCmp = [mode](getFunc& get_,cmpFunc& cmp_) -> void
-    {
-        bool sortBySum=mode&SortSetting::sortByStudentSum;
-        bool filpSorting=mode&SortSetting::flipStudentSorting;
-        if(sortBySum)
-            get_=studentSum;
-        else
-            get_=studentNumber;
-        if(sortBySum^filpSorting)
-            cmp_=bigToLittle;
-        else
-            cmp_=littleToBig;
-    };
-    if(mode&SortSetting::sortAsGroup)
-    {
-        bool sortBySum=mode&SortSetting::sortByGroupSum;
-        bool filpSorting=mode&SortSetting::flipGroupSorting;
-        if(sortBySum)
-            get1=groupSum;
-        else
-            get1=groupNumber;
-        if(sortBySum^filpSorting)
-            cmp1=bigToLittle;
-        else
-            cmp1=littleToBig;
-        setStudentCmp(get2,cmp2);
-    }
-    else
-    {
-        setStudentCmp(get1,cmp1);
-        get2=studentNumber;
-        cmp2=littleToBig;
-    }
-}
-
-bool Sorter::operator()(const SummaryData &lhs, const SummaryData &rhs)
-{
-    if(get1(lhs)==get1(rhs))
-        return cmp2(get2(lhs),get2(rhs));
-    else
-        return cmp1(get1(lhs),get1(rhs));
-}
-
-qint32 studentNumber(const SummaryData &obj)
-{
-    return obj.studentNum;
-}
-
-qint32 groupNumber(const SummaryData &obj)
-{
-    return obj.groupNum;
-}
-
-qint32 studentSum(const SummaryData &obj)
-{
-    return obj.studentScore;
-}
-
-qint32 groupSum(const SummaryData &obj)
-{
-    return obj.groupScore;
-}
-
-qint32 emptyGet(const SummaryData &obj)
-{
-    Q_UNUSED(obj);
-    return 0;
-}
-
-bool littleToBig(qint32 lhs, qint32 rhs)
-{
-    return lhs<rhs;
-}
-
-bool bigToLittle(qint32 lhs, qint32 rhs)
-{
-    return lhs>rhs;
-}
-
-bool emptyCmp(qint32 lhs, qint32 rhs)
-{
-    Q_UNUSED(lhs);
-    Q_UNUSED(rhs);
-    return true;
-}
-
-QString generateHtmlString(QList<SummaryData> dataList, SortSetting::SortMode mode)
+const QString HTMLGroupCard=QStringLiteral(R"(
+<div class="group-card">
+  <div class="card-header">
+    <div class="header-left">
+      <div class="group-name">%1</div>
+      <div class="group-summary">总分: <span class="stat-number %3">%2</span></div>
+    </div>
+    <div class="group-index">No.%4</div>
+  </div>
+  <div class="card-body">
+    <div class="stats-grid">
+      %5
+    </div>
+  </div>
+</div>
+)");
+const QString HTMLStudentItem=QStringLiteral(R"(
+<div class="stat-item">
+  <div class="stat-head">%1</div>
+  <div class="stat-content">
+    <div class="stat-number %3">%2</div>
+    <div class="stat-unit">分</div>
+  </div>
+</div>
+)");
+QString generate(QList<SummaryData> dataList, SortSetting::SortMode mode)
 {
     auto getGroupName=[](int num) -> QString
     {
         if(num==StudentInfo::NoGroup)
             return QObject::tr("未分组");
         else
-            return QString::number(num);
+            return QObject::tr("%1组").arg(num);
     };
+    auto getSumTextClass=[](int num) -> QString
+    {
+        if(num>0)
+            return "positive-number";
+        else if(num<0)
+            return "negative-number";
+        else
+            return "zero-number";
+    };
+
     std::map<int,int> groupCount,groupScoreSum;
     std::multimap<int,int,std::greater<int>> groupRank;
     if(mode&SortSetting::sortAsGroup)
@@ -409,59 +498,34 @@ QString generateHtmlString(QList<SummaryData> dataList, SortSetting::SortMode mo
     }
     std::sort(dataList.begin(),dataList.end(),Sorter(mode));
 
-    QString tempHTMLBody,tempTableHeadStr,tempTableBodyStr;
-    if(mode&SortSetting::sortAsGroup)
-        tempTableHeadStr+=HTMLTableHeadGroup;
-    if(!(mode&SortSetting::hideStudentNumber))
-        tempTableHeadStr+=HTMLTableHeadStudent;
-    tempTableHeadStr+=HTMLTableHeadBase;
-
-    if(mode&SortSetting::sortAsGroup)
+    QString HTMLBody,groupContent,groupStudents;
+    int curGroupIndex=INT_MIN,groupRankCnt=0;
+    for(const SummaryData& i:dataList)
     {
-        if(!(mode&SortSetting::hideGroupPreview))
+        //暂时忽略未分组
+        if(i.groupNum==StudentInfo::NoGroup) continue;
+
+        if(curGroupIndex!=i.groupNum)
         {
-            QString tempListStr;
-            for(auto i:groupRank)
-                if(i.second!=StudentInfo::NoGroup)
-                    tempListStr+=HTMLListItem.arg(i.second).arg(i.first);
-            tempHTMLBody+=HTMLListTemplate.arg(tempListStr);
-        }
-        int curGroupIndex=INT_MIN;
-        for(const SummaryData& i:dataList)
-        {
-            QString tempTableItemStr;
-            if(curGroupIndex!=i.groupNum)
+            if(curGroupIndex!=INT_MIN)
             {
-                curGroupIndex=i.groupNum;
-                tempTableItemStr+=HTMLTableItemGroup.arg(groupCount[curGroupIndex])
-                                                    .arg(getGroupName(curGroupIndex))
-                                                    .arg(groupScoreSum[curGroupIndex])
-                                                    .arg(getSumTextColor(groupScoreSum[curGroupIndex]));
+                //填充%5，完成上一个小组的设置
+                HTMLBody+=groupContent.arg(groupStudents);
+                groupContent.clear();
+                groupStudents.clear();
             }
-            if(!(mode&SortSetting::hideStudentNumber))
-                tempTableItemStr+=HTMLTableItemStudent.arg(i.studentNum);
-            tempTableItemStr+=HTMLTableItemBase.arg(i.name).arg(i.studentScore).arg(getSumTextColor(i.studentScore));
+            //填充新的小组
+            curGroupIndex=i.groupNum;
+            groupContent=HTMLGroupCard.arg(getGroupName(i.groupNum))
+                         .arg(i.groupScore)
+                         .arg(getSumTextClass(i.groupScore))
+                         .arg(++groupRankCnt);
 
-            tempTableBodyStr+=HTMLTableRowTemplate.arg(tempTableItemStr);
         }
+        groupStudents+=HTMLStudentItem.arg(i.name).arg(i.studentScore).arg(getSumTextClass(i.studentScore));
     }
-    else
-    {
-        for(const SummaryData& i:dataList)
-        {
-            QString tempTableItemStr;
-            if(!(mode&SortSetting::hideStudentNumber))
-                tempTableItemStr+=HTMLTableItemStudent.arg(i.studentNum);
-            tempTableItemStr+=HTMLTableItemBase.arg(i.name).arg(i.studentScore).arg(getSumTextColor(i.studentScore));
-
-            tempTableBodyStr+=HTMLTableRowTemplate.arg(tempTableItemStr);
-        }
-
-    }
-    tempHTMLBody+=HTMLTableTemplate.arg(tempTableHeadStr,tempTableBodyStr);
-    return HTMLTemplate.arg(CSSBasic,
-                            ((mode&SortSetting::sortAsGroup)?CSSGroup:CSSStudent),
-                            tempHTMLBody);
+    HTMLBody+=groupContent.arg(groupStudents);
+    return HTMLTemplate.arg(HTMLBody);
 }
-
-} // namespace ScoreSumReport
+} // namespace group
+} // namespace anonymous
