@@ -38,6 +38,7 @@ MainWindow::MainWindow(QWidget *parent)
     splitter->addWidget(ui->rightPanelWidget);
     QVBoxLayout* centralLayout = new QVBoxLayout(secondPage);
     centralLayout->addWidget(splitter);
+    centralLayout->setContentsMargins({0,0,0,0});
     secondPage->setLayout(centralLayout);
 
 
@@ -246,13 +247,13 @@ void MainWindow::on_action_ExportScoreSum_triggered()
         QList<ScoreSumReport::SummaryData> dataList;
         dataList.reserve(studentCount);
         for(const StudentInfo& stu:manager->getStudents())
-            dataList.append({stu.name,stu.displayOrder,stu.groupNumber,0,0});
+            dataList.append({stu.name,stu.displayOrder,0,stu.groupNumber});
         for(int idx=dialog.getBeginIndex();idx<=dialog.getEndIndex();idx++)
             for(int i=0;i<studentCount;i++)
-                dataList[i].studentScore+=manager->recordAt(idx).scores.at(i);
+                dataList[i].totalScore+=manager->recordAt(idx).scores.at(i);
 
-        QString fileName=QFileDialog::getSaveFileName(this,tr("保存求和结果文档"),QDir::currentPath(),
-                                                      tr("HTML Document (*.html)"));
+        QString fileName=QFileDialog::getSaveFileName(
+                    this,tr("保存生成的文档"),QDir::currentPath(),tr("HTML Document (*.html)"));
         if(fileName.isEmpty())
             return ;
         QFile file(fileName);

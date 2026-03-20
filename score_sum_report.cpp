@@ -8,57 +8,80 @@
 namespace
 {
 using namespace ScoreSumReport;
+
+struct StudentSumData
+{
+    QString name;
+    int number,score,rank;
+};
+struct GroupSumData
+{
+    QList<StudentSumData> members;
+    int number,score,rank;
+};
+
 namespace student
 {
-QString generate(QList<SummaryData> dataList, SortSetting::SortMode mode);
+QString generate(QList<StudentSumData> dataList, SortSetting::SortMode mode);
 } // namespace student
 namespace group
 {
-QString generate(QList<SummaryData> dataList, SortSetting::SortMode mode);
+QString generate(QList<GroupSumData> dataList, SortSetting::SortMode mode);
 } // namespace group
 } // namespace anonymous
 
 namespace ScoreSumReport
 {
+using getFunc=int(*)(const StudentSumData& );
+using cmpFunc=bool(*)(int,int);
+class Sorter
+{
+public:
+    Sorter(SortSetting::SortMode mode);
+    bool operator()(const StudentSumData& lhs,const StudentSumData& rhs);
+private:
+    getFunc get1,get2;
+    cmpFunc cmp1,cmp2;
+};
+
+int studentNumber(const StudentSumData& obj)
+{
+    return obj.number;
+}
+
+int studentSum(const StudentSumData& obj)
+{
+    return obj.score;
+}
+
+bool littleToBig(int lhs, int rhs)
+{
+    return lhs < rhs;
+}
+
+bool bigToLittle(int lhs, int rhs)
+{
+    return lhs > rhs;
+}
 
 Sorter::Sorter(SortSetting::SortMode mode)
 {
-    auto setStudentCmp = [mode](getFunc & get_, cmpFunc & cmp_) -> void
-    {
-        bool sortBySum = mode & SortSetting::sortByStudentSum;
-        bool filpSorting = mode & SortSetting::flipStudentSorting;
-        if(sortBySum)
-            get_ = studentSum;
-        else
-            get_ = studentNumber;
-        if(sortBySum ^ filpSorting)
-            cmp_ = bigToLittle;
-        else
-            cmp_ = littleToBig;
-    };
-    if(mode & SortSetting::sortAsGroup)
-    {
-        bool sortBySum = mode & SortSetting::sortByGroupSum;
-        bool filpSorting = mode & SortSetting::flipGroupSorting;
-        if(sortBySum)
-            get1 = groupSum;
-        else
-            get1 = groupNumber;
-        if(sortBySum ^ filpSorting)
-            cmp1 = bigToLittle;
-        else
-            cmp1 = littleToBig;
-        setStudentCmp(get2, cmp2);
-    }
+    bool sortBySum = mode & SortSetting::sortByStudentSum;
+    bool filpSorting = mode & SortSetting::flipStudentSorting;
+    if(sortBySum)
+        get1 = studentSum;
     else
-    {
-        setStudentCmp(get1, cmp1);
-        get2 = studentNumber;
-        cmp2 = littleToBig;
-    }
+        get1 = studentNumber;
+    if(sortBySum ^ filpSorting)
+        cmp1 = bigToLittle;
+    else
+        cmp1 = littleToBig;
+
+    get2 = studentNumber;
+    cmp2 = littleToBig;
 }
 
-bool Sorter::operator()(const SummaryData &lhs, const SummaryData &rhs)
+bool Sorter::operator()(const StudentSumData &lhs, const StudentSumData &rhs)
 {
     if(get1(lhs) == get1(rhs))
         return cmp2(get2(lhs), get2(rhs));
@@ -66,55 +89,57 @@ bool Sorter::operator()(const SummaryData &lhs, const SummaryData &rhs)
         return cmp1(get1(lhs), get1(rhs));
 }
 
-qint32 studentNumber(const SummaryData &obj)
-{
-    return obj.studentNum;
-}
-
-qint32 groupNumber(const SummaryData &obj)
-{
-    return obj.groupNum;
-}
-
-qint32 studentSum(const SummaryData &obj)
-{
-    return obj.studentScore;
-}
-
-qint32 groupSum(const SummaryData &obj)
-{
-    return obj.groupScore;
-}
-
-qint32 emptyGet(const SummaryData &obj)
-{
-    Q_UNUSED(obj);
-    return 0;
-}
-
-bool littleToBig(qint32 lhs, qint32 rhs)
-{
-    return lhs < rhs;
-}
-
-bool bigToLittle(qint32 lhs, qint32 rhs)
-{
-    return lhs > rhs;
-}
-
-bool emptyCmp(qint32 lhs, qint32 rhs)
-{
-    Q_UNUSED(lhs);
-    Q_UNUSED(rhs);
-    return true;
-}
-
 QString generateHtmlString(QList<SummaryData> dataList, SortSetting::SortMode mode)
 {
     if(mode & SortSetting::sortAsGroup)
-        return group::generate(dataList, mode);
+    {
+        std::map<int,GroupSumData> groupMap;
+        for(const auto& i:dataList)
+        {
+            GroupSumData& curData=groupMap[i.groupNo];
+            curData.members.append(StudentSumData{i.name,i.studentNo,i.totalScore,0});
+            curData.number=i.groupNo;
+            curData.score+=i.totalScore;
+        }
+        QList<GroupSumData> groupList;
+        groupList.reserve(groupMap.size());
+        for(const auto& pair:groupMap)
+        {
+            groupList.append(pair.second);
+        }
+        //排序以计算排名
+        std::sort(groupList.begin(),groupList.end(),[](const GroupSumData& lhs,const GroupSumData& rhs)
+        {
+            return lhs.score>rhs.score;
+        });
+        int curRank=1;
+        for(auto& i:groupList)
+        {
+            i.rank=curRank;
+            curRank++;
+        }
+        return group::generate(groupList, mode);
+    }
     else
-        return student::generate(dataList, mode);
+    {
+        QList<StudentSumData> studentList;
+        studentList.reserve(dataList.size());
+        for(const auto& i:dataList)
+            studentList.append({i.name,i.studentNo,i.totalScore,0});
+        //排序以计算排名
+        std::sort(studentList.begin(),studentList.end(),[](const StudentSumData& lhs,const StudentSumData& rhs)
+        {
+            return lhs.number>rhs.number;
+        });
+        int curRank=1;
+        for(auto& i:studentList)
+        {
+            i.rank=curRank;
+            curRank++;
+        }
+        std::sort(studentList.begin(),studentList.end(),Sorter(mode));
+        return student::generate(studentList, mode);
+    }
 }
 } // namespace ScoreSumReport
 namespace
@@ -268,19 +293,18 @@ const QString HTMLTableItemStudent=QStringLiteral(R"(
 <td> %1 </td>
 )");
 
-QString generate(QList<SummaryData> dataList, SortSetting::SortMode mode)
+QString generate(QList<StudentSumData> dataList, SortSetting::SortMode mode)
 {
     QString tableHead,tableBody;
     if(!(mode&SortSetting::hideStudentNumber))
         tableHead+=HTMLTableHeadStudent;
     tableHead+=HTMLTableHeadBase;
-    for(const SummaryData& i:dataList)
+    for(const auto& i:dataList)
     {
         QString tableItem;
         if(!(mode&SortSetting::hideStudentNumber))
-            tableItem+=HTMLTableItemStudent.arg(i.studentNum);
-        tableItem+=HTMLTableItemBase.arg(i.name).arg(i.studentScore).arg(getSumTextClass(i.studentScore));
-
+            tableItem+=HTMLTableItemStudent.arg(i.number);
+        tableItem+=HTMLTableItemBase.arg(i.name).arg(i.score).arg(getSumTextClass(i.score));
         tableBody+=HTMLTableRowTemplate.arg(tableItem);
     }
     return HTMLTemplate.arg(tableHead,tableBody);
@@ -460,8 +484,10 @@ const QString HTMLStudentItem=QStringLiteral(R"(
   </div>
 </div>
 )");
-QString generate(QList<SummaryData> dataList, SortSetting::SortMode mode)
+QString generate(QList<GroupSumData> dataList, SortSetting::SortMode mode)
 {
+    Q_UNUSED(mode);
+
     auto getGroupName=[](int num) -> QString
     {
         if(num==StudentInfo::NoGroup)
@@ -469,6 +495,7 @@ QString generate(QList<SummaryData> dataList, SortSetting::SortMode mode)
         else
             return QObject::tr("%1组").arg(num);
     };
+
     auto getSumTextClass=[](int num) -> QString
     {
         if(num>0)
@@ -479,52 +506,22 @@ QString generate(QList<SummaryData> dataList, SortSetting::SortMode mode)
             return "zero-number";
     };
 
-    std::map<int,int> groupCount,groupScoreSum;
-    std::multimap<int,int,std::greater<int>> groupRank;
-    if(mode&SortSetting::sortAsGroup)
+    QString HTMLBody,groupContent;
+    for(const auto& i:dataList)
     {
-        //Step 1:记录各小组学生个数和总分
-        for(const SummaryData& i:dataList)
+        for(const auto& j:i.members)
         {
-            groupCount[i.groupNum]++;
-            groupScoreSum[i.groupNum]+=i.studentScore;
+            groupContent+=HTMLStudentItem.arg(j.name)
+                    .arg(j.score)
+                    .arg(getSumTextClass(j.score));
         }
-        //Step 2:写入各学生对应的小组总分
-        for(SummaryData& i:dataList)
-            i.groupScore=groupScoreSum[i.groupNum];
-        //Step 3:写入小组总分排名
-        for(auto i:groupScoreSum)
-            groupRank.insert({i.second,i.first});
+        HTMLBody+=HTMLGroupCard.arg(getGroupName(i.number))
+                .arg(i.score)
+                .arg(getSumTextClass(i.score))
+                .arg(i.rank)
+                .arg(groupContent);
+        groupContent.clear();
     }
-    std::sort(dataList.begin(),dataList.end(),Sorter(mode));
-
-    QString HTMLBody,groupContent,groupStudents;
-    int curGroupIndex=INT_MIN,groupRankCnt=0;
-    for(const SummaryData& i:dataList)
-    {
-        //暂时忽略未分组
-        if(i.groupNum==StudentInfo::NoGroup) continue;
-
-        if(curGroupIndex!=i.groupNum)
-        {
-            if(curGroupIndex!=INT_MIN)
-            {
-                //填充%5，完成上一个小组的设置
-                HTMLBody+=groupContent.arg(groupStudents);
-                groupContent.clear();
-                groupStudents.clear();
-            }
-            //填充新的小组
-            curGroupIndex=i.groupNum;
-            groupContent=HTMLGroupCard.arg(getGroupName(i.groupNum))
-                         .arg(i.groupScore)
-                         .arg(getSumTextClass(i.groupScore))
-                         .arg(++groupRankCnt);
-
-        }
-        groupStudents+=HTMLStudentItem.arg(i.name).arg(i.studentScore).arg(getSumTextClass(i.studentScore));
-    }
-    HTMLBody+=groupContent.arg(groupStudents);
     return HTMLTemplate.arg(HTMLBody);
 }
 } // namespace group
