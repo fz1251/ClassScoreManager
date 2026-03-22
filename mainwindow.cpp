@@ -238,8 +238,7 @@ void MainWindow::on_action_UseScoreTemplate_triggered()
 
 void MainWindow::on_action_ExportScoreSum_triggered()
 {
-    SumExportDialog dialog;
-    dialog.setSortingConfig(manager->getSettings());
+    SumExportDialog dialog(this,manager->getSettings());
     dialog.setRecordText(manager->getRecordList());
     if(dialog.exec()==QDialog::Accepted)
     {
@@ -262,9 +261,9 @@ void MainWindow::on_action_ExportScoreSum_triggered()
             QMessageBox::warning(this,tr("警告"),tr("无法写入文件"));
             return ;
         }
-        quint8 curMode=dialog.getCurrentConfig();
+        SortSettings curMode=dialog.getCurrentConfig();
         QTextStream stream(&file);
-        stream<<ScoreSumReport::generateHtmlString(dataList,static_cast<SortSetting::SortMode>(curMode));
+        stream << ScoreSumReport::generateHtmlString(dataList,curMode);
         file.close();
         manager->setPreviousSettings(curMode);
     }

@@ -6,74 +6,120 @@
 #include <QDateTime>
 #include <QDataStream>
 
-//文件头部信息(校验用)
+// 文件头部信息(校验用)
 struct HeaderData
 {
-    quint64 fileHeader;           //文件头
-    qsizetype studentCount;       //学生数
-    qsizetype templateCount;      //积分模板数
-    qsizetype recordCount;        //积分记录数
+    quint64 fileHeader;       //文件头
+    qsizetype studentCount;   //学生数
+    qsizetype templateCount;  //积分模板数
+    qsizetype recordCount;    //积分记录数
 };
-//序列化/反序列化
-inline QDataStream &operator >>(QDataStream &in, HeaderData &obj)
+// QDataStream 序列化支持
+inline QDataStream &operator >>(QDataStream &in, HeaderData &data)
 {
-    in>>obj.fileHeader>>obj.studentCount>>obj.templateCount>>obj.recordCount;
+    in >> data.fileHeader
+       >> data.studentCount
+       >> data.templateCount
+       >> data.recordCount;
     return in;
 }
 
-inline QDataStream &operator <<(QDataStream &out, const HeaderData &obj)
+inline QDataStream &operator <<(QDataStream &out, const HeaderData &data)
 {
-    out<<obj.fileHeader<<obj.studentCount<<obj.templateCount<<obj.recordCount;
+    out << data.fileHeader
+        << data.studentCount
+        << data.templateCount
+        << data.recordCount;
     return out;
 }
 
 
-//积分求和排序设置
-struct SortSetting
+// 积分求和排序设置
+// 排序字段
+enum class SortField : quint8
 {
-    enum SortMode : quint8
-    {
-        hideStudentNumber     = 1<<0,    //隐藏学生编号(默认显示)
-        sortByStudentSum      = 1<<1,    //按学生总分排序(默认按学生编号)
-        flipStudentSorting    = 1<<2,       //反转学生信息排序顺序(默认编号升序，总分降序)
-        sortAsGroup           = 1<<3,    //进行小组积分总和显示(默认按学生个人显示)
-        hideGroupPreview      = 1<<4,    //隐藏小组积分排行榜(默认显示)
-        sortByGroupSum        = 1<<5,    //按小组总分排序(默认按小组编号)
-        flipGroupSorting      = 1<<6,       //反转小组信息排序顺序(默认组号升序，总分降序)
-    };
+    StudentNumber,  // 学生编号
+    StudentSum,     // 学生总分
+    GroupNumber,    // 小组编号
+    GroupSum        // 小组总分
+};
 
-    /* student:以学生为单位排序
-     * group:以小组为单位排序
-     * default:默认排序设置
-     * previous:上一次使用的排序设置
-     */
-    quint8 studentDefault;
-    quint8 studentPrevious;
-    quint8 groupDefault;
-    quint8 groupPrevious;
+// 排序顺序
+enum class SortOrder : quint8
+{
+    Ascending,      // 升序
+    Descending      // 降序
+};
 
-    SortSetting()
+// 排序规格结构体
+struct SortSpec
+{
+    SortField field;
+    SortOrder order;
+    // 二级排序约定：学生按学号升序，小组按组号升序（无需存储）
+};
+
+// QDataStream 序列化支持
+inline QDataStream& operator<<(QDataStream& out, const SortSpec& spec)
+{
+    out << static_cast<quint8>(spec.field)
+        << static_cast<quint8>(spec.order);
+    return out;
+}
+
+inline QDataStream& operator>>(QDataStream& in, SortSpec& spec) {
+    quint8 pf, po;
+    in >> pf >> po;
+    spec.field = static_cast<SortField>(pf);
+    spec.order = static_cast<SortOrder>(po);
+    return in;
+}
+
+struct SortSettings
+{
+    SortSettings()
     {
         defaultSettings();
     }
 
     void defaultSettings()
     {
-        studentPrevious=studentDefault=0;
-        groupPrevious=groupDefault=sortAsGroup;
+        showStudentNumberFlag=false;
+        useGroupModeFlag=false;
+        studentSpec.field=SortField::StudentNumber;
+        studentSpec.order=SortOrder::Ascending;
+        groupSpec.field=SortField::GroupNumber;
+        groupSpec.order=SortOrder::Ascending;
+        groupStuSpec.field=SortField::StudentNumber;
+        groupStuSpec.order=SortOrder::Ascending;
     }
+
+    bool     showStudentNumberFlag;// 是否显示学生编号
+    bool     useGroupModeFlag;     // 是否使用小组模式
+    SortSpec studentSpec;          // 学生列表排序规则
+    SortSpec groupSpec;            // 小组列表排序规则
+    SortSpec groupStuSpec;         // 小组内学生排序规则
 };
-//序列化/反序列化
-inline QDataStream &operator >>(QDataStream &in, SortSetting &obj)
+
+// QDataStream 序列化支持
+inline QDataStream& operator<<(QDataStream& out, const SortSettings& data)
 {
-    in>>obj.studentDefault>>obj.studentPrevious>>obj.groupDefault>>obj.groupPrevious;
-    return in;
+    out << data.showStudentNumberFlag
+        << data.useGroupModeFlag
+        << data.studentSpec
+        << data.groupSpec
+        << data.groupStuSpec;
+    return out;
 }
 
-inline QDataStream &operator <<(QDataStream &out, const SortSetting &obj)
+inline QDataStream& operator>>(QDataStream& in, SortSettings& data)
 {
-    out<<obj.studentDefault<<obj.studentPrevious<<obj.groupDefault<<obj.groupPrevious;
-    return out;
+    in >> data.showStudentNumberFlag
+       >> data.useGroupModeFlag
+       >> data.studentSpec
+       >> data.groupSpec
+       >> data.groupStuSpec;
+    return in;
 }
 
 
@@ -86,16 +132,20 @@ struct StudentInfo
     static constexpr qint32 NoGroup=-1; //未指定小组时为-1
 };
 
-//序列化/反序列化
-inline QDataStream &operator >>(QDataStream &in, StudentInfo &obj)
+// QDataStream 序列化支持
+inline QDataStream &operator >>(QDataStream &in, StudentInfo &data)
 {
-    in>>obj.name>>obj.displayOrder>>obj.groupNumber;
+    in >> data.name
+       >> data.displayOrder
+       >> data.groupNumber;
     return in;
 }
 
-inline QDataStream &operator <<(QDataStream &out, const StudentInfo &obj)
+inline QDataStream &operator <<(QDataStream &out, const StudentInfo &data)
 {
-    out<<obj.name<<obj.displayOrder<<obj.groupNumber;
+    out << data.name
+        << data.displayOrder
+        << data.groupNumber;
     return out;
 }
 
@@ -106,16 +156,18 @@ struct ScoreTemplate
     QString description;     //对积分模板的描述
     QList<qint32> values;    //对每一个学生（按索引）应用的分数修改值
 };
-//序列化/反序列化
-inline QDataStream &operator >>(QDataStream &in, ScoreTemplate &obj)
+// QDataStream 序列化支持
+inline QDataStream &operator >>(QDataStream &in, ScoreTemplate &data)
 {
-    in>>obj.description>>obj.values;
+    in >> data.description
+       >> data.values;
     return in;
 }
 
-inline QDataStream &operator <<(QDataStream &out, const ScoreTemplate &obj)
+inline QDataStream &operator <<(QDataStream &out, const ScoreTemplate &data)
 {
-    out<<obj.description<<obj.values;
+    out << data.description
+        << data.values;
     return out;
 }
 
@@ -127,16 +179,20 @@ struct ScoreRecord
     QString description;     //对本次分数统计的描述
     QList<qint32> scores;    //每一个学生（按索引）的分数值
 };
-//序列化/反序列化
-inline QDataStream &operator >>(QDataStream &in, ScoreRecord &obj)
+// QDataStream 序列化支持
+inline QDataStream &operator >>(QDataStream &in, ScoreRecord &data)
 {
-    in>>obj.saveTime>>obj.description>>obj.scores;
+    in >> data.saveTime
+       >> data.description
+       >> data.scores;
     return in;
 }
 
-inline QDataStream &operator <<(QDataStream &out, const ScoreRecord &obj)
+inline QDataStream &operator <<(QDataStream &out, const ScoreRecord &data)
 {
-    out<<obj.saveTime<<obj.description<<obj.scores;
+    out << data.saveTime
+        << data.description
+        << data.scores;
     return out;
 }
 

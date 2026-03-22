@@ -30,11 +30,11 @@ public:
     bool isDirty() const;
     bool isRecordUnsaved() const;
     //信息获取接口(读写&只读)
-    void setPreviousSettings(quint8 mode);
+    void setPreviousSettings(SortSettings curSettings);
     StudentInfo&       studentAt (int index);
     ScoreTemplate&     templateAt(int index);
     const ScoreRecord& recordAt  (int index);
-    const SortSetting&          getSettings() const;
+    const SortSettings&          getSettings() const;
     const QList<StudentInfo>&   getStudents() const;
     const QList<ScoreTemplate>& getTemplates()const;
     const QList<ScoreRecord>&   getRecords()  const;
@@ -66,7 +66,7 @@ private:
     ScoreRecord tempRecord;
     QString filePath;
     HeaderData header;
-    SortSetting settings;
+    SortSettings settings;
     QList<StudentInfo> students;
     QList<ScoreTemplate> templates;
     QList<ScoreRecord> records;

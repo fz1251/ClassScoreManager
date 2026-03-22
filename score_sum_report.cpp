@@ -1,6 +1,7 @@
 #include "score_sum_report.h"
+#include <vector>
+#include <unordered_map>
 #include <algorithm>
-#include <map>
 
 //FIXME:移除不再有效的状态，优化小组信息传参
 
@@ -22,17 +23,18 @@ struct GroupSumData
 
 namespace student
 {
-QString generate(QList<StudentSumData> dataList, SortSetting::SortMode mode);
+QString generate(std::vector<StudentSumData> dataList, bool showStudentNumber = false);
 } // namespace student
 namespace group
 {
-QString generate(QList<GroupSumData> dataList, SortSetting::SortMode mode);
+QString generate(std::vector<GroupSumData> dataList, bool showStudentNumber = false);
+
 } // namespace group
 } // namespace anonymous
 
 namespace ScoreSumReport
 {
-using getFunc=int(*)(const StudentSumData& );
+/*using getFunc=int(*)(const StudentSumData& );
 using cmpFunc=bool(*)(int,int);
 class Sorter
 {
@@ -66,13 +68,11 @@ bool bigToLittle(int lhs, int rhs)
 
 Sorter::Sorter(SortSetting::SortMode mode)
 {
-    bool sortBySum = mode & SortSetting::sortByStudentSum;
-    bool filpSorting = mode & SortSetting::flipStudentSorting;
-    if(sortBySum)
+    if(mode & SortSetting::sortByStudentSum)
         get1 = studentSum;
     else
         get1 = studentNumber;
-    if(sortBySum ^ filpSorting)
+    if(mode & SortSetting::studentAsc2Desc)
         cmp1 = bigToLittle;
     else
         cmp1 = littleToBig;
@@ -87,13 +87,13 @@ bool Sorter::operator()(const StudentSumData &lhs, const StudentSumData &rhs)
         return cmp2(get2(lhs), get2(rhs));
     else
         return cmp1(get1(lhs), get1(rhs));
-}
+}*/
 
-QString generateHtmlString(QList<SummaryData> dataList, SortSetting::SortMode mode)
+QString generateHtmlString(QList<SummaryData> dataList, SortSettings mode)
 {
-    if(mode & SortSetting::sortAsGroup)
+    if(mode.useGroupModeFlag)
     {
-        std::map<int,GroupSumData> groupMap;
+        std::unordered_map<int,GroupSumData> groupMap;
         for(const auto& i:dataList)
         {
             GroupSumData& curData=groupMap[i.groupNo];
@@ -101,11 +101,11 @@ QString generateHtmlString(QList<SummaryData> dataList, SortSetting::SortMode mo
             curData.number=i.groupNo;
             curData.score+=i.totalScore;
         }
-        QList<GroupSumData> groupList;
+        std::vector<GroupSumData> groupList;
         groupList.reserve(groupMap.size());
         for(const auto& pair:groupMap)
         {
-            groupList.append(pair.second);
+            groupList.push_back(pair.second);
         }
         //排序以计算排名
         std::sort(groupList.begin(),groupList.end(),[](const GroupSumData& lhs,const GroupSumData& rhs)
@@ -118,14 +118,14 @@ QString generateHtmlString(QList<SummaryData> dataList, SortSetting::SortMode mo
             i.rank=curRank;
             curRank++;
         }
-        return group::generate(groupList, mode);
+        return group::generate(groupList, mode.showStudentNumberFlag);
     }
     else
     {
-        QList<StudentSumData> studentList;
+        std::vector<StudentSumData> studentList;
         studentList.reserve(dataList.size());
         for(const auto& i:dataList)
-            studentList.append({i.name,i.studentNo,i.totalScore,0});
+            studentList.push_back({i.name,i.studentNo,i.totalScore,0});
         //排序以计算排名
         std::sort(studentList.begin(),studentList.end(),[](const StudentSumData& lhs,const StudentSumData& rhs)
         {
@@ -137,8 +137,8 @@ QString generateHtmlString(QList<SummaryData> dataList, SortSetting::SortMode mo
             i.rank=curRank;
             curRank++;
         }
-        std::sort(studentList.begin(),studentList.end(),Sorter(mode));
-        return student::generate(studentList, mode);
+        // std::sort(studentList.begin(),studentList.end(),Sorter(mode));
+        return student::generate(studentList, mode.showStudentNumberFlag);
     }
 }
 } // namespace ScoreSumReport
@@ -293,16 +293,16 @@ const QString HTMLTableItemStudent=QStringLiteral(R"(
 <td> %1 </td>
 )");
 
-QString generate(QList<StudentSumData> dataList, SortSetting::SortMode mode)
+QString generate(std::vector<StudentSumData> dataList, bool showStudentNumber)
 {
     QString tableHead,tableBody;
-    if(!(mode&SortSetting::hideStudentNumber))
+    if(showStudentNumber)
         tableHead+=HTMLTableHeadStudent;
     tableHead+=HTMLTableHeadBase;
     for(const auto& i:dataList)
     {
         QString tableItem;
-        if(!(mode&SortSetting::hideStudentNumber))
+        if(showStudentNumber)
             tableItem+=HTMLTableItemStudent.arg(i.number);
         tableItem+=HTMLTableItemBase.arg(i.name).arg(i.score).arg(getSumTextClass(i.score));
         tableBody+=HTMLTableRowTemplate.arg(tableItem);
@@ -484,10 +484,8 @@ const QString HTMLStudentItem=QStringLiteral(R"(
   </div>
 </div>
 )");
-QString generate(QList<GroupSumData> dataList, SortSetting::SortMode mode)
+QString generate(std::vector<GroupSumData> dataList, bool showStudentNumber)
 {
-    Q_UNUSED(mode);
-
     auto getGroupName=[](int num) -> QString
     {
         if(num==StudentInfo::NoGroup)

@@ -15,15 +15,7 @@ void ClassDataManager::debugPrint()
     qDebug() << "[File Path]: " << filePath;
     qDebug() << "-----------------------------------------------";
 
-    // 2. 排序设置
-    qDebug() << "[Sort Settings]";
-    qDebug() << "  Student Default: " << QString::number(settings.studentDefault, 2).rightJustified(8, '0');
-    qDebug() << "  Student Previous:" << QString::number(settings.studentPrevious, 2).rightJustified(8, '0');
-    qDebug() << "  Group Default:   " << QString::number(settings.groupDefault, 2).rightJustified(8, '0');
-    qDebug() << "  Group Previous:  " << QString::number(settings.groupPrevious, 2).rightJustified(8, '0');
-    qDebug() << "-----------------------------------------------";
-
-    // 3. 学生信息列表
+    // 2. 学生信息列表
     qDebug() << "[Student List] (" << students.size() << "students)";
     for (int i = 0; i < students.size(); ++i)
     {
@@ -36,7 +28,7 @@ void ClassDataManager::debugPrint()
     }
     qDebug() << "-----------------------------------------------";
 
-    // 4. 积分模板列表
+    // 3. 积分模板列表
     qDebug() << "[Score Templates] (" << templates.size() << "templates)";
     for (int i = 0; i < templates.size(); ++i)
     {
@@ -47,7 +39,7 @@ void ClassDataManager::debugPrint()
     }
     qDebug() << "-----------------------------------------------";
 
-    // 5. 积分记录列表
+    // 4. 积分记录列表
     qDebug() << "[Score Records] (" << records.size() << "records)";
     for (int i = 0; i < records.size(); ++i)
     {
@@ -169,12 +161,9 @@ bool ClassDataManager::isRecordUnsaved() const
     return !tempRecord.scores.isEmpty();
 }
 
-void ClassDataManager::setPreviousSettings(quint8 mode)
+void ClassDataManager::setPreviousSettings(SortSettings curSettings)
 {
-    if(mode & SortSetting::sortAsGroup)
-        settings.groupPrevious = mode;
-    else
-        settings.studentPrevious = mode;
+    settings=curSettings;
 }
 
 StudentInfo& ClassDataManager::studentAt(int index)
@@ -194,7 +183,7 @@ const ScoreRecord& ClassDataManager::recordAt(int index)
     return records[index];
 }
 
-const SortSetting& ClassDataManager::getSettings() const
+const SortSettings& ClassDataManager::getSettings() const
 {
     return settings;
 }
