@@ -3,8 +3,6 @@
 #include <unordered_map>
 #include <algorithm>
 
-//FIXME:移除不再有效的状态，优化小组信息传参
-
 //前向声明
 namespace
 {
@@ -15,11 +13,99 @@ struct StudentSumData
     QString name;
     int number,score,rank;
 };
+
 struct GroupSumData
 {
-    QList<StudentSumData> members;
+    std::vector<StudentSumData> members;
     int number,score,rank;
 };
+
+// 学生比较器
+bool studentNumberAsc(const StudentSumData& a, const StudentSumData& b) {
+    return a.number < b.number;
+}
+
+bool studentNumberDesc(const StudentSumData& a, const StudentSumData& b) {
+    return a.number > b.number;
+}
+
+bool studentSumAsc(const StudentSumData& a, const StudentSumData& b) {
+    if (a.score != b.score) return a.score < b.score;
+    return a.number < b.number;   // 总分相同时按学号升序
+}
+
+bool studentSumDesc(const StudentSumData& a, const StudentSumData& b) {
+    if (a.score != b.score) return a.score > b.score;
+    return a.number < b.number;
+}
+
+// 小组比较器
+bool groupNumberAsc(const GroupSumData& a, const GroupSumData& b) {
+    return a.number < b.number;
+}
+
+bool groupNumberDesc(const GroupSumData& a, const GroupSumData& b) {
+    return a.number > b.number;
+}
+
+bool groupSumAsc(const GroupSumData& a, const GroupSumData& b) {
+    if (a.score != b.score) return a.score < b.score;
+    return a.number < b.number;
+}
+
+bool groupSumDesc(const GroupSumData& a, const GroupSumData& b) {
+    if (a.score != b.score) return a.score > b.score;
+    return a.number < b.number;
+}
+
+auto getStudentComparator(const SortSpec& spec) {
+    if (spec.field == SortField::StudentNumber) {
+        return spec.order == SortOrder::Ascending ? studentNumberAsc : studentNumberDesc;
+    } else {
+        return spec.order == SortOrder::Ascending ? studentSumAsc : studentSumDesc;
+    }
+}
+
+auto getGroupComparator(const SortSpec& spec) {
+    if (spec.field == SortField::GroupNumber) {
+        return spec.order == SortOrder::Ascending ? groupNumberAsc : groupNumberDesc;
+    } else {
+        return spec.order == SortOrder::Ascending ? groupSumAsc : groupSumDesc;
+    }
+}
+
+void sortStudents(std::vector<StudentSumData>& students, SortSpec spec)
+{
+    // 排序以计算排名
+    std::sort(students.begin(),students.end(),studentSumDesc);
+    int curRank=1;
+    for(auto& i:students)
+    {
+        i.rank=curRank;
+        curRank++;
+    }
+    // 按照传入的排序规格进行排序
+    std::sort(students.begin(), students.end(), getStudentComparator(spec));
+}
+
+void sortGroups(std::vector<GroupSumData>& groups, SortSpec groupSpec, SortSpec stuSpec)
+{
+    // 对每个小组中的学生进行排序
+    for(auto& i:groups)
+    {
+        sortStudents(i.members, stuSpec);
+    }
+    // 排序以计算排名
+    std::sort(groups.begin(),groups.end(),groupSumDesc);
+    int curRank=1;
+    for(auto& i:groups)
+    {
+        i.rank=curRank;
+        curRank++;
+    }
+    // 按照传入的排序规格进行排序
+    std::sort(groups.begin(), groups.end(), getGroupComparator(groupSpec));
+}
 
 namespace student
 {
@@ -34,61 +120,6 @@ QString generate(std::vector<GroupSumData> dataList, bool showStudentNumber = fa
 
 namespace ScoreSumReport
 {
-/*using getFunc=int(*)(const StudentSumData& );
-using cmpFunc=bool(*)(int,int);
-class Sorter
-{
-public:
-    Sorter(SortSetting::SortMode mode);
-    bool operator()(const StudentSumData& lhs,const StudentSumData& rhs);
-private:
-    getFunc get1,get2;
-    cmpFunc cmp1,cmp2;
-};
-
-int studentNumber(const StudentSumData& obj)
-{
-    return obj.number;
-}
-
-int studentSum(const StudentSumData& obj)
-{
-    return obj.score;
-}
-
-bool littleToBig(int lhs, int rhs)
-{
-    return lhs < rhs;
-}
-
-bool bigToLittle(int lhs, int rhs)
-{
-    return lhs > rhs;
-}
-
-Sorter::Sorter(SortSetting::SortMode mode)
-{
-    if(mode & SortSetting::sortByStudentSum)
-        get1 = studentSum;
-    else
-        get1 = studentNumber;
-    if(mode & SortSetting::studentAsc2Desc)
-        cmp1 = bigToLittle;
-    else
-        cmp1 = littleToBig;
-
-    get2 = studentNumber;
-    cmp2 = littleToBig;
-}
-
-bool Sorter::operator()(const StudentSumData &lhs, const StudentSumData &rhs)
-{
-    if(get1(lhs) == get1(rhs))
-        return cmp2(get2(lhs), get2(rhs));
-    else
-        return cmp1(get1(lhs), get1(rhs));
-}*/
-
 QString generateHtmlString(QList<SummaryData> dataList, SortSettings mode)
 {
     if(mode.useGroupModeFlag)
@@ -97,7 +128,7 @@ QString generateHtmlString(QList<SummaryData> dataList, SortSettings mode)
         for(const auto& i:dataList)
         {
             GroupSumData& curData=groupMap[i.groupNo];
-            curData.members.append(StudentSumData{i.name,i.studentNo,i.totalScore,0});
+            curData.members.push_back(StudentSumData{i.name,i.studentNo,i.totalScore,0});
             curData.number=i.groupNo;
             curData.score+=i.totalScore;
         }
@@ -107,17 +138,7 @@ QString generateHtmlString(QList<SummaryData> dataList, SortSettings mode)
         {
             groupList.push_back(pair.second);
         }
-        //排序以计算排名
-        std::sort(groupList.begin(),groupList.end(),[](const GroupSumData& lhs,const GroupSumData& rhs)
-        {
-            return lhs.score>rhs.score;
-        });
-        int curRank=1;
-        for(auto& i:groupList)
-        {
-            i.rank=curRank;
-            curRank++;
-        }
+        sortGroups(groupList, mode.groupSpec, mode.groupStuSpec);
         return group::generate(groupList, mode.showStudentNumberFlag);
     }
     else
@@ -126,18 +147,7 @@ QString generateHtmlString(QList<SummaryData> dataList, SortSettings mode)
         studentList.reserve(dataList.size());
         for(const auto& i:dataList)
             studentList.push_back({i.name,i.studentNo,i.totalScore,0});
-        //排序以计算排名
-        std::sort(studentList.begin(),studentList.end(),[](const StudentSumData& lhs,const StudentSumData& rhs)
-        {
-            return lhs.number>rhs.number;
-        });
-        int curRank=1;
-        for(auto& i:studentList)
-        {
-            i.rank=curRank;
-            curRank++;
-        }
-        // std::sort(studentList.begin(),studentList.end(),Sorter(mode));
+        sortStudents(studentList, mode.studentSpec);
         return student::generate(studentList, mode.showStudentNumberFlag);
     }
 }

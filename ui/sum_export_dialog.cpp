@@ -41,16 +41,6 @@ SumExportDialog::SumExportDialog(QWidget *parent, SortSettings settings) :
             ui->btn_studentAsc->setChecked(true);
         else if(settings.groupStuSpec.order==SortOrder::Descending)
             ui->btn_studentDesc->setChecked(true);
-        // 设置小组排序依据
-        if(settings.groupSpec.field==SortField::GroupNumber)
-            ui->btn_groupNo->setChecked(true);
-        else if(settings.groupSpec.field==SortField::GroupSum)
-            ui->btn_groupScore->setChecked(true);
-        // 设置小组排序顺序
-        if(settings.groupSpec.order==SortOrder::Ascending)
-            ui->btn_groupAsc->setChecked(true);
-        else if(settings.groupSpec.order==SortOrder::Descending)
-            ui->btn_groupDesc->setChecked(true);
     }
     else
     {
@@ -67,18 +57,18 @@ SumExportDialog::SumExportDialog(QWidget *parent, SortSettings settings) :
             ui->btn_studentAsc->setChecked(true);
         else if(settings.studentSpec.order==SortOrder::Descending)
             ui->btn_studentDesc->setChecked(true);
-        // 仍要进行小组相关的设置，防止互斥按钮均未被选中
-        // 设置小组排序依据
-        if(settings.groupSpec.field==SortField::GroupNumber)
-            ui->btn_groupNo->setChecked(true);
-        else if(settings.groupSpec.field==SortField::GroupSum)
-            ui->btn_groupScore->setChecked(true);
-        // 设置小组排序顺序
-        if(settings.groupSpec.order==SortOrder::Ascending)
-            ui->btn_groupAsc->setChecked(true);
-        else if(settings.groupSpec.order==SortOrder::Descending)
-            ui->btn_groupDesc->setChecked(true);
     }
+    // 均要进行小组相关的设置，防止互斥按钮均未被选中
+    // 设置小组排序依据
+    if(settings.groupSpec.field==SortField::GroupNumber)
+        ui->btn_groupNo->setChecked(true);
+    else if(settings.groupSpec.field==SortField::GroupSum)
+        ui->btn_groupScore->setChecked(true);
+    // 设置小组排序顺序
+    if(settings.groupSpec.order==SortOrder::Ascending)
+        ui->btn_groupAsc->setChecked(true);
+    else if(settings.groupSpec.order==SortOrder::Descending)
+        ui->btn_groupDesc->setChecked(true);
 }
 
 SumExportDialog::~SumExportDialog()

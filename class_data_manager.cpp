@@ -164,6 +164,7 @@ bool ClassDataManager::isRecordUnsaved() const
 void ClassDataManager::setPreviousSettings(SortSettings curSettings)
 {
     settings=curSettings;
+    setDirty(true);
 }
 
 StudentInfo& ClassDataManager::studentAt(int index)
