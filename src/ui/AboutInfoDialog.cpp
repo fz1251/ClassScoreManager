@@ -1,6 +1,6 @@
 // about_info_dialog.cpp
-#include "about_info_dialog.h"
-#include "ui_about_info_dialog.h"
+#include "AboutInfoDialog.h"
+#include "ui_AboutInfoDialog.h"
 #include <QPushButton>
 #include <QButtonGroup>
 #include <QPixmap>

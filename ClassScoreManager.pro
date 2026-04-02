@@ -11,37 +11,37 @@ win32:LIBS += -ldwmapi
 DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES += \
-    class_data_manager.cpp \
-    class_table_modal.cpp \
-    main.cpp \
-    mainwindow.cpp \
-    score_expr_delegate.cpp \
-    score_sum_report.cpp \
-    ui/about_info_dialog.cpp \
-    ui/item_selection_dialog.cpp \
-    ui/paste_students_dialog.cpp \
-    ui/sum_export_dialog.cpp
+    src/core/ClassDataManager.cpp \
+    src/core/ScoreSumReport.cpp \
+    src/delegates/ScoreExprDelegate.cpp \
+    src/main.cpp \
+    src/models/ClassTableModal.cpp \
+    src/ui/AboutInfoDialog.cpp \
+    src/ui/ItemSelectionDialog.cpp \
+    src/ui/MainWindow.cpp \
+    src/ui/PasteStudentsDialog.cpp \
+    src/ui/SumExportDialog.cpp
 
 HEADERS += \
-    class_data_manager.h \
-    class_table_modal.h \
-    data_types.h \
-    mainwindow.h \
-    score_expr_delegate.h \
-    score_sum_report.h \
-    ui/about_info_dialog.h \
-    ui/item_selection_dialog.h \
-    ui/paste_students_dialog.h \
-    ui/sum_export_dialog.h
+    src/core/ClassDataManager.h \
+    src/core/DataTypes.h \
+    src/core/ScoreSumReport.h \
+    src/delegates/ScoreExprDelegate.h \
+    src/models/ClassTableModal.h \
+    src/ui/AboutInfoDialog.h \
+    src/ui/ItemSelectionDialog.h \
+    src/ui/MainWindow.h \
+    src/ui/PasteStudentsDialog.h \
+    src/ui/SumExportDialog.h
 
 FORMS += \
-    mainwindow.ui \
-    ui/about_info_dialog.ui \
-    ui/item_selection_dialog.ui \
-    ui/paste_students_dialog.ui \
-    ui/sum_export_dialog.ui
+    src/ui/AboutInfoDialog.ui \
+    src/ui/ItemSelectionDialog.ui \
+    src/ui/MainWindow.ui \
+    src/ui/PasteStudentsDialog.ui \
+    src/ui/SumExportDialog.ui
 
-RC_ICONS = icon.ico
+RC_ICONS = resources/icon.ico
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin

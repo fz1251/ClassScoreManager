@@ -1,4 +1,4 @@
-#include "class_data_manager.h"
+#include "ClassDataManager.h"
 
 ClassDataManager::ClassDataManager(QObject *parent)
     : QObject(parent)

@@ -1,5 +1,5 @@
-#ifndef ITEM_SELECTION_DIALOG_H
-#define ITEM_SELECTION_DIALOG_H
+#ifndef ITEMSELECTIONDIALOG_H
+#define ITEMSELECTIONDIALOG_H
 
 #include <QDialog>
 #include <QString>
@@ -22,4 +22,4 @@ private:
     Ui::ItemSelectionDialog *ui;
 };
 
-#endif // ITEM_SELECTION_DIALOG_H
+#endif // ITEMSELECTIONDIALOG_H

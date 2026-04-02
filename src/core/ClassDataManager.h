@@ -1,7 +1,7 @@
-#ifndef CLASS_DATA_MANAGER_H
-#define CLASS_DATA_MANAGER_H
+#ifndef CLASSDATAMANAGER_H
+#define CLASSDATAMANAGER_H
 
-#include "data_types.h"
+#include "DataTypes.h"
 #include <QObject>
 #include <QDebug>
 #include <QFile>
@@ -72,4 +72,4 @@ private:
     QList<ScoreRecord> records;
 };
 
-#endif // CLASS_DATA_MANAGER_H
+#endif // CLASSDATAMANAGER_H

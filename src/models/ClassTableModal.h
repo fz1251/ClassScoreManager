@@ -1,7 +1,7 @@
-#ifndef CLASS_TABLE_MODAL_H
-#define CLASS_TABLE_MODAL_H
+#ifndef CLASSTABLEMODAL_H
+#define CLASSTABLEMODAL_H
 
-#include "class_data_manager.h"
+#include "../core/ClassDataManager.h"
 #include <QMap>
 #include <QBrush>
 #include <QMimeData>
@@ -91,4 +91,4 @@ private:
     int activatedTemplateIndex;
 };
 
-#endif // CLASS_TABLE_MODAL_H
+#endif // CLASSTABLEMODAL_H

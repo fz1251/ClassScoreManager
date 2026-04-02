@@ -1,6 +1,6 @@
 // about_info_dialog.h
-#ifndef ABOUT_INFO_DIALOG_H
-#define ABOUT_INFO_DIALOG_H
+#ifndef ABOUTINFODIALOG_H
+#define ABOUTINFODIALOG_H
 
 #include <QDialog>
 #include <QMouseEvent>
@@ -83,4 +83,4 @@ private:
     ResizeRegion getResizeRegion(const QPoint& pos);
 };
 
-#endif // ABOUT_INFO_DIALOG_H
+#endif // ABOUTINFODIALOG_H

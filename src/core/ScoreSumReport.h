@@ -1,7 +1,7 @@
-#ifndef SCORE_SUM_REPORT_H
-#define SCORE_SUM_REPORT_H
+#ifndef SCORESUMREPORT_H
+#define SCORESUMREPORT_H
 
-#include "data_types.h"
+#include "DataTypes.h"
 
 namespace ScoreSumReport {
 
@@ -17,4 +17,4 @@ QString generateHtmlString(QList<SummaryData> dataList,SortSettings mode);
 
 } // namespace ScoreSumReport
 
-#endif // SCORE_SUM_REPORT_H
+#endif // SCORESUMREPORT_H

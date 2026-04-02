@@ -1,5 +1,5 @@
-#include "item_selection_dialog.h"
-#include "ui_item_selection_dialog.h"
+#include "ItemSelectionDialog.h"
+#include "ui_ItemSelectionDialog.h"
 
 ItemSelectionDialog::ItemSelectionDialog(QWidget *parent, const QString &title, const QString &label, const QStringList &items, int current) :
     QDialog(parent),

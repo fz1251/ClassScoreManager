@@ -1,5 +1,5 @@
-#include "sum_export_dialog.h"
-#include "ui_sum_export_dialog.h"
+#include "SumExportDialog.h"
+#include "ui_SumExportDialog.h"
 #include <QButtonGroup>
 
 SumExportDialog::SumExportDialog(QWidget *parent, SortSettings settings) :

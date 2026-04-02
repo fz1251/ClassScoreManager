@@ -1,8 +1,8 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
-#include "data_types.h"
-#include "class_table_modal.h"
+#include "../core/DataTypes.h"
+#include "../models/ClassTableModal.h"
 #include <QMainWindow>
 #include <QLabel>
 #include <QMessageBox>

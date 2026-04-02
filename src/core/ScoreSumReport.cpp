@@ -1,4 +1,4 @@
-#include "score_sum_report.h"
+#include "ScoreSumReport.h"
 #include <vector>
 #include <unordered_map>
 #include <algorithm>

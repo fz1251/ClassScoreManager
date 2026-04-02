@@ -1,4 +1,4 @@
-#include "class_table_modal.h"
+#include "ClassTableModal.h"
 
 ClassTableModal::ClassTableModal(QObject *parent, ClassDataManager* dataManager)
     : QAbstractTableModel(parent)

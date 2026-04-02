@@ -1,4 +1,4 @@
-#include "score_expr_delegate.h"
+#include "ScoreExprDelegate.h"
 #include <QRegularExpression>
 #include <QRegularExpressionValidator>
 
