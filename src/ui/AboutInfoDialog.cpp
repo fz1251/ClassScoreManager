@@ -63,12 +63,9 @@ AboutInfoDialog::AboutInfoDialog(QWidget *parent) :
         connect(closeButton, &QPushButton::clicked, this, &AboutInfoDialog::close);
         setStyleSheet(R"(
 #closeButton {
-    background: transparent;
     border: none;
     padding: 2px;
-    background-image: url(:/icons/resources/dialog-close.png);
-    background-repeat: no-repeat;
-    background-position: center;
+    background: transparent url(:/icons/resources/dialog-close.png) no-repeat center;
 }
 
 #closeButton:hover {
@@ -76,24 +73,26 @@ AboutInfoDialog::AboutInfoDialog(QWidget *parent) :
 }
 
 #acrylicButton, #blurButton {
-    background-color: transparent;
-    border: 1px solid #ccc;
-    padding: 3px 5px;
-    color: #666;
-    font: normal 14pt;
     min-width: 80px;
+    background-color: transparent;
+    border: 1px solid rgba(20, 20, 20, 0.25);
+    padding: 3px 6px;
+    color: #4a4a4a;
+    font: normal 14pt;
 }
 
 #acrylicButton {
     border-right: none;
+    border-top-left-radius: 8px;
+    border-bottom-left-radius: 8px;
 }
 
 #blurButton {
-    border-left: 1px solid #ccc;
+    border-top-right-radius: 8px;
+    border-bottom-right-radius: 8px;
 }
 
 #acrylicButton:checked, #blurButton:checked {
-    font: bold 14pt;
     color: #000;
 }
     )");
