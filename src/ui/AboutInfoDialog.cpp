@@ -1,15 +1,25 @@
 // about_info_dialog.cpp
 #include "AboutInfoDialog.h"
 #include "ui_AboutInfoDialog.h"
+#include <QWindow>
 #include <QPushButton>
 #include <QButtonGroup>
 #include <QPixmap>
 #include <QPainter>
-#include <QPainterPath>
+
 #include <QPropertyAnimation>
 #include <QEasingCurve>
 #include <QGraphicsOpacityEffect>
 #include <QOperatingSystemVersion>
+
+#ifdef Q_OS_WIN
+#include <windows.h>
+#include <windowsx.h>
+#include <dwmapi.h>
+#ifdef _MSC_VER
+#pragma comment(lib, "user32.lib")
+#endif
+#endif
 
 AboutInfoDialog::AboutInfoDialog(QWidget *parent) :
     QDialog(parent),
@@ -41,8 +51,18 @@ AboutInfoDialog::AboutInfoDialog(QWidget *parent) :
     if(m_isWindows10or11)
     {
         setWindowFlag(Qt::FramelessWindowHint);
-        setMouseTracking(true);
-        m_enableDragging = true;
+        /*
+         * 窗口样式取舍说明：
+         * — 使用 Qt::FramelessWindowHint 移除系统标题栏，通过 WM_NCHITTEST 实现原生拖动与缩放。
+         * — 通过 WS_THICKFRAME 使 WM_NCHITTEST 返回的 HT* 缩放值生效。
+         * — 通过 WS_CAPTION 使 DWM 正确对齐窗口坐标系，确保 Qt 的 mapFromGlobal 按钮命中无偏移。
+         *   WM_NCCALCSIZE 中将整窗声明为客户区以削去标题栏，但其渲染残留会在顶部产生小圆角，无功能影响。
+         * — WA_TranslucentBackground 引入 WS_EX_LAYERED，与 DWM 原生阴影互斥，如需阴影可自行绘制。
+         */
+        HWND hwnd = reinterpret_cast<HWND>(winId());
+        SetWindowLongPtr(hwnd, GWL_STYLE,
+            GetWindowLongPtr(hwnd, GWL_STYLE) | WS_THICKFRAME | WS_CAPTION);
+        SetWindowPos(hwnd, nullptr, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED);
 
         //手动模拟窗口标题栏
         titleBarLayout = new QHBoxLayout();
@@ -96,9 +116,7 @@ AboutInfoDialog::AboutInfoDialog(QWidget *parent) :
     color: #000;
 }
     )");
-
     }
-    m_timer.start();
 }
 
 AboutInfoDialog::~AboutInfoDialog()
@@ -152,6 +170,7 @@ void AboutInfoDialog::paintEvent(QPaintEvent *event)
 {
     if(m_translucentBackground)
     {
+        // 防止 WS_EX_LAYERED + 全透明导致点击穿透到下层窗口
         QPainter painter(this);
         if(m_effectsEnabled)
         {
@@ -159,264 +178,75 @@ void AboutInfoDialog::paintEvent(QPaintEvent *event)
         }
         else
         {
-            if(m_isWindows10or11)
-            {
-                const int w = this->width();
-                const int h = this->height();
-                const int blur = BLUR_RADIUS;
-                const QRect contentRect = rect().adjusted(blur, blur, -blur, -blur);
-
-                painter.setRenderHint(QPainter::Antialiasing);
-                painter.setPen(Qt::NoPen);
-
-                painter.fillRect(contentRect, Qt::white);
-
-                // 裁剪：挖去中间内容区，仅保留边缘区域用于绘制阴影
-                QPainterPath clip;
-                clip.addRect(rect());
-                clip.addRect(blur, blur, w - 2 * blur, h - 2 * blur);
-                painter.setClipPath(clip);
-
-                QPainterPath path;
-
-                // --- 绘制4个角落 (扇形) ---
-                QRadialGradient radialGradient;
-                QPointF center;
-
-                // --- 左上角 ---
-                center = QPointF(blur, blur);
-                radialGradient.setCenter(center);
-                radialGradient.setFocalPoint(center);
-                radialGradient.setRadius(blur);
-                radialGradient.setColorAt(0, shadowStart);
-                radialGradient.setColorAt(1, shadowEnd);
-                painter.setBrush(radialGradient);
-
-                path.moveTo(center);
-                // 左上角：从90度开始，逆时针画90度
-                path.arcTo(0, 0, blur * 2, blur * 2, 90, 90);
-                painter.drawPath(path);
-                path.clear();
-
-                // --- 右上角 ---
-                center = QPointF(w - blur, blur);
-                radialGradient.setCenter(center);
-                radialGradient.setFocalPoint(center);
-                radialGradient.setRadius(blur);
-                radialGradient.setColorAt(0, shadowStart);
-                radialGradient.setColorAt(1, shadowEnd);
-                painter.setBrush(radialGradient);
-
-                path.moveTo(center);
-                // 右上角：从0度开始，逆时针画90度
-                path.arcTo(w - blur * 2, 0, blur * 2, blur * 2, 0, 90);
-                painter.drawPath(path);
-                path.clear();
-
-                // --- 左下角 ---
-                center = QPointF(blur, h - blur);
-                radialGradient.setCenter(center);
-                radialGradient.setFocalPoint(center);
-                radialGradient.setRadius(blur);
-                radialGradient.setColorAt(0, shadowStart);
-                radialGradient.setColorAt(1, shadowEnd);
-                painter.setBrush(radialGradient);
-
-                path.moveTo(center);
-                // 左下角：从180度开始，逆时针画90度
-                path.arcTo(0, h - blur * 2, blur * 2, blur * 2, 180, 90);
-                painter.drawPath(path);
-                path.clear();
-
-                // --- 右下角 ---
-                center = QPointF(w - blur, h - blur);
-                radialGradient.setCenter(center);
-                radialGradient.setFocalPoint(center);
-                radialGradient.setRadius(blur);
-                radialGradient.setColorAt(0, shadowStart);
-                radialGradient.setColorAt(1, shadowEnd);
-                painter.setBrush(radialGradient);
-
-                path.moveTo(center);
-                // 右下角：从270度开始，逆时针画90度
-                path.arcTo(w - blur * 2, h - blur * 2, blur * 2, blur * 2, 270, 90);
-                painter.drawPath(path);
-                path.clear();
-
-
-                // --- 绘制四条边（内缩 blur，避免与角重叠）---
-                QLinearGradient linear;
-                linear.setColorAt(0, shadowStart);
-                linear.setColorAt(1, shadowEnd);
-
-                // 上边
-                linear.setStart(w / 2, blur);
-                linear.setFinalStop(w / 2, 0);
-                painter.setBrush(linear);
-                path.addRect(blur, 0, w - 2 * blur, blur);
-                painter.drawPath(path);
-                path.clear();
-
-                // 下边
-                linear.setStart(w / 2, h - blur);
-                linear.setFinalStop(w / 2, h);
-                painter.setBrush(linear);
-                path.addRect(blur, h - blur, w - 2 * blur, blur);
-                painter.drawPath(path);
-                path.clear();
-
-                // 左边
-                linear.setStart(blur, h / 2);
-                linear.setFinalStop(0, h / 2);
-                painter.setBrush(linear);
-                path.addRect(0, blur, blur, h - 2 * blur);
-                painter.drawPath(path);
-                path.clear();
-
-                // 右边
-                linear.setStart(w - blur, h / 2);
-                linear.setFinalStop(w, h / 2);
-                painter.setBrush(linear);
-                path.addRect(w - blur, blur, blur, h - 2 * blur);
-                painter.drawPath(path);
-            }
-            else
-            {
-                painter.fillRect(rect(), Qt::white);
-            }
+            painter.fillRect(rect(), Qt::white);
         }
     }
     QDialog::paintEvent(event);
 }
 
-void AboutInfoDialog::mousePressEvent(QMouseEvent *event)
+bool AboutInfoDialog::nativeEvent(const QByteArray &eventType, void *message, qintptr *result)
 {
-    if (!m_enableDragging)
-        return;
+#ifdef Q_OS_WIN
+    if (!m_isWindows10or11)
+        return false;
 
-    if (event->button() == Qt::LeftButton && m_currentRegion != NoEdge)
+    if (eventType == "windows_generic_MSG")
     {
-        m_isResizing = true;
-        m_drag_start = event->globalPosition().toPoint();
-        m_windowRect = geometry();
-    }
-    else if (event->button() == Qt::LeftButton)
-    {
-        // 不在边缘区域，开始拖动
-        m_isDragging = true;
-        m_drag_start = event->globalPosition().toPoint() - this->pos();
-        m_timer.restart();
-    }
-
-    event->accept();
-}
-
-void AboutInfoDialog::mouseMoveEvent(QMouseEvent *event)
-{
-    if (!m_enableDragging)
-        return;
-
-    if (m_isDragging && (event->buttons() & Qt::LeftButton))
-    {
-        if (m_timer.elapsed() >= 20)
+        MSG *msg = static_cast<MSG *>(message);
+        if (msg->message == WM_NCCALCSIZE)
         {
-            m_timer.restart();
-            // 拖动逻辑：新位置 = 当前全局鼠标位置 - 初始偏移
-            move(event->globalPosition().toPoint() - m_drag_start);
-            event->accept();
-        }
-    }
-    else if (m_isResizing && (event->buttons() & Qt::LeftButton))
-    {
-        if (m_timer.elapsed() >= 20)
-        {
-            m_timer.restart();
-
-            QPoint delta = event->globalPosition().toPoint() - m_drag_start;
-            QRect newGeom = m_windowRect;
-            switch (m_currentRegion)
+            if (msg->wParam == TRUE)
             {
-            case Left:
-                newGeom.setLeft(m_windowRect.left() + delta.x());
-                break;
-            case Right:
-                newGeom.setRight(m_windowRect.right() + delta.x());
-                break;
-            case Top:
-                newGeom.setTop(m_windowRect.top() + delta.y());
-                break;
-            case Bottom:
-                newGeom.setBottom(m_windowRect.bottom() + delta.y());
-                break;
-            case TopLeft:
-                newGeom.setTopLeft(m_windowRect.topLeft() + delta);
-                break;
-            case TopRight:
-                newGeom.setTopRight(m_windowRect.topRight() + delta);
-                break;
-            case BottomLeft:
-                newGeom.setBottomLeft(m_windowRect.bottomLeft() + delta);
-                break;
-            case BottomRight:
-                newGeom.setBottomRight(m_windowRect.bottomRight() + delta);
-                break;
-            default:
-                break;
-            }
-            if(newGeom.height() > ui->OuterVLayout->minimumHeightForWidth(newGeom.width()))
-            {
-                setGeometry(newGeom);
+                // 整窗设为客户区，削去 WS_CAPTION 的标题栏，仅保留其坐标系对齐作用
+                *result = 0;
+                return true;
             }
         }
-    }
-    else
-    {
-        // 设置鼠标光标形状
-        ResizeRegion region = getResizeRegion(event->pos());
-        m_currentRegion = region;
-        switch (region)
+        else if (msg->message == WM_NCHITTEST)
         {
-        case Left:
-        case Right:
-            setCursor(Qt::SizeHorCursor);
-            break;
-        case Top:
-        case Bottom:
-            setCursor(Qt::SizeVerCursor);
-            break;
-        case TopLeft:
-        case BottomRight:
-            setCursor(Qt::SizeFDiagCursor);
-            break;
-        case TopRight:
-        case BottomLeft:
-            setCursor(Qt::SizeBDiagCursor);
-            break;
-        default:
-            unsetCursor();
-            break;
+            // GET_X/Y_LPARAM 正确处理多显示器负坐标，不可用 LOWORD/HIWORD 替代
+            const int xPos = GET_X_LPARAM(msg->lParam);
+            const int yPos = GET_Y_LPARAM(msg->lParam);
+
+            // 放行按钮区域以免被 HTCAPTION 覆盖
+            const QPoint clientPos = mapFromGlobal(
+                QPointF(xPos, yPos) / windowHandle()->devicePixelRatio()).toPoint();
+            QWidget *child = childAt(clientPos);
+            if (child && qobject_cast<QPushButton *>(child))
+                return false;
+
+            // 边缘检测用 Win32 屏幕坐标（Qt 不知道外部添加的 WS_THICKFRAME）
+            RECT wr;
+            GetWindowRect(reinterpret_cast<HWND>(winId()), &wr);
+            const int hitMargin = qRound(BLUR_RADIUS * windowHandle()->devicePixelRatio());
+            const int rx = xPos - wr.left;
+            const int ry = yPos - wr.top;
+            const int ww = wr.right - wr.left;
+            const int wh = wr.bottom - wr.top;
+
+            const bool onLeft   = rx <= hitMargin;
+            const bool onRight  = rx >= ww - hitMargin;
+            const bool onTop    = ry <= hitMargin;
+            const bool onBottom = ry >= wh - hitMargin;
+
+            if (onTop && onLeft)     { *result = HTTOPLEFT;     return true; }
+            if (onTop && onRight)    { *result = HTTOPRIGHT;    return true; }
+            if (onBottom && onLeft)  { *result = HTBOTTOMLEFT;  return true; }
+            if (onBottom && onRight) { *result = HTBOTTOMRIGHT; return true; }
+            if (onTop)               { *result = HTTOP;         return true; }
+            if (onBottom)            { *result = HTBOTTOM;      return true; }
+            if (onLeft)              { *result = HTLEFT;        return true; }
+            if (onRight)             { *result = HTRIGHT;       return true; }
+
+            *result = HTCAPTION; // 剩余区域均可拖动
+            return true;
         }
     }
-
-    event->accept();
-}
-
-void AboutInfoDialog::mouseReleaseEvent(QMouseEvent *event)
-{
-    if(!m_enableDragging)
-        return ;
-    if (event->button() == Qt::LeftButton)
-    {
-        m_isDragging = false;
-        m_isResizing = false;
-        event->accept();
-    }
+#endif
+    return false;
 }
 
 #ifdef Q_OS_WIN
-
-#include <windows.h>
-#include <dwmapi.h>
 
 enum AccentState
 {
@@ -445,19 +275,6 @@ struct WindowCompositionAttributeData
 typedef BOOL(WINAPI* pSetWindowCompositionAttribute)(HWND, WindowCompositionAttributeData*);
 #endif
 
-/* 旧版关闭按钮样式：
-QPushButton#pushButton {
-    color: #fff;
-    border-radius: 6px;
-    padding: 8px 20px;
-    font-weight: 500;
-    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,stop:0 rgba(6,14,131,255),stop:1 rgba(12,25,180,255));
-    border: none;
-}
-
-QPushButton#pushButton:hover {
-    background: qlineargradient(x1:0, y1:0, y2:1,stop:0 rgba(0,3,255,255),stop:1 rgba(2,126,251,255));
-} */
 void AboutInfoDialog::enableEffects()
 {
     repaint();//重绘窗口，使背景更新，显示透明
@@ -567,7 +384,6 @@ void AboutInfoDialog::enableBackgroundBlurEffect()
         return ;
     }
     else if(m_isWindows7)
-
     {
         HWND hwnd = reinterpret_cast<HWND>(winId());
         BOOL dwmEnabled = FALSE;
@@ -593,22 +409,4 @@ void AboutInfoDialog::windowBounce(int dx, int dy, int duration_ms)
     animation->setEndValue(startPos);
     animation->setEasingCurve(QEasingCurve::OutInCirc);
     animation->start(QPropertyAnimation::DeleteWhenStopped);
-}
-
-AboutInfoDialog::ResizeRegion AboutInfoDialog::getResizeRegion(const QPoint& pos)
-{
-    bool onLeft = pos.x() <= BLUR_RADIUS;
-    bool onRight = pos.x() >= width() - BLUR_RADIUS;
-    bool onTop = pos.y() <= BLUR_RADIUS;
-    bool onBottom = pos.y() >= height() - BLUR_RADIUS;
-
-    if (onTop && onLeft) return TopLeft;
-    if (onTop && onRight) return TopRight;
-    if (onBottom && onLeft) return BottomLeft;
-    if (onBottom && onRight) return BottomRight;
-    if (onTop) return Top;
-    if (onBottom) return Bottom;
-    if (onLeft) return Left;
-    if (onRight) return Right;
-    return NoEdge;
 }
