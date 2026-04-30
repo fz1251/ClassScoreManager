@@ -46,9 +46,10 @@ private:
     //是否已启用背景透明标识
     bool m_translucentBackground = false;
     //系统版本标识
-    bool m_isWindows7 = false;
-    bool m_isWindows10or11 = false;
-    bool m_windowsSupportsAcrylic = false;
+    bool m_isWin7 = false;
+    bool m_isWin10or11 = false;
+    bool m_isWin11 = false;
+    bool m_gtWin11_22H2 = false;
     static const inline int BLUR_RADIUS = 8;
 };
 
