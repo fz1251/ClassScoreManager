@@ -50,6 +50,7 @@ private:
     bool m_isWin10or11 = false;
     bool m_isWin11 = false;
     bool m_gtWin11_22H2 = false;
+    // 8 = SM_CXFRAME(4) + SM_CXPADDEDBORDER(4)，用作 WM_NCHITTEST 边缘检测的缩放边界厚度
     static const inline int BLUR_RADIUS = 8;
 };
 

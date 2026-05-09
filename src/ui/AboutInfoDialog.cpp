@@ -74,7 +74,7 @@ const QString modeButtonStyle = QStringLiteral(R"(
 //              (Acrylic→DWMSBT_TRANSIENTWINDOW, Mica→DWMSBT_MAINWINDOW, MicaAlt→DWMSBT_TABBEDWINDOW)
 // Win11 Blur：SetWindowCompositionAttribute(ACCENT_ENABLE_BLURBEHIND)，沿用 Win10 路径
 // 背景透明：  WA_TranslucentBackground → WS_EX_LAYERED，paintEvent 填 QColor(255,255,255,1) 防点击穿透
-// 窗口阴影：  DwmExtendFrameIntoClientArea({1,0,0,0}) 左侧 1px 扩展
+// 窗口阴影：  DwmExtendFrameIntoClientArea({0,0,1,0}) 顶部 1px 扩展
 // 标题栏：    无 FramelessWindowHint，QDialog 默认 WS_THICKFRAME|WS_CAPTION，WM_NCCALCSIZE 整窗为客户区
 //
 // 【争议：WS_EX_LAYERED 是否破坏 DWMWA_SYSTEMBACKDROP_TYPE？】
@@ -99,13 +99,6 @@ const QString modeButtonStyle = QStringLiteral(R"(
 // □ 尝试 {-1,-1,-1,-1} 替代 {65536,0,0,0}，对比材料渲染差异
 // □ 若材料失效，尝试临时去掉 WA_TranslucentBackground，验证是否因 WS_EX_LAYERED 被 DWM 拒绝
 // □ Win11 22H2+ 的 MicaAlt 是否与 Mica 有可见差异
-//
-// 【已知问题：DWM 帧扩展的 1px 白线 — 已选择顶部方案】
-// 测试结果：{0,0,0,0}=无阴影；{1,0,0,0}=阴影在左，左侧多 1px 白线；{0,1,0,0}=同理在右；
-//          {0,0,1,0}=阴影在上方，新增白线与 WS_CAPTION 残留的顶部白线重叠，只显一条。
-// 结论：扩展方向决定了白线位置，无论哪边都会有一条。选择顶部是因为 WS_CAPTION 本身在顶部
-//       已有 1px 渲染残留，DWM 帧扩展的白线与之重叠，不会在额外边缘引入新线条，视觉干扰最小。
-
 AboutInfoDialog::AboutInfoDialog(QWidget *parent) :
     QDialog(parent),
     ui(new Ui::AboutInfoDialog)
@@ -130,19 +123,42 @@ AboutInfoDialog::AboutInfoDialog(QWidget *parent) :
     {
         setAttribute(Qt::WA_TranslucentBackground);
         m_translucentBackground = true;
+
+        /*
+         * 窗口样式取舍说明
+         *
+         * 【基础窗口样式】
+         * 不使用 Qt::FramelessWindowHint。QDialog 默认 WS_OVERLAPPEDWINDOW 已含
+         * WS_THICKFRAME | WS_CAPTION：
+         *  — WS_THICKFRAME 使 WM_NCHITTEST 返回的 HT* 缩放值生效。
+         *  — WS_CAPTION 使 DWM 按有标题栏的坐标系对齐，确保 Qt mapFromGlobal 按钮命中无偏移。
+         *
+         * 【WM_NCCALCSIZE 处理】
+         * *result = 0 将整窗声明为客户区、标题栏不渲染，但 DWM 内部仍保留 WS_CAPTION
+         * 的对齐逻辑。此即保留 WS_CAPTION 而不用 FramelessWindowHint 的原因。
+         *
+         * 【背景透明与 DWM 阴影】
+         *  — WA_TranslucentBackground → WS_EX_LAYERED，材料（Blur/Acrylic/Mica）可透过显示。
+         *  — DwmExtendFrameIntoClientArea({0,0,1,0}) 顶部扩展 1px DWM 帧，启用原生窗口阴影。
+         *
+         * 【Win10 策略：仅 Blur，禁用 Acrylic】
+         * Win10 的 DWM 处理 ACCENT_ENABLE_ACRYLICBLURBEHIND 时存在性能缺陷：高轮询率鼠标
+         * （250Hz 及以上）移动或调整窗口大小时，后台合成/渲染在高频输入下形成瓶颈，导致窗口
+         * 响应延迟甚至"幽灵光标"——鼠标释放后窗口仍持续移动，仿佛在消化积压的事件队列。
+         * 此前尝试用 QElapsedTimer 手动限流丢弃间隔过短的询问来缓解，代码复杂混乱，故直接禁用。
+         * Blur 路径（ACCENT_ENABLE_BLURBEHIND）不触发此缺陷，效果纯净通透。
+         *
+         * 【技术硬伤：DWM 帧扩展的 1px 白线】
+         * DwmExtendFrameIntoClientArea 扩展后，扩展边与原始客户区之间始终存在 1px 渲染偏差
+         * （白线），系 DWM 合成管线底层限制，无法通过参数消除。微软官方 Windows Terminal
+         * 在实现亚克力材料时窗口顶部同样可见此白线，可作印证。
+         * 测试记录：{0,0,0,0}=无阴影；{1,0,0,0}=白线在左；{0,1,0,0}=白线在右；
+         *           {0,0,1,0}=白线与 WS_CAPTION 顶部残留重叠，只显一条，视觉干扰最小。
+         * 结论：选择顶部扩展，利用已有残留重叠掩盖，不引入额外边缘白线。
+         */
         if(m_isWin10or11)
         {
             // setWindowFlag(Qt::FramelessWindowHint);
-            /*
-             * 窗口样式取舍说明：
-             * — 不使用 Qt::FramelessWindowHint，QDialog 默认 WS_OVERLAPPEDWINDOW 含 WS_THICKFRAME|WS_CAPTION。
-             * — WS_THICKFRAME 使 WM_NCHITTEST 返回的 HT* 缩放值生效。
-             * — WS_CAPTION 使 DWM 正确对齐窗口坐标系，确保 Qt 的 mapFromGlobal 按钮命中无偏移。
-             *   WM_NCCALCSIZE 将整窗声明为客户区，标题栏不渲染但 DWM 坐标系仍按有标题栏对齐。
-             * — DwmExtendFrameIntoClientArea 顶部扩展 1px DWM 帧启用原生阴影，白线与 WS_CAPTION 残留重叠。
-             * — WA_TranslucentBackground 引入 WS_EX_LAYERED，供 Blur/Acrylic/Mica 材料透过显示。
-             * — Win10 仅提供 Blur 不提供 Acrylic：全窗亚克力 GPU 开销高且旧 API 路径质量差，Blur 纯净通透、与 Win7 行为一致。
-             */
             HWND hwnd = reinterpret_cast<HWND>(winId());
 
             // 顶部扩展 1px DWM 帧以启用原生阴影，白线与 WS_CAPTION 残留重叠，视觉干扰最小
