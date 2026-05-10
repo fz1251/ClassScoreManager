@@ -16,7 +16,7 @@ MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
     , manager(new ClassDataManager(this))
-    , modal(new ClassTableModal(this,manager))
+    , modal(new ClassTableModal(manager,this))
 {
     ui->setupUi(this);
 

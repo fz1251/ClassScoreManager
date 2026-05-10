@@ -25,7 +25,7 @@ public:
     };
 
     // 表格模型所用函数
-    explicit ClassTableModal(QObject *parent = nullptr, ClassDataManager* dataManager = nullptr);
+    explicit ClassTableModal(ClassDataManager* dataManager, QObject *parent = nullptr);
     int rowCount(const QModelIndex &parent = QModelIndex()) const override;
     int columnCount(const QModelIndex &parent = QModelIndex()) const override;
     QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
@@ -62,6 +62,7 @@ public:
     void deleteScoreTemplate(int index);
     void clearScoreTemplate();
 
+    // 刷新全表格函数
     void resetTable();
 public slots:
     void setStudentEditable(bool editable);
@@ -73,16 +74,23 @@ private:
     static const inline QString moveRowDataType = "application/row_data";
     static const inline int INVALID_INDEX = -1;
 
-    bool validateModalIndex(const QModelIndex& index) const;
-    bool isValidIndex(int index)const;
+    // 辅助获取manager中内容
+    const QList<StudentInfo>&   students()  const { return manager->getStudents(); };
+    const QList<ScoreTemplate>& templates() const { return manager->getTemplates(); };
+    const QList<ScoreRecord>&   records()   const { return manager->getRecords(); };
+
+    // 验证索引有效性
+    bool isValidModalIndex(const QModelIndex& index) const;
+    bool isValidIndex(int index) const;
+
+    // 包装显示/隐藏列功能
     void showColumnWrapper(int column);
     void hideColumnWrapper(int column);
-    static QBrush getScoreColor(int scoreValue);
-    ClassDataManager* manager;
-    const QList<StudentInfo>& students;
-    const QList<ScoreTemplate>& templates;
-    const QList<ScoreRecord>& records;
 
+    // 获取HTML表格中积分颜色
+    static QBrush getScoreColor(int scoreValue);
+
+    ClassDataManager* manager;
     bool columnIsVisible[MaxColumnCount];
     bool canEditStudent = true;
     bool canEditGroup   = true;
