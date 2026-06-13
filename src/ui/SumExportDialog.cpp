@@ -8,8 +8,8 @@ SumExportDialog::SumExportDialog(QWidget *parent, SortSettings settings) :
 {
     ui->setupUi(this);
 
-    connect(ui->beginTimeComboBox,&QComboBox::currentIndexChanged,this,&SumExportDialog::updateRecordList);
-    connect(ui->endTimeComboBox,&QComboBox::currentIndexChanged,this,&SumExportDialog::updateRecordList);
+    connect(ui->beginTimeComboBox, qOverload<int>(&QComboBox::currentIndexChanged), this, &SumExportDialog::updateRecordList);
+    connect(ui->endTimeComboBox, qOverload<int>(&QComboBox::currentIndexChanged), this, &SumExportDialog::updateRecordList);
     connect(ui->btn_groupMode,&QPushButton::toggled,this,&SumExportDialog::setGroupModeVisibility);
 
     auto addToButtonGroup = [this](QPushButton* btn1, QPushButton* btn2)

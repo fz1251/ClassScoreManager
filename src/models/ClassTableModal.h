@@ -75,9 +75,9 @@ private:
     static const inline int INVALID_INDEX = -1;
 
     // 辅助获取manager中内容
-    const QList<StudentInfo>&   students()  const { return manager->getStudents(); };
-    const QList<ScoreTemplate>& templates() const { return manager->getTemplates(); };
-    const QList<ScoreRecord>&   records()   const { return manager->getRecords(); };
+    const QVector<StudentInfo>&   students()  const { return manager->getStudents(); };
+    const QVector<ScoreTemplate>& templates() const { return manager->getTemplates(); };
+    const QVector<ScoreRecord>&   records()   const { return manager->getRecords(); };
 
     // 验证索引有效性
     bool isValidModalIndex(const QModelIndex& index) const;
@@ -94,7 +94,7 @@ private:
     bool columnIsVisible[MaxColumnCount];
     bool canEditStudent = true;
     bool canEditGroup   = true;
-    QList<int> rowToIndex; // rowIndex[0,size-1]=>students[0,size-1]
+    QVector<int> rowToIndex; // rowIndex[0,size-1]=>students[0,size-1]
     int templateIndex, recordIndex;
     int activatedTemplateIndex;
 };

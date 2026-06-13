@@ -64,6 +64,7 @@ QString ClassDataManager::openFile(const QString& openFilePath)
                .arg(filePath);
     }
     QDataStream stream(&file);
+    stream.setVersion(QDataStream::Qt_5_15);
     stream >> header;
     if(header.fileHeader != CorrectFileHeader)
     {
@@ -117,6 +118,7 @@ void ClassDataManager::saveFile()
     if(!file.open(QIODevice::WriteOnly | QIODevice::Truncate))
         return;
     QDataStream stream(&file);
+    stream.setVersion(QDataStream::Qt_5_15);
     stream << HeaderData{CorrectFileHeader, students.size(), templates.size(), records.size()};
     stream << settings;
     stream << students;
@@ -189,17 +191,17 @@ const SortSettings& ClassDataManager::getSettings() const
     return settings;
 }
 
-const QList<StudentInfo>& ClassDataManager::getStudents() const
+const QVector<StudentInfo>& ClassDataManager::getStudents() const
 {
     return students;
 }
 
-const QList<ScoreTemplate>& ClassDataManager::getTemplates() const
+const QVector<ScoreTemplate>& ClassDataManager::getTemplates() const
 {
     return templates;
 }
 
-const QList<ScoreRecord>& ClassDataManager::getRecords() const
+const QVector<ScoreRecord>& ClassDataManager::getRecords() const
 {
     return records;
 }
@@ -289,7 +291,7 @@ void ClassDataManager::saveRecord(int templateIndex)
     tempRecord.scores.clear();
 }
 
-QList<qint32>& ClassDataManager::getTempRecord()
+QVector<qint32>& ClassDataManager::getTempRecord()
 {
     return tempRecord.scores;
 }
@@ -297,12 +299,12 @@ QList<qint32>& ClassDataManager::getTempRecord()
 void ClassDataManager::importStudents(const QStringList &newNames)
 {
     const int beginId = students.size() + 1;
-    QList<StudentInfo> newStudents;
+    QVector<StudentInfo> newStudents;
     newStudents.reserve(newNames.size());
     for(int i = 0; i < newNames.size(); i++)
         newStudents.append({newNames.at(i), beginId + i, StudentInfo::NoGroup});
     students.append(std::move(newStudents));
-    QList<qint32> zeros(newNames.size(), 0);
+    QVector<qint32> zeros(newNames.size(), 0);
     for(auto& i : records)
         i.scores.append(zeros);
     for(auto& i : templates)

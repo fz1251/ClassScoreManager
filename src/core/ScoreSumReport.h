@@ -13,7 +13,7 @@ struct SummaryData
     int groupNo;    //小组号
 };
 
-QString generateHtmlString(QList<SummaryData> dataList,SortSettings mode);
+QString generateHtmlString(QVector<SummaryData> dataList,SortSettings mode);
 
 } // namespace ScoreSumReport
 

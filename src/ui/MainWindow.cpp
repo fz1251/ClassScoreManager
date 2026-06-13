@@ -50,7 +50,7 @@ MainWindow::MainWindow(QWidget *parent)
     connect(modal,&ClassTableModal::showColumnRequested,ui->tableView,&QTableView::showColumn);
     connect(modal,&ClassTableModal::hideColumnRequested,ui->tableView,&QTableView::hideColumn);
 
-    connect(ui->cb_dragStudent,&QCheckBox::checkStateChanged,this,[this](Qt::CheckState state){
+    connect(ui->cb_dragStudent,&QCheckBox::stateChanged,this,[this](int state){
         bool checked=state==Qt::Checked;
         if(checked)
         {
@@ -62,12 +62,12 @@ MainWindow::MainWindow(QWidget *parent)
             ui->tableView->setDragDropMode(QAbstractItemView::NoDragDrop);
         }
     });
-    connect(ui->cb_editName,&QCheckBox::checkStateChanged,this,[this](Qt::CheckState state){
-        bool checked=state==Qt::Checked;
+    connect(ui->cb_editName,&QCheckBox::stateChanged,this,[this](int state){
+        bool checked=(state==Qt::Checked);
         modal->setStudentEditable(checked);
     });
-    connect(ui->cb_editGroup,&QCheckBox::checkStateChanged,this,[this](Qt::CheckState state){
-        bool checked=state==Qt::Checked;
+    connect(ui->cb_editGroup,&QCheckBox::stateChanged,this,[this](int state){
+        bool checked=(state==Qt::Checked);
         modal->setGroupEditable(checked);
     });
 }
@@ -242,7 +242,7 @@ void MainWindow::on_action_ExportScoreSum_triggered()
     if(dialog.exec()==QDialog::Accepted)
     {
         const int studentCount=manager->getStudents().count();
-        QList<ScoreSumReport::SummaryData> dataList;
+        QVector<ScoreSumReport::SummaryData> dataList;
         dataList.reserve(studentCount);
         for(const StudentInfo& stu:manager->getStudents())
             dataList.append({stu.name,stu.displayOrder,0,stu.groupNumber});
@@ -262,6 +262,10 @@ void MainWindow::on_action_ExportScoreSum_triggered()
         }
         SortSettings curMode=dialog.getCurrentConfig();
         QTextStream stream(&file);
+#if QT_VERSION_MAJOR == 5
+        // Qt5 下需显式指定UTF-8编码
+        stream.setCodec("UTF-8");
+#endif
         stream << ScoreSumReport::generateHtmlString(dataList,curMode);
         file.close();
         manager->setPreviousSettings(curMode);
@@ -322,7 +326,7 @@ void MainWindow::on_action_NewTemplate_triggered()
     ScoreTemplate newTemplate;
     newTemplate.description=tr("未命名-%1").arg(QDateTime::currentDateTime()
                                                 .toString("yy/MM/dd hh:mm:ss:zzz"));
-    newTemplate.values=QList<qint32>(manager->getStudents().count());
+    newTemplate.values=QVector<qint32>(manager->getStudents().count());
     modal->newScoreTemplate(newTemplate);
 
     ui->action_HideTemplate->setDisabled(false);

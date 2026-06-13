@@ -2,7 +2,7 @@
 #define DATATYPES_H
 
 #include <QString>
-#include <QList>
+#include <QVector>
 #include <QDateTime>
 #include <QDataStream>
 
@@ -154,7 +154,7 @@ inline QDataStream &operator <<(QDataStream &out, const StudentInfo &data)
 struct ScoreTemplate
 {
     QString description;     //对积分模板的描述
-    QList<qint32> values;    //对每一个学生（按索引）应用的分数修改值
+    QVector<qint32> values;    //对每一个学生（按索引）应用的分数修改值
 };
 // QDataStream 序列化支持
 inline QDataStream &operator >>(QDataStream &in, ScoreTemplate &data)
@@ -177,7 +177,7 @@ struct ScoreRecord
 {
     QDateTime saveTime;      //录入本次记录的时间
     QString description;     //对本次分数统计的描述
-    QList<qint32> scores;    //每一个学生（按索引）的分数值
+    QVector<qint32> scores;    //每一个学生（按索引）的分数值
 };
 // QDataStream 序列化支持
 inline QDataStream &operator >>(QDataStream &in, ScoreRecord &data)
