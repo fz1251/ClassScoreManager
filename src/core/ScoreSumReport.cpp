@@ -120,7 +120,7 @@ QString generate(std::vector<GroupSumData> dataList, bool showStudentNumber = fa
 
 namespace ScoreSumReport
 {
-QString generateHtmlString(QList<SummaryData> dataList, SortSettings mode)
+QString generateHtmlString(QVector<SummaryData> dataList, SortSettings mode)
 {
     if(mode.useGroupModeFlag)
     {

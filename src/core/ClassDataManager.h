@@ -35,9 +35,9 @@ public:
     ScoreTemplate&     templateAt(int index);
     const ScoreRecord& recordAt  (int index);
     const SortSettings&          getSettings() const;
-    const QList<StudentInfo>&   getStudents() const;
-    const QList<ScoreTemplate>& getTemplates()const;
-    const QList<ScoreRecord>&   getRecords()  const;
+    const QVector<StudentInfo>&   getStudents() const;
+    const QVector<ScoreTemplate>& getTemplates()const;
+    const QVector<ScoreRecord>&   getRecords()  const;
     QStringList getStudentList () const;
     QStringList getTemplateList() const;
     QStringList getRecordList  () const;
@@ -48,7 +48,7 @@ public:
     void addTemplate(const ScoreTemplate& newTemplate);
     void newRecord  (const QString      & recordName);
     void saveRecord (int templateIndex);
-    QList<qint32>& getTempRecord();
+    QVector<qint32>& getTempRecord();
     void importStudents(const QStringList& newNames);
     void removeStudent (int index);
     void removeTemplate(int index);
@@ -67,9 +67,9 @@ private:
     QString filePath;
     HeaderData header;
     SortSettings settings;
-    QList<StudentInfo> students;
-    QList<ScoreTemplate> templates;
-    QList<ScoreRecord> records;
+    QVector<StudentInfo> students;
+    QVector<ScoreTemplate> templates;
+    QVector<ScoreRecord> records;
 };
 
 #endif // CLASSDATAMANAGER_H

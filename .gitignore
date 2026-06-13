@@ -40,6 +40,9 @@ Thumbs.db
 *.qbs.user*
 CMakeLists.txt.user*
 
+# vscode generated files
+.vscode/
+
 # xemacs temporary files
 *.flc
 
@@ -80,3 +83,6 @@ CMakeLists.txt.user*
 .rcc/
 .uic/
 /build*/
+
+# Reference files
+references/

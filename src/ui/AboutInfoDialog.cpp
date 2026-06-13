@@ -4,8 +4,8 @@
 #include <QWindow>
 #include <QPushButton>
 #include <QButtonGroup>
-#include <QPixmap>
 #include <QPainter>
+#include <QSize>
 
 #include <QPropertyAnimation>
 #include <QEasingCurve>
@@ -26,12 +26,7 @@ namespace {
 const QString closeButtonStyle = QStringLiteral(R"(
 #closeButton {
     border: none;
-    padding: 2px;
-    background: transparent url(:/icons/resources/dialog-close.png) no-repeat center;
-}
-
-#closeButton:hover {
-    background-image: url(:/icons/resources/dialog-close-hovered.png);
+    background-color: transparent;
 }
 )");
 
@@ -158,7 +153,6 @@ AboutInfoDialog::AboutInfoDialog(QWidget *parent) :
          */
         if(m_isWin10or11)
         {
-            // setWindowFlag(Qt::FramelessWindowHint);
             HWND hwnd = reinterpret_cast<HWND>(winId());
 
             // 顶部扩展 1px DWM 帧以启用原生阴影，白线与 WS_CAPTION 残留重叠，视觉干扰最小
@@ -172,13 +166,24 @@ AboutInfoDialog::AboutInfoDialog(QWidget *parent) :
             titleBarLayout->setContentsMargins(BLUR_RADIUS, BLUR_RADIUS, BLUR_RADIUS, BLUR_RADIUS);
             titleBarLayout->addStretch();
 
-            // 无边框窗口需添加一个关闭按钮
+            // 为无边框窗口添加关闭按钮
+            const QSize buttonSize = {30, 30};
             QPushButton* closeButton = new QPushButton(this);
             closeButton->setObjectName("closeButton");
-            closeButton->setFixedSize({24, 24});
             closeButton->setFocusPolicy(Qt::ClickFocus);
+            closeButton->setFixedSize(buttonSize);
+            closeButton->setIconSize(buttonSize);
+            m_closeIconNormal.addFile(":/icons/resources/about-dialog-close.svg");
+            m_closeIconHover.addFile(":/icons/resources/about-dialog-close-hovered.svg");
+            closeButton->setIcon(m_closeIconNormal);
+            closeButton->installEventFilter(this);
             titleBarLayout->addWidget(closeButton);
 
+            // 调整原有布局以腾出标题栏空间
+            QMargins newMargins = ui->textVLayout->contentsMargins();
+            newMargins.setTop(0);
+            ui->textVLayout->setContentsMargins(newMargins);
+            ui->OuterVLayout->setStretch(0, 1);
             ui->OuterVLayout->insertLayout(0, titleBarLayout);
 
             connect(closeButton, &QPushButton::clicked, this, &AboutInfoDialog::close);
@@ -237,6 +242,19 @@ void AboutInfoDialog::keyPressEvent(QKeyEvent *event)
     event->accept();
 }
 
+bool AboutInfoDialog::eventFilter(QObject *watched, QEvent *event)
+{
+    if (watched->objectName() == "closeButton")
+    {
+        QPushButton *btn = qobject_cast<QPushButton*>(watched);
+        if (event->type() == QEvent::Enter)
+            btn->setIcon(m_closeIconHover);
+        else if (event->type() == QEvent::Leave)
+            btn->setIcon(m_closeIconNormal);
+    }
+    return QDialog::eventFilter(watched, event);
+}
+
 void AboutInfoDialog::paintEvent(QPaintEvent *event)
 {
     if(m_translucentBackground)
@@ -255,7 +273,11 @@ void AboutInfoDialog::paintEvent(QPaintEvent *event)
     QDialog::paintEvent(event);
 }
 
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
 bool AboutInfoDialog::nativeEvent(const QByteArray &eventType, void *message, qintptr *result)
+#else
+bool AboutInfoDialog::nativeEvent(const QByteArray &eventType, void *message, long *result)
+#endif
 {
 #ifdef Q_OS_WIN
     if (!m_isWin10or11)
@@ -280,8 +302,11 @@ bool AboutInfoDialog::nativeEvent(const QByteArray &eventType, void *message, qi
             const int yPos = GET_Y_LPARAM(msg->lParam);
 
             // 放行按钮区域以免被 HTCAPTION 覆盖
-            const QPoint clientPos = mapFromGlobal(
-                QPointF(xPos, yPos) / windowHandle()->devicePixelRatio()).toPoint();
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+            const QPoint clientPos = mapFromGlobal(QPointF(xPos, yPos) / windowHandle()->devicePixelRatio()).toPoint();
+#else
+            const QPoint clientPos = mapFromGlobal((QPointF(xPos, yPos) / windowHandle()->devicePixelRatio()).toPoint());
+#endif
             QWidget *child = childAt(clientPos);
             if (child && qobject_cast<QPushButton *>(child))
                 return false;
