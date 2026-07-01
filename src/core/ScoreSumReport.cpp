@@ -336,7 +336,7 @@ const QString HTMLTemplate=QStringLiteral(R"(
 
     body {
       font-family: system-ui, -apple-system, "Microsoft YaHei", "PingFang SC", sans-serif;
-      background: #f5f7fa;
+      background: #e8ecf1;
       margin: 20px;
       color: #333;
       line-height: 1.2;
@@ -345,15 +345,15 @@ const QString HTMLTemplate=QStringLiteral(R"(
     .groups-row {
       display: flex;
       flex-wrap: wrap;
-      gap: 16px;
+      gap: 10px;
       width: 100%;
     }
 
     .group-card {
-      background: #fff;
-      border-radius: 12px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.06);
-      padding: 20px;
+      background: #f3f5f7;
+      border-radius: 0;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+      padding: 12px;
       flex: 1 1 auto;
       min-width: 300px;
       display: flex;
@@ -364,47 +364,46 @@ const QString HTMLTemplate=QStringLiteral(R"(
       display: flex;
       align-items: center;
       justify-content: space-between;
-      border-bottom: 2px solid #f0f2f5;
-      padding-bottom: 10px;
-      margin-bottom: 20px;
+      border-bottom: 1px solid #e2e6ea;
+      padding-bottom: 6px;
+      margin-bottom: 8px;
       flex-shrink: 0;
     }
 
     .header-left {
       display: flex;
-      align-items: baseline;
-      gap: 16px;
-      overflow: hidden;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .group-rank-badge {
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: #3498db;
+      background: #ebf5fb;
+      border: 1.5px solid #c5ddf5;
+      padding: 8px 18px;
+      border-radius: 50px;
+      line-height: 1.2;
+      white-space: nowrap;
+      flex-shrink: 0;
     }
 
     .group-name {
       font-size: 1.5rem;
-      color: #2c3e50;
-      font-weight: 800;
+      color: #1a1a2e;
+      font-weight: 700;
       white-space: nowrap;
     }
 
     .group-summary {
-      font-size: 1rem;
-      color: #7f8c8d;
+      font-size: 1.05rem;
+      color: #6b7280;
       font-weight: 500;
       white-space: nowrap;
     }
 
-    .group-index {
-      font-size: 1.5rem;
-      font-weight: 700;
-      color: #3498db;
-      white-space: nowrap;
-      background: #ebf5fb;
-      padding: 8px 16px;
-      border-radius: 20px;
-    }
-
     .card-body {
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
       flex: 1;
       min-height: 0;
     }
@@ -412,54 +411,68 @@ const QString HTMLTemplate=QStringLiteral(R"(
     .stats-grid {
       display: flex;
       flex-wrap: wrap;
-      gap: 12px;
+      gap: 4px;
     }
 
     .stat-item {
       display: flex;
       align-items: center;
       flex: 1 0 auto;
-      padding: 16px 20px;
-      background: #fafbfc;
-      border: 1px solid #eef2f7;
-      border-radius: 8px;
+      padding: 8px 10px;
+      background: rgba(255,255,255,0.7);
+      border: 1px solid #e8eaef;
+      border-radius: 0;
+      gap: 8px;
+    }
+
+    .student-no {
+      font-size: 1rem;
+      font-weight: 600;
+      color: #2563b0;
+      font-variant-numeric: tabular-nums;
+      flex-shrink: 0;
     }
 
     .stat-head {
-      font-size: 1.25rem;
-      color: #2c3e50;
+      font-size: 1.2rem;
+      color: #1e293b;
       font-weight: 600;
-      flex-shrink: 0;
       white-space: nowrap;
-      margin-right: auto;
     }
 
     .stat-content {
       display: flex;
       align-items: baseline;
-      gap: 6px;
+      gap: 4px;
       flex-shrink: 0;
     }
 
     .stat-number {
+      font-size: 1.55rem;
+      font-weight: 800;
+      white-space: nowrap;
+      font-variant-numeric: tabular-nums;
+      line-height: 1;
+    }
+
+    .group-total {
       font-size: 1.8rem;
-      font-weight: 1000;
+      font-weight: 800;
       white-space: nowrap;
       font-variant-numeric: tabular-nums;
       line-height: 1;
     }
 
     .stat-unit {
-      flex-shrink: 0;
-      color: #95a5a6;
-      font-size: 1rem;
+      font-size: 0.95rem;
+      color: #94a3b8;
       font-weight: 400;
-      line-height: 1.2;
+      flex-shrink: 0;
     }
 
-    .positive-number { color: #27ae60 !important; }
-    .negative-number { color: #e74c3c !important; }
-    .zero-number { color: #95a5a6 !important; }
+    .positive-number { color: #16a34a !important; }
+    .negative-number { color: #dc2626 !important; }
+    .zero-number     { color: #9ca3af !important; }
   </style>
 </head>
 <body>
@@ -473,10 +486,10 @@ const QString HTMLGroupCard=QStringLiteral(R"(
 <div class="group-card">
   <div class="card-header">
     <div class="header-left">
+      <div class="group-rank-badge">No.%4</div>
       <div class="group-name">%1</div>
-      <div class="group-summary">总分: <span class="stat-number %3">%2</span></div>
     </div>
-    <div class="group-index">No.%4</div>
+    <div class="group-summary">总分 <span class="group-total %3">%2</span></div>
   </div>
   <div class="card-body">
     <div class="stats-grid">
@@ -487,12 +500,16 @@ const QString HTMLGroupCard=QStringLiteral(R"(
 )");
 const QString HTMLStudentItem=QStringLiteral(R"(
 <div class="stat-item">
+%4
   <div class="stat-head">%1</div>
   <div class="stat-content">
     <div class="stat-number %3">%2</div>
     <div class="stat-unit">分</div>
   </div>
 </div>
+)");
+const QString HTMLStudentNumber=QStringLiteral(R"(
+<span class="student-no">%1</span>
 )");
 QString generate(std::vector<GroupSumData> dataList, bool showStudentNumber)
 {
@@ -521,7 +538,8 @@ QString generate(std::vector<GroupSumData> dataList, bool showStudentNumber)
         {
             groupContent+=HTMLStudentItem.arg(j.name)
                     .arg(j.score)
-                    .arg(getSumTextClass(j.score));
+                    .arg(getSumTextClass(j.score))
+                    .arg(showStudentNumber?HTMLStudentNumber.arg(j.number):"");
         }
         HTMLBody+=HTMLGroupCard.arg(getGroupName(i.number))
                 .arg(i.score)
