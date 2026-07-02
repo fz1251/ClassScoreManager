@@ -156,168 +156,139 @@ namespace
 {
 namespace student
 {
-const QString HTMLTemplate = QStringLiteral(R"(
-<!DOCTYPE html>
+const QString HTMLTemplate=QStringLiteral(R"(
+<!doctype html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>积分求和导出表格</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>积分求和导出表格</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
 
-        body {
-            font-family: 'Segoe UI', 'Microsoft YaHei', 'sans-serif';
-            font-size: 16px;
-            background: linear-gradient(135deg, #f5f7fa 0%, #e4e7eb 100%);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            padding: 20px;
-        }
+    body {
+      font-family: system-ui, "Microsoft YaHei", "PingFang SC", sans-serif;
+      background: #e8ecf1;
+      padding: 20px;
+      color: #333;
+      line-height: 1.2;
+    }
 
-        .table-container {
-            background-color: #ffffff;
-            border-radius: 16px;
-            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.12);
-            padding: 40px;
-            width: 95%;
-            max-width: 1000px;
-            position: relative;
-            overflow: hidden;
-        }
+    .page-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #1a1a2e;
+      margin-bottom: 14px;
+    }
 
-        h1 {
-            text-align: center;
-            color: #2c3e50;
-            margin-bottom: 35px;
-            font-size: 2.4rem;
-        }
+    .students-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
 
-        .data-table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 18px;
-            border-radius: 10px;
-            overflow: hidden;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.06);
-            table-layout: fixed;
-        }
+    .student-item {
+      flex: 0 0 200px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      background: #f3f5f7;
+      border: 1px solid #e8eaef;
+      border-radius: 6px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    }
 
-        .data-table thead {
-            background: linear-gradient(135deg, #6c8fa9 0%, #5a7b95 100%);
-            color: #ffffff;
-        }
+    .student-no {
+      font-size: 1rem;
+      font-weight: 600;
+      color: #2563b0;
+      font-variant-numeric: tabular-nums;
+      flex-shrink: 0;
+    }
 
-        .data-table th {
-            padding: 18px 20px;
-            text-align: left;
-            font-weight: 600;
-            font-size: 1.3rem;
-        }
+    .student-name {
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: #1e293b;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      flex: 1;
+    }
 
-        .data-table th:first-child {
-            border-top-left-radius: 10px;
-        }
+    .score-area {
+      display: flex;
+      align-items: baseline;
+      gap: 3px;
+      flex-shrink: 0;
+    }
 
-        .data-table th:last-child {
-            border-top-right-radius: 10px;
-        }
+    .student-score {
+      font-size: 1.55rem;
+      font-weight: 800;
+      white-space: nowrap;
+      font-variant-numeric: tabular-nums;
+      line-height: 1;
+    }
 
-        .data-table tbody tr:nth-child(even) {
-            background-color: #f8f9fa;
-        }
+    .score-unit {
+      font-size: 0.95rem;
+      color: #94a3b8;
+      font-weight: 400;
+    }
 
-        .data-table td {
-            padding: 16px 20px;
-            border-bottom: 1px solid #e1e8ed;
-            color: #333333;
-        }
-
-        .data-table tbody tr:last-child td {
-            border-bottom: none;
-        }
-
-        .positive-sum {
-            color: #27ae60 !important;
-            font-weight: 600;
-        }
-
-        .negative-sum {
-            color: #e74c3c !important;
-            font-weight: 600;
-        }
-
-        .zero-sum {
-            color: #7f8c8d !important;
-            font-weight: 600;
-        }
-    </style>
+    .positive-number { color: #16a34a !important; }
+    .negative-number { color: #dc2626 !important; }
+    .zero-number     { color: #9ca3af !important; }
+  </style>
 </head>
 <body>
-    <div class="table-container">
-        <h1>积分求和结果</h1>
-            <table class="data-table">
-                <thead> <tr> %1 </tr> </thead>
-                <tbody> %2 </tbody>
-            </table>
-    </div>
+  <div class="page-title">积分求和结果</div>
+  <div class="students-grid">
+    %1
+  </div>
 </body>
 </html>
 )");
-
-const QString getSumTextClass(int score)
-{
-    if(score>0)
-        return "positive-sum";
-    else if(score<0)
-        return "negative-sum";
-    else
-        return "zero-sum";
-}
-
-const QString HTMLTableHeadBase=QStringLiteral(R"(
-<th>姓名</th>
-<th>积分</th>
+const QString HTMLStudentItem=QStringLiteral(R"(
+<div class="student-item">
+%4
+  <div class="student-name">%1</div>
+  <div class="score-area">
+    <span class="student-score %3">%2</span>
+    <span class="score-unit">分</span>
+  </div>
+</div>
 )");
-
-const QString HTMLTableHeadStudent=QStringLiteral(R"(
-<th>编号</th>
+const QString HTMLStudentNumber=QStringLiteral(R"(
+<span class="student-no">%1</span>
 )");
-
-const QString HTMLTableRowTemplate=QStringLiteral(R"(
-<tr> %1 </tr>
-)");
-
-const QString HTMLTableItemBase=QStringLiteral(R"(
-<td> %1 </td>
-<td class="%3"> %2 </td>
-)");
-
-const QString HTMLTableItemStudent=QStringLiteral(R"(
-<td> %1 </td>
-)");
-
 QString generate(std::vector<StudentSumData> dataList, bool showStudentNumber)
 {
-    QString tableHead,tableBody;
-    if(showStudentNumber)
-        tableHead+=HTMLTableHeadStudent;
-    tableHead+=HTMLTableHeadBase;
+    auto getSumTextClass=[](int num) -> QString
+    {
+        if(num>0)
+            return "positive-number";
+        else if(num<0)
+            return "negative-number";
+        else
+            return "zero-number";
+    };
+
+    QString bodyContent;
     for(const auto& i:dataList)
     {
-        QString tableItem;
-        if(showStudentNumber)
-            tableItem+=HTMLTableItemStudent.arg(i.number);
-        tableItem+=HTMLTableItemBase.arg(i.name).arg(i.score).arg(getSumTextClass(i.score));
-        tableBody+=HTMLTableRowTemplate.arg(tableItem);
+        bodyContent+=HTMLStudentItem.arg(i.name)
+                .arg(i.score)
+                .arg(getSumTextClass(i.score))
+                .arg(showStudentNumber?HTMLStudentNumber.arg(i.number):"");
     }
-    return HTMLTemplate.arg(tableHead,tableBody);
+    return HTMLTemplate.arg(bodyContent);
 }
 } // namespace student
 
