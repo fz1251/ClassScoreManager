@@ -29,6 +29,8 @@ MainWindow::MainWindow(QWidget *parent)
 
     ui->tableView->setItemDelegateForColumn(ClassTableModal::CurrentRecord,new ScoreExprDelegate(this));
 
+    onFileClosed();
+
     //设置表格右侧操作面板
     QWidget* secondPage = ui->stackedWidget->widget(StudentTablePage);
     ui->rightPanelLayout->addStretch();
@@ -49,6 +51,16 @@ MainWindow::MainWindow(QWidget *parent)
     connect(manager,&ClassDataManager::dirtyStateChanged,this,&MainWindow::setWindowModified);
     connect(modal,&ClassTableModal::showColumnRequested,ui->tableView,&QTableView::showColumn);
     connect(modal,&ClassTableModal::hideColumnRequested,ui->tableView,&QTableView::hideColumn);
+
+    connect(ui->pushButton_1,&QPushButton::clicked,this,[this](){
+        ui->stackedWidget->setCurrentIndex(StudentTablePage);
+    });
+    connect(ui->pushButton_2,&QPushButton::clicked,this,[this](){
+        ui->stackedWidget->setCurrentIndex(ScoreRecordPage);
+    });
+    connect(ui->pushButton_3,&QPushButton::clicked,this,[this](){
+        ui->stackedWidget->setCurrentIndex(ScoreTemplatePage);
+    });
 
     connect(ui->cb_dragStudent,&QCheckBox::stateChanged,this,[this](int state){
         bool checked=state==Qt::Checked;
@@ -415,6 +427,9 @@ void MainWindow::on_action_AboutQt_triggered()
 void MainWindow::onFileLoaded()
 {
     ui->stackedWidget->setCurrentIndex(StudentTablePage);
+    ui->pushButton_1->setVisible(true);
+    ui->pushButton_2->setVisible(true);
+    ui->pushButton_3->setVisible(true);
 
     ui->action_OpenFile->setDisabled(true);
     ui->action_NewFile->setDisabled(true);
@@ -441,6 +456,9 @@ void MainWindow::onFileLoaded()
 void MainWindow::onFileClosed()
 {
     ui->stackedWidget->setCurrentIndex(WelcomePage);
+    ui->pushButton_1->setVisible(false);
+    ui->pushButton_2->setVisible(false);
+    ui->pushButton_3->setVisible(false);
 
     ui->action_OpenFile->setDisabled(false);
     ui->action_NewFile->setDisabled(false);
@@ -569,37 +587,3 @@ bool MainWindow::confirmClearOperation(const QString &description)
     msgBox.exec();
     return msgBox.clickedButton()==confirmBtn;
 }
-
-void MainWindow::on_recordToggleBtn_toggled(bool checked)
-{
-    if(checked)
-    {
-        ui->recordToggleBtn->setText(tr("查看积分记录：开启"));
-        ui->selectRecordLabel->setEnabled(true);
-        ui->selectRecordBox->setEnabled(true);
-    }
-    else
-    {
-        ui->recordToggleBtn->setText(tr("查看积分记录：关闭"));
-        ui->selectRecordLabel->setEnabled(false);
-        ui->selectRecordBox->setEnabled(false);
-    }
-}
-
-
-void MainWindow::on_templateToggleBtn_toggled(bool checked)
-{
-    if(checked)
-    {
-        ui->recordToggleBtn->setText(tr("查看积分模板：开启"));
-        ui->selectTemplateLabel->setEnabled(true);
-        ui->selectTemplateBox->setEnabled(true);
-    }
-    else
-    {
-        ui->recordToggleBtn->setText(tr("查看积分模板：关闭"));
-        ui->selectTemplateLabel->setEnabled(false);
-        ui->selectTemplateBox->setEnabled(false);
-    }
-}
-

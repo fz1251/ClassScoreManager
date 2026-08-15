@@ -14,9 +14,9 @@
    <string>班级积分管理系统</string>
   </property>
   <widget class="QWidget" name="centralwidget">
-   <layout class="QHBoxLayout" name="horizontalLayout">
+   <layout class="QVBoxLayout" name="mainLayout">
     <property name="spacing">
-     <number>2</number>
+     <number>5</number>
     </property>
     <property name="leftMargin">
      <number>0</number>
@@ -31,9 +31,37 @@
      <number>0</number>
     </property>
     <item>
+     <layout class="QHBoxLayout" name="horizontalLayout">
+      <property name="bottomMargin">
+       <number>0</number>
+      </property>
+      <item>
+       <widget class="QPushButton" name="pushButton_1">
+        <property name="text">
+         <string>班级信息</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="pushButton_2">
+        <property name="text">
+         <string>积分记录</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="pushButton_3">
+        <property name="text">
+         <string>积分模板</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </item>
+    <item>
      <widget class="QStackedWidget" name="stackedWidget">
       <property name="currentIndex">
-       <number>1</number>
+       <number>0</number>
       </property>
       <widget class="QWidget" name="page">
        <widget class="QLabel" name="label_dev">
@@ -98,68 +126,6 @@
         </property>
         <layout class="QVBoxLayout" name="rightPanelLayout">
          <item>
-          <layout class="QVBoxLayout" name="verticalLayout">
-           <item>
-            <widget class="QPushButton" name="recordToggleBtn">
-             <property name="text">
-              <string>查看积分记录：关闭</string>
-             </property>
-             <property name="checkable">
-              <bool>true</bool>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QLabel" name="selectRecordLabel">
-             <property name="enabled">
-              <bool>false</bool>
-             </property>
-             <property name="text">
-              <string>当前积分记录：</string>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QComboBox" name="selectRecordBox">
-             <property name="enabled">
-              <bool>false</bool>
-             </property>
-            </widget>
-           </item>
-          </layout>
-         </item>
-         <item>
-          <layout class="QVBoxLayout" name="verticalLayout_2">
-           <item>
-            <widget class="QPushButton" name="templateToggleBtn">
-             <property name="text">
-              <string>查看积分模板：关闭</string>
-             </property>
-             <property name="checkable">
-              <bool>true</bool>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QLabel" name="selectTemplateLabel">
-             <property name="enabled">
-              <bool>false</bool>
-             </property>
-             <property name="text">
-              <string>当前积分模板：</string>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QComboBox" name="selectTemplateBox">
-             <property name="enabled">
-              <bool>false</bool>
-             </property>
-            </widget>
-           </item>
-          </layout>
-         </item>
-         <item>
           <layout class="QFormLayout" name="formLayout">
            <item row="0" column="0">
             <widget class="QLabel" name="label_1">
@@ -208,6 +174,8 @@
         </layout>
        </widget>
       </widget>
+      <widget class="QWidget" name="page_3"/>
+      <widget class="QWidget" name="page_4"/>
      </widget>
     </item>
    </layout>
@@ -218,7 +186,7 @@
      <x>0</x>
      <y>0</y>
      <width>800</width>
-     <height>25</height>
+     <height>24</height>
     </rect>
    </property>
    <widget class="QMenu" name="menu_File">
@@ -291,17 +259,11 @@
    </property>
   </action>
   <action name="action_SaveFile">
-   <property name="enabled">
-    <bool>false</bool>
-   </property>
    <property name="text">
     <string>保存</string>
    </property>
   </action>
   <action name="action_CloseFile">
-   <property name="enabled">
-    <bool>false</bool>
-   </property>
    <property name="text">
     <string>关闭</string>
    </property>
@@ -317,81 +279,51 @@
    </property>
   </action>
   <action name="action_ShowRecordHistory">
-   <property name="enabled">
-    <bool>false</bool>
-   </property>
    <property name="text">
     <string>查看历史记录</string>
    </property>
   </action>
   <action name="action_HideRecordHistory">
-   <property name="enabled">
-    <bool>false</bool>
-   </property>
    <property name="text">
     <string>关闭历史记录预览</string>
    </property>
   </action>
   <action name="action_ShowTemplate">
-   <property name="enabled">
-    <bool>false</bool>
-   </property>
    <property name="text">
     <string>查看积分模板</string>
    </property>
   </action>
   <action name="action_HideTemplate">
-   <property name="enabled">
-    <bool>false</bool>
-   </property>
    <property name="text">
     <string>关闭积分模板预览</string>
    </property>
   </action>
   <action name="action_NewTemplate">
-   <property name="enabled">
-    <bool>false</bool>
-   </property>
    <property name="text">
     <string>新建积分模板</string>
    </property>
   </action>
   <action name="action_EditTemplate">
-   <property name="enabled">
-    <bool>false</bool>
-   </property>
    <property name="text">
     <string>更改积分模板描述</string>
    </property>
   </action>
   <action name="action_NewScoreRecord">
-   <property name="enabled">
-    <bool>false</bool>
-   </property>
    <property name="text">
     <string>新建积分记录</string>
    </property>
   </action>
   <action name="action_SaveScoreRecord">
-   <property name="enabled">
-    <bool>false</bool>
-   </property>
    <property name="text">
     <string>保存积分记录</string>
    </property>
   </action>
   <action name="action_UseScoreTemplate">
-   <property name="enabled">
-    <bool>false</bool>
-   </property>
    <property name="text">
     <string>应用积分模板</string>
    </property>
   </action>
   <action name="action_ExportScoreSum">
-   <property name="enabled">
-    <bool>false</bool>
-   </property>
    <property name="text">
     <string>积分求和统计</string>
    </property>
@@ -407,65 +339,41 @@
    </property>
   </action>
   <action name="action_DeleteRecordHistory">
-   <property name="enabled">
-    <bool>false</bool>
-   </property>
    <property name="text">
     <string>删除一项历史记录</string>
    </property>
   </action>
   <action name="action_DeleteTemplate">
-   <property name="enabled">
-    <bool>false</bool>
-   </property>
    <property name="text">
     <string>删除一个积分模板</string>
    </property>
   </action>
   <action name="action_AddStudent">
-   <property name="enabled">
-    <bool>false</bool>
-   </property>
    <property name="text">
     <string>添加学生</string>
    </property>
   </action>
   <action name="action_DeleteStudent">
-   <property name="enabled">
-    <bool>false</bool>
-   </property>
    <property name="text">
     <string>删除一个学生</string>
    </property>
   </action>
   <action name="action_ImportStudents">
-   <property name="enabled">
-    <bool>false</bool>
-   </property>
    <property name="text">
     <string>批量导入学生</string>
    </property>
   </action>
   <action name="action_ClearStudents">
-   <property name="enabled">
-    <bool>false</bool>
-   </property>
    <property name="text">
     <string>清空班级信息</string>
    </property>
   </action>
   <action name="action_ClearRecords">
-   <property name="enabled">
-    <bool>false</bool>
-   </property>
    <property name="text">
     <string>清空积分记录</string>
    </property>
   </action>
   <action name="action_ClearTemplates">
-   <property name="enabled">
-    <bool>false</bool>
-   </property>
    <property name="text">
     <string>清空积分模板</string>
    </property>

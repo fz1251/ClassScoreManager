@@ -62,18 +62,13 @@ private slots:
     void on_action_AboutApp_triggered();
     void on_action_AboutQt_triggered();
 
-
-    void on_recordToggleBtn_toggled(bool checked);
-
-    void on_templateToggleBtn_toggled(bool checked);
-
 private:
     enum StackedPageIndex
     {
         WelcomePage,
         StudentTablePage,
-        // ScoreRecordPage,
-        // ScoreTemplatePage
+        ScoreRecordPage,
+        ScoreTemplatePage
     };
     void onFileLoaded();
     void onFileClosed();
