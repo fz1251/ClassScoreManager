@@ -12,6 +12,8 @@ class ClassDataManager : public QObject
     Q_OBJECT
 signals:
     void dirtyStateChanged(bool isDirty);
+    void recordsChanged();
+    void templatesChanged();
 public:
     explicit ClassDataManager(QObject *parent = nullptr);
     virtual ~ClassDataManager() = default;
@@ -33,6 +35,7 @@ public:
     void setPreviousSettings(SortSettings curSettings);
     StudentInfo&       studentAt (int index);
     ScoreTemplate&     templateAt(int index);
+    void setTemplateDescription(int index, const QString& description);
     const ScoreRecord& recordAt  (int index);
     const SortSettings&          getSettings() const;
     const QVector<StudentInfo>&   getStudents() const;

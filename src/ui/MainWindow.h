@@ -2,7 +2,9 @@
 #define MAINWINDOW_H
 
 #include "../core/DataTypes.h"
-#include "../models/ClassTableModal.h"
+#include "../models/ClassTableModel.h"
+#include "../models/RecordListModel.h"
+#include "../models/TemplateListModel.h"
 #include <QMainWindow>
 #include <QLabel>
 #include <QMessageBox>
@@ -80,6 +82,8 @@ private:
     bool confirmClearOperation(const QString& description);
     Ui::MainWindow *ui;
     ClassDataManager* manager;
-    ClassTableModal* modal;
+    ClassTableModel* tableModel;
+    RecordListModel* recordModel;
+    TemplateListModel* templateModel;
 };
 #endif // MAINWINDOW_H

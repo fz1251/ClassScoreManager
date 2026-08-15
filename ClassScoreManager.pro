@@ -16,7 +16,9 @@ SOURCES += \
     src/core/ScoreSumReport.cpp \
     src/delegates/ScoreExprDelegate.cpp \
     src/main.cpp \
-    src/models/ClassTableModal.cpp \
+    src/models/ClassTableModel.cpp \
+    src/models/RecordListModel.cpp \
+    src/models/TemplateListModel.cpp \
     src/ui/AboutInfoDialog.cpp \
     src/ui/ItemSelectionDialog.cpp \
     src/ui/MainWindow.cpp \
@@ -28,7 +30,9 @@ HEADERS += \
     src/core/DataTypes.h \
     src/core/ScoreSumReport.h \
     src/delegates/ScoreExprDelegate.h \
-    src/models/ClassTableModal.h \
+    src/models/ClassTableModel.h \
+    src/models/RecordListModel.h \
+    src/models/TemplateListModel.h \
     src/ui/AboutInfoDialog.h \
     src/ui/ItemSelectionDialog.h \
     src/ui/MainWindow.h \

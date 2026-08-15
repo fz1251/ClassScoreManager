@@ -6,9 +6,10 @@
 #include "SumExportDialog.h"
 #include "../delegates/ScoreExprDelegate.h"
 #include "../core/ScoreSumReport.h"
-#include <QPushButton>
-#include <QInputDialog>
 #include <QDir>
+#include <QPushButton>
+#include <QListView>
+#include <QInputDialog>
 #include <QFileDialog>
 #include <QSplitter>
 
@@ -16,18 +17,22 @@ MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
     , manager(new ClassDataManager(this))
-    , modal(new ClassTableModal(manager,this))
+    , tableModel(new ClassTableModel(manager,this))
+    , recordModel(new RecordListModel(manager,this))
+    , templateModel(new TemplateListModel(manager,this))
 {
     ui->setupUi(this);
 
-    ui->tableView->setModel(modal);
+    ui->tableView->setModel(tableModel);
+    ui->recordListView->setModel(recordModel);
+    ui->templateListView->setModel(templateModel);
 
     // ui->statusbar->setSizeGripEnabled(false);
     ui->statusbar->setVisible(false);
 
     ui->stackedWidget->setCurrentIndex(0);
 
-    ui->tableView->setItemDelegateForColumn(ClassTableModal::CurrentRecord,new ScoreExprDelegate(this));
+    ui->tableView->setItemDelegateForColumn(ClassTableModel::CurrentRecord,new ScoreExprDelegate(this));
 
     onFileClosed();
 
@@ -49,8 +54,8 @@ MainWindow::MainWindow(QWidget *parent)
 
 
     connect(manager,&ClassDataManager::dirtyStateChanged,this,&MainWindow::setWindowModified);
-    connect(modal,&ClassTableModal::showColumnRequested,ui->tableView,&QTableView::showColumn);
-    connect(modal,&ClassTableModal::hideColumnRequested,ui->tableView,&QTableView::hideColumn);
+    connect(tableModel,&ClassTableModel::showColumnRequested,ui->tableView,&QTableView::showColumn);
+    connect(tableModel,&ClassTableModel::hideColumnRequested,ui->tableView,&QTableView::hideColumn);
 
     connect(ui->pushButton_1,&QPushButton::clicked,this,[this](){
         ui->stackedWidget->setCurrentIndex(StudentTablePage);
@@ -76,11 +81,34 @@ MainWindow::MainWindow(QWidget *parent)
     });
     connect(ui->cb_editName,&QCheckBox::stateChanged,this,[this](int state){
         bool checked=(state==Qt::Checked);
-        modal->setStudentEditable(checked);
+        tableModel->setStudentEditable(checked);
     });
     connect(ui->cb_editGroup,&QCheckBox::stateChanged,this,[this](int state){
         bool checked=(state==Qt::Checked);
-        modal->setGroupEditable(checked);
+        tableModel->setGroupEditable(checked);
+    });
+
+    connect(ui->recordListView,&QListView::doubleClicked,this,[this](const QModelIndex &index){
+        if(!index.isValid())
+            return;
+        tableModel->showRecordHistory(index.row());
+        ui->stackedWidget->setCurrentIndex(StudentTablePage);
+    });
+    connect(ui->templateListView,&QListView::doubleClicked,this,[this](const QModelIndex &index){
+        if(!index.isValid())
+            return;
+        tableModel->showScoreTemplate(index.row());
+        ui->stackedWidget->setCurrentIndex(StudentTablePage);
+    });
+
+    connect(tableModel,&ClassTableModel::recordPreviewChanged,this,[this](int previewIndex){
+        ui->recordListView->setCurrentIndex(recordModel->index(previewIndex, 0));
+        ui->action_HideRecordHistory->setDisabled(previewIndex == -1);
+    });
+    connect(tableModel,&ClassTableModel::templatePreviewChanged,this,[this](int previewIndex){
+        ui->templateListView->setCurrentIndex(templateModel->index(previewIndex, 0));
+        ui->action_HideTemplate->setDisabled(previewIndex == -1);
+        ui->action_EditTemplate->setDisabled(previewIndex == -1);
     });
 }
 
@@ -138,7 +166,7 @@ void MainWindow::on_action_NewFile_triggered()
     manager->newFile();
     onFileLoaded();
     updateWindowTitle(tr("新建班级（未保存）"));
-    modal->resetTable();
+    tableModel->resetTable();
 }
 
 void MainWindow::on_action_SaveFile_triggered()
@@ -168,7 +196,7 @@ void MainWindow::on_action_AddStudent_triggered()
                                               QLineEdit::Normal,QString(),&ok);
     if(ok)
     {
-        modal->addStudent(studentName);
+        tableModel->addStudent(studentName);
     }
 }
 
@@ -177,7 +205,7 @@ void MainWindow::on_action_ImportStudents_triggered()
     PasteStudentsDialog dialog;
     if(dialog.exec()==QDialog::Accepted)
     {
-        modal->importStudents(dialog.getNameList());
+        tableModel->importStudents(dialog.getNameList());
     }
 }
 
@@ -189,7 +217,7 @@ void MainWindow::on_action_DeleteStudent_triggered()
         int index=dialog.selectedIndex();
         if(index!=-1)
         {
-            modal->removeStudent(index);
+            tableModel->removeStudent(index);
         }
     }
 }
@@ -201,7 +229,7 @@ void MainWindow::on_action_ClearStudents_triggered()
                              .arg(manager->getTemplates().size())
                              .arg(manager->getRecords().size())))
     {
-        modal->clearStudents();
+        tableModel->clearStudents();
     }
 }
 
@@ -216,7 +244,7 @@ void MainWindow::on_action_NewScoreRecord_triggered()
     {
         if(manager->verifyRecordName(descriptionText)==false)
             QMessageBox::warning(this,tr("警告"),tr("描述不能为空或与之前重复"));
-        modal->newScoreRecord(descriptionText);
+        tableModel->newScoreRecord(descriptionText);
 
         ui->action_NewScoreRecord->setDisabled(true);
         ui->action_SaveScoreRecord->setDisabled(false);
@@ -226,7 +254,7 @@ void MainWindow::on_action_NewScoreRecord_triggered()
 
 void MainWindow::on_action_SaveScoreRecord_triggered()
 {
-    modal->saveScoreRecord();
+    tableModel->saveScoreRecord();
     ui->action_NewScoreRecord->setDisabled(false);
     ui->action_SaveScoreRecord->setDisabled(true);
     ui->action_UseScoreTemplate->setDisabled(true);
@@ -242,7 +270,7 @@ void MainWindow::on_action_UseScoreTemplate_triggered()
         int index=dialog.selectedIndex();
         if(index!=-1)
         {
-            modal->activateTemplate(index);
+            tableModel->activateTemplate(index);
         }
     }
 }
@@ -294,7 +322,7 @@ void MainWindow::on_action_ShowRecordHistory_triggered()
         int index=dialog.selectedIndex();
         if(index!=-1)
         {
-            modal->showRecordHistory(index);
+            tableModel->showRecordHistory(index);
             ui->action_HideRecordHistory->setDisabled(false);
         }
     }
@@ -302,7 +330,7 @@ void MainWindow::on_action_ShowRecordHistory_triggered()
 
 void MainWindow::on_action_HideRecordHistory_triggered()
 {
-    modal->hideRecordHistory();
+    tableModel->hideRecordHistory();
     ui->action_HideRecordHistory->setDisabled(true);
 }
 
@@ -310,16 +338,16 @@ void MainWindow::on_action_DeleteRecordHistory_triggered()
 {
     QStringList recordList=manager->getRecordList();
     ItemSelectionDialog dialog(this,tr("选择积分记录对话框"),tr("选择您要删除的积分记录"),
-                                    recordList,modal->getCurRecordIndex());
+                                    recordList,tableModel->getCurRecordIndex());
     if(dialog.exec()==QDialog::Accepted)
     {
         int index=dialog.selectedIndex();
-        if(index==modal->getCurRecordIndex())
+        if(index==tableModel->getCurRecordIndex())
         {
             ui->action_HideRecordHistory->setDisabled(true);
         }
         if(index!=-1)
-            modal->deleteRecordHistory(index);
+            tableModel->deleteRecordHistory(index);
     }
 }
 
@@ -327,7 +355,7 @@ void MainWindow::on_action_ClearRecords_triggered()
 {
     if(confirmClearOperation(tr("积分记录(共%1条)").arg(manager->getRecords().size())))
     {
-        modal->clearScoreRecord();
+        tableModel->clearScoreRecord();
     }
 }
 
@@ -339,7 +367,7 @@ void MainWindow::on_action_NewTemplate_triggered()
     newTemplate.description=tr("未命名-%1").arg(QDateTime::currentDateTime()
                                                 .toString("yy/MM/dd hh:mm:ss:zzz"));
     newTemplate.values=QVector<qint32>(manager->getStudents().count());
-    modal->newScoreTemplate(newTemplate);
+    tableModel->newScoreTemplate(newTemplate);
 
     ui->action_HideTemplate->setDisabled(false);
     ui->action_EditTemplate->setDisabled(false);
@@ -350,12 +378,12 @@ void MainWindow::on_action_EditTemplate_triggered()
     bool ok;
     QString descriptionText=QInputDialog::getText(this,tr("修改积分模板对话框"),tr("输入新的积分模板名"),
                             QLineEdit::Normal,
-                            manager->getTemplates().at(modal->getCurTemplateIndex()).description,&ok);
+                            manager->getTemplates().at(tableModel->getCurTemplateIndex()).description,&ok);
     if(ok)
     {
         if(manager->verifyTemplateName(descriptionText)==false)
             QMessageBox::warning(this,tr("警告"),tr("描述不能为空或与之前重复"));
-        manager->templateAt(modal->getCurTemplateIndex()).description=descriptionText;
+        tableModel->setTemplateDescription(descriptionText);
     }
 }
 
@@ -369,7 +397,7 @@ void MainWindow::on_action_ShowTemplate_triggered()
         int index=dialog.selectedIndex();
         if(index!=-1)
         {
-            modal->showScoreTemplate(index);
+            tableModel->showScoreTemplate(index);
             ui->action_HideTemplate->setDisabled(false);
             ui->action_EditTemplate->setDisabled(false);
         }
@@ -378,7 +406,7 @@ void MainWindow::on_action_ShowTemplate_triggered()
 
 void MainWindow::on_action_HideTemplate_triggered()
 {
-    modal->hideScoreTemplate();
+    tableModel->hideScoreTemplate();
     ui->action_HideTemplate->setDisabled(true);
     ui->action_EditTemplate->setDisabled(true);
 }
@@ -387,17 +415,17 @@ void MainWindow::on_action_DeleteTemplate_triggered()
 {
     QStringList templateList=manager->getTemplateList();
     ItemSelectionDialog dialog(this,tr("选择积分模板对话框"),tr("选择您要查看的积分模板"),
-                                    templateList,modal->getCurTemplateIndex());
+                                    templateList,tableModel->getCurTemplateIndex());
     if(dialog.exec()==QDialog::Accepted)
     {
         int index=dialog.selectedIndex();
-        if(index==modal->getCurTemplateIndex())
+        if(index==tableModel->getCurTemplateIndex())
         {
             ui->action_EditTemplate->setDisabled(true);
             ui->action_HideTemplate->setDisabled(true);
         }
         if(index!=-1)
-            modal->deleteScoreTemplate(index);
+            tableModel->deleteScoreTemplate(index);
     }
 }
 
@@ -405,7 +433,7 @@ void MainWindow::on_action_ClearTemplates_triggered()
 {
     if(confirmClearOperation(tr("积分模板(共%1个)").arg(manager->getTemplates().size())))
     {
-        modal->clearScoreTemplate();
+        tableModel->clearScoreTemplate();
     }
 }
 
@@ -507,7 +535,7 @@ void MainWindow::openFile(const QString &filePath)
     onFileLoaded();
     updateWindowTitle(QFileInfo(filePath).fileName());
 
-    modal->resetTable();
+    tableModel->resetTable();
 }
 
 void MainWindow::saveFile()
@@ -523,7 +551,7 @@ void MainWindow::saveFile()
         msgBox.exec();
         if(msgBox.clickedButton()==saveRecordBtn)
         {
-            modal->saveScoreRecord();
+            tableModel->saveScoreRecord();
         }
         Q_UNUSED(saveOthersBtn);
     }
@@ -545,7 +573,7 @@ void MainWindow::closeFile()
     manager->closeFile();
     onFileClosed();
     updateWindowTitle("");
-    modal->resetTable();
+    tableModel->resetTable();
 }
 
 QMessageBox::ButtonRole MainWindow::confirmUnsavedChanges()
@@ -561,7 +589,7 @@ QMessageBox::ButtonRole MainWindow::confirmUnsavedChanges()
     if(clickedBtn==saveBtn)
     {
         if(manager->isRecordUnsaved())
-            modal->saveScoreRecord();
+            tableModel->saveScoreRecord();
         saveFile();
         closeFile();
         return QMessageBox::AcceptRole;

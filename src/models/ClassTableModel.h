@@ -1,5 +1,5 @@
-#ifndef CLASSTABLEMODAL_H
-#define CLASSTABLEMODAL_H
+#ifndef CLASSTABLEMODEL_H
+#define CLASSTABLEMODEL_H
 
 #include "../core/ClassDataManager.h"
 #include <QMap>
@@ -8,7 +8,7 @@
 #include <QByteArray>
 #include <QAbstractTableModel>
 
-class ClassTableModal : public QAbstractTableModel
+class ClassTableModel : public QAbstractTableModel
 {
     Q_OBJECT
 public:
@@ -25,7 +25,7 @@ public:
     };
 
     // 表格模型所用函数
-    explicit ClassTableModal(ClassDataManager* dataManager, QObject *parent = nullptr);
+    explicit ClassTableModel(ClassDataManager* dataManager, QObject *parent = nullptr);
     int rowCount(const QModelIndex &parent = QModelIndex()) const override;
     int columnCount(const QModelIndex &parent = QModelIndex()) const override;
     QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
@@ -70,6 +70,8 @@ public slots:
 signals:
     void showColumnRequested(int column);
     void hideColumnRequested(int column);
+    void recordPreviewChanged(int index);
+    void templatePreviewChanged(int index);
 private:
     static const inline QString moveRowDataType = "application/row_data";
     static const inline int INVALID_INDEX = -1;
@@ -80,7 +82,7 @@ private:
     const QVector<ScoreRecord>&   records()   const { return manager->getRecords(); };
 
     // 验证索引有效性
-    bool isValidModalIndex(const QModelIndex& index) const;
+    bool isValidModelIndex(const QModelIndex& index) const;
     bool isValidIndex(int index) const;
 
     // 包装显示/隐藏列功能
@@ -99,4 +101,4 @@ private:
     int activatedTemplateIndex;
 };
 
-#endif // CLASSTABLEMODAL_H
+#endif // CLASSTABLEMODEL_H

@@ -94,6 +94,8 @@ QString ClassDataManager::openFile(const QString& openFilePath)
     }
     file.close();
     m_hasData = true;
+    emit recordsChanged();
+    emit templatesChanged();
     return QString();
 }
 
@@ -102,6 +104,8 @@ void ClassDataManager::newFile()
     m_hasData = true;
     m_isNewFile = true;
     m_isDirty = true;
+    emit recordsChanged();
+    emit templatesChanged();
 }
 
 void ClassDataManager::saveNewFile(const QString &saveFilePath)
@@ -141,6 +145,8 @@ void ClassDataManager::closeFile()
     m_hasData = false;
     m_isNewFile = false;
     setDirty(false);
+    emit recordsChanged();
+    emit templatesChanged();
 }
 
 bool ClassDataManager::hasData() const
@@ -179,6 +185,15 @@ ScoreTemplate& ClassDataManager::templateAt(int index)
 {
     setDirty(true);
     return templates[index];
+}
+
+void ClassDataManager::setTemplateDescription(int index, const QString &description)
+{
+    if(index < 0 || index >= templates.size())
+        return;
+    templates[index].description = description;
+    setDirty(true);
+    emit templatesChanged();
 }
 
 const ScoreRecord& ClassDataManager::recordAt(int index)
@@ -271,6 +286,7 @@ void ClassDataManager::addTemplate(const ScoreTemplate &newTemplate)
 {
     templates.append(newTemplate);
     setDirty(true);
+    emit templatesChanged();
 }
 
 void ClassDataManager::newRecord(const QString &recordName)
@@ -289,6 +305,7 @@ void ClassDataManager::saveRecord(int templateIndex)
             tempRecord.scores[i] += templates.at(templateIndex).values[i];
     records.append(tempRecord);
     tempRecord.scores.clear();
+    emit recordsChanged();
 }
 
 QVector<qint32>& ClassDataManager::getTempRecord()
@@ -330,12 +347,14 @@ void ClassDataManager::removeTemplate(int index)
 {
     templates.removeAt(index);
     setDirty(true);
+    emit templatesChanged();
 }
 
 void ClassDataManager::removeRecord(int index)
 {
     records.removeAt(index);
     setDirty(true);
+    emit recordsChanged();
 }
 
 void ClassDataManager::clearStudents()
@@ -344,18 +363,22 @@ void ClassDataManager::clearStudents()
     templates.clear();
     records.clear();
     setDirty(true);
+    emit recordsChanged();
+    emit templatesChanged();
 }
 
 void ClassDataManager::clearTemplates()
 {
     templates.clear();
     setDirty(true);
+    emit templatesChanged();
 }
 
 void ClassDataManager::clearRecords()
 {
     records.clear();
     setDirty(true);
+    emit recordsChanged();
 }
 
 void ClassDataManager::setDirty(bool isDirty)
