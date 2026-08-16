@@ -346,14 +346,12 @@ void ClassTableModel::showRecordHistory(int index)
 {
     recordIndex = index;
     showColumnWrapper(RecordHistoryPreview);
-    emit recordPreviewChanged(recordIndex);
 }
 
 void ClassTableModel::hideRecordHistory()
 {
     recordIndex = INVALID_INDEX;
     hideColumnWrapper(RecordHistoryPreview);
-    emit recordPreviewChanged(recordIndex);
 }
 
 void ClassTableModel::newScoreRecord(const QString &newRecordName)
@@ -375,7 +373,6 @@ void ClassTableModel::saveScoreRecord()
     activatedTemplateIndex = INVALID_INDEX;
     hideColumnWrapper(CurrentRecord);
     hideColumnWrapper(CurrentTemplate);
-    emit recordPreviewChanged(recordIndex);
 }
 
 void ClassTableModel::deleteRecordHistory(int index)
@@ -387,7 +384,6 @@ void ClassTableModel::deleteRecordHistory(int index)
     {
         if(index < recordIndex)
             recordIndex--;
-        emit recordPreviewChanged(recordIndex);
     }
 }
 
@@ -409,14 +405,12 @@ void ClassTableModel::showScoreTemplate(int index)
 {
     templateIndex = index;
     showColumnWrapper(ScoreTemplatePreview);
-    emit templatePreviewChanged(templateIndex);
 }
 
 void ClassTableModel::hideScoreTemplate()
 {
     templateIndex = INVALID_INDEX;
     hideColumnWrapper(ScoreTemplatePreview);
-    emit templatePreviewChanged(templateIndex);
 }
 
 void ClassTableModel::newScoreTemplate(const ScoreTemplate& newTemplate)
@@ -430,7 +424,6 @@ void ClassTableModel::setTemplateDescription(const QString &newDescription)
     if(isValidIndex(templateIndex))
     {
         manager->setTemplateDescription(templateIndex, newDescription);
-        emit templatePreviewChanged(templateIndex);
     }
 }
 
@@ -443,7 +436,6 @@ void ClassTableModel::deleteScoreTemplate(int index)
     {
         if(index < templateIndex)
             templateIndex--;
-        emit templatePreviewChanged(templateIndex);
     }
     if(activatedTemplateIndex == index)
         activatedTemplateIndex = INVALID_INDEX;
@@ -477,8 +469,6 @@ void ClassTableModel::resetTable()
     recordIndex = INVALID_INDEX;
     templateIndex = INVALID_INDEX;
     activatedTemplateIndex = INVALID_INDEX;
-    emit recordPreviewChanged(recordIndex);
-    emit templatePreviewChanged(templateIndex);
 }
 
 void ClassTableModel::setStudentEditable(bool editable)

@@ -72,12 +72,45 @@ private:
         ScoreRecordPage,
         ScoreTemplatePage
     };
+    /*界面状态维护*/
     void onFileLoaded();
     void onFileClosed();
     void updateWindowTitle(const QString& fileName);
+    void resetTable();
+    void updateRecordPreviewActions();
+    void updateTemplatePreviewActions();
+
+    /*文件操作*/
     void openFile(const QString& filePath);
+    void newFile();
     void saveFile();
     void closeFile();
+
+    /*学生操作*/
+    void addStudent(const QString& newName);
+    void importStudents(const QStringList& newNames);
+    void removeStudent(int displayIndex);
+    void clearStudents();
+
+    /*积分记录操作*/
+    bool newScoreRecord(const QString& recordName);
+    void saveScoreRecord();
+    void activateTemplate(int index);
+    void exportScoreSum();
+    void showRecord(int index);
+    void hideRecord();
+    void deleteRecord(int index);
+    void clearRecords();
+
+    /*积分模板操作*/
+    void newTemplate();
+    bool renameTemplate(const QString& newDescription);
+    void showTemplate(int index);
+    void hideTemplate();
+    void deleteTemplate(int index);
+    void clearTemplates();
+
+    /*通用确认*/
     QMessageBox::ButtonRole confirmUnsavedChanges();
     bool confirmClearOperation(const QString& description);
     Ui::MainWindow *ui;

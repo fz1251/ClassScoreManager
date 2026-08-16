@@ -70,8 +70,6 @@ public slots:
 signals:
     void showColumnRequested(int column);
     void hideColumnRequested(int column);
-    void recordPreviewChanged(int index);
-    void templatePreviewChanged(int index);
 private:
     static const inline QString moveRowDataType = "application/row_data";
     static const inline int INVALID_INDEX = -1;

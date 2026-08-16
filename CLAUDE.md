@@ -25,6 +25,8 @@
 12. 如认为某个目录为空，**必须**再用 `dir` 命令验证一次。
 13. 如需调用 PowerShell 命令（如 `Select-String`、`Get-Content` 等），必须显式使用 PowerShell 7，即 `pwsh -NoProfile -ExecutionPolicy Bypass -Command "[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; ..."` 调用并指定 UTF-8 编码；不要再使用 PowerShell 5.1（`powershell.exe`）。
 14. 大规模代码改动前必须先给 plan（说明要改什么、影响范围、实施顺序），待用户确认后再动手；用户明确指定的小修复可直接执行。
+15. 如需临时写代码验证 Qt 行为，把验证程序放进 `C:\Users\dell\Desktop\C++\projects\widget_demo`，由用户选择 Qt 5.15.2 或 6.8.3 编译；助手没有视觉能力，交付验证程序时必须明确写出需要用户观察什么现象。
+16. 不要做无意义的静态验证（括号配对、残留字符串搜索、`git diff --check` 等）；编译和用户测试足以发现全部问题，把算力和上下文留给实际修改。
 
 ## 3. 项目上下文
 
@@ -34,7 +36,9 @@
 - 代码同时保留 Qt5/Qt6 条件编译兼容（`QT_VERSION` / `QT_VERSION_CHECK`）。
 - 部署方式：打包后拷入 U 盘，免安装直接运行；保持体积小、启动快。
 - 约束：核心功能阶段不引入大型美化/主题库；Fluent 风格美化作为后续独立阶段统一实施。
-- 界面基线：目前所有控件使用 Qt 默认皮肤；非必要不设置任何 QSS；美化集中进行，不做分散样式改动。
+- 界面基线：目前所有控件使用 Qt 默认皮肤；美化集中进行，不做分散样式改动。
+- 美化约束：QSS 与后续 QProxyStyle 美化库互斥（启用 QProxyStyle 后 QSS 失效）；视觉指示一律使用 QStyle / QStyledItemDelegate / QPalette / 模型角色，不引入 QSS。
+- 当前阶段范围：仅把 MainWindow 中调用底层处迁移为私有操作函数；QListView 选中行跟随预览的高亮暂缓，相关选中同步逻辑删除。
 - 主要模块：`src/core`（数据管理、报表）、`src/models`（表格模型）、`src/ui`（界面）、`src/delegates`（委托）。
 - 命名约定：业务命名不使用 `Score` 前缀；积分记录、积分模板分别用 `Record`、`Template` 命名，与 C++ 关键字冲突时视情况加修饰或复数。
 - 应用图标：`resources/icon.ico`（`RC_ICONS`）。
