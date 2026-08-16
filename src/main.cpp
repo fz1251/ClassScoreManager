@@ -17,6 +17,9 @@ int main(int argc, char *argv[])
 
     QApplication a(argc, argv);
 
+    // 启用 FluentUI3 样式（插件已部署到 Qt 插件目录）
+    a.setStyle(QStringLiteral("FluentUI3"));
+
 #if QT_VERSION_MAJOR == 5
     QFont defaultFont = a.font();
 #ifdef Q_OS_WIN

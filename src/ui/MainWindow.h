@@ -16,6 +16,8 @@ QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
 QT_END_NAMESPACE
 
+class QTabBar;
+
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
@@ -72,6 +74,7 @@ private:
         ScoreRecordPage,
         ScoreTemplatePage
     };
+
     /*界面状态维护*/
     void onFileLoaded();
     void onFileClosed();
@@ -114,6 +117,7 @@ private:
     QMessageBox::ButtonRole confirmUnsavedChanges();
     bool confirmClearOperation(const QString& description);
     Ui::MainWindow *ui;
+    QTabBar* navigationTabBar;
     ClassDataManager* manager;
     ClassTableModel* tableModel;
     RecordListModel* recordModel;

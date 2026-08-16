@@ -24,16 +24,16 @@
        <item>
         <widget class="QLabel" name="pasteITipLable">
          <property name="frameShape">
-          <enum>QFrame::Shape::NoFrame</enum>
+          <enum>QFrame::NoFrame</enum>
          </property>
          <property name="frameShadow">
-          <enum>QFrame::Shadow::Plain</enum>
+          <enum>QFrame::Plain</enum>
          </property>
          <property name="text">
           <string>在此处粘贴Excel表格列</string>
          </property>
          <property name="textFormat">
-          <enum>Qt::TextFormat::PlainText</enum>
+          <enum>Qt::PlainText</enum>
          </property>
          <property name="wordWrap">
           <bool>false</bool>
@@ -63,14 +63,14 @@
           <string>学生姓名解析结果</string>
          </property>
          <property name="textFormat">
-          <enum>Qt::TextFormat::PlainText</enum>
+          <enum>Qt::PlainText</enum>
          </property>
         </widget>
        </item>
        <item>
         <widget class="QListWidget" name="parseResultList">
          <property name="editTriggers">
-          <set>QAbstractItemView::EditTrigger::DoubleClicked|QAbstractItemView::EditTrigger::EditKeyPressed|QAbstractItemView::EditTrigger::SelectedClicked</set>
+          <set>QAbstractItemView::DoubleClicked|QAbstractItemView::EditKeyPressed|QAbstractItemView::SelectedClicked</set>
          </property>
         </widget>
        </item>
@@ -90,12 +90,6 @@
    </item>
    <item>
     <widget class="QLabel" name="parseStatusLable">
-     <property name="frameShape">
-      <enum>QFrame::Shape::Panel</enum>
-     </property>
-     <property name="frameShadow">
-      <enum>QFrame::Shadow::Sunken</enum>
-     </property>
      <property name="lineWidth">
       <number>1</number>
      </property>
@@ -107,10 +101,10 @@
    <item>
     <widget class="QDialogButtonBox" name="returnButtonBox">
      <property name="orientation">
-      <enum>Qt::Orientation::Horizontal</enum>
+      <enum>Qt::Horizontal</enum>
      </property>
      <property name="standardButtons">
-      <set>QDialogButtonBox::StandardButton::Cancel|QDialogButtonBox::StandardButton::Ok</set>
+      <set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set>
      </property>
     </widget>
    </item>

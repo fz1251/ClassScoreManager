@@ -14,7 +14,9 @@ msvc: QMAKE_CXXFLAGS += /utf-8
 SOURCES += \
     src/core/ClassDataManager.cpp \
     src/core/ScoreSumReport.cpp \
+    src/delegates/GroupSpinBoxDelegate.cpp \
     src/delegates/ScoreExprDelegate.cpp \
+    src/delegates/TemplateSpinBoxDelegate.cpp \
     src/main.cpp \
     src/models/ClassTableModel.cpp \
     src/models/RecordListModel.cpp \
@@ -29,7 +31,9 @@ HEADERS += \
     src/core/ClassDataManager.h \
     src/core/DataTypes.h \
     src/core/ScoreSumReport.h \
+    src/delegates/GroupSpinBoxDelegate.h \
     src/delegates/ScoreExprDelegate.h \
+    src/delegates/TemplateSpinBoxDelegate.h \
     src/models/ClassTableModel.h \
     src/models/RecordListModel.h \
     src/models/TemplateListModel.h \
