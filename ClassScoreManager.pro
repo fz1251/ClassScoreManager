@@ -25,6 +25,7 @@ SOURCES += \
     src/ui/ItemSelectionDialog.cpp \
     src/ui/MainWindow.cpp \
     src/ui/PasteStudentsDialog.cpp \
+    src/ui/ShineLabel.cpp \
     src/ui/SumExportDialog.cpp
 
 HEADERS += \
@@ -41,6 +42,7 @@ HEADERS += \
     src/ui/ItemSelectionDialog.h \
     src/ui/MainWindow.h \
     src/ui/PasteStudentsDialog.h \
+    src/ui/ShineLabel.h \
     src/ui/SumExportDialog.h
 
 FORMS += \

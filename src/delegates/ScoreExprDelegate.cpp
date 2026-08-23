@@ -40,10 +40,13 @@ QWidget *ScoreExprDelegate::createEditor(QWidget *parent, const QStyleOptionView
 {
     Q_UNUSED(option);
     Q_UNUSED(index);
-    QLineEdit* lineEdit=new QLineEdit(parent);
-    QRegularExpression scoreRegExp(scoreRegExpStr);
-    QRegularExpressionValidator* validator=new QRegularExpressionValidator(scoreRegExp,parent);
-    lineEdit->setValidator(validator);
+    auto* lineEdit=new QLineEdit(parent);
+    // //部分控件底色带透明，防止把单元格文本显示出来
+    lineEdit->setAutoFillBackground(true);
+    // 让控件不绘制边框
+    lineEdit->setFrame(false);
+    // 设置正则表达式验证器
+    lineEdit->setValidator(new QRegularExpressionValidator(QRegularExpression(scoreRegExpStr),parent));
     return lineEdit;
 }
 

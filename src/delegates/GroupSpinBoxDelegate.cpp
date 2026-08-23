@@ -15,7 +15,8 @@ QWidget *GroupSpinBoxDelegate::createEditor(QWidget *parent, const QStyleOptionV
     Q_UNUSED(index);
 
     auto *editor = new QSpinBox(parent);
-    editor->setProperty(NoRoundedCorners, true);
+    editor->setAutoFillBackground(true);
+    editor->setFrame(false);
     editor->setRange(0, std::numeric_limits<int>::max());
     editor->setProperty("spinBoxButtonLayout", PlusMinusHorizontalSides);
     return editor;

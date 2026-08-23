@@ -15,9 +15,9 @@ QWidget *TemplateSpinBoxDelegate::createEditor(QWidget *parent, const QStyleOpti
     Q_UNUSED(index);
 
     auto *editor = new QSpinBox(parent);
-    editor->setRange(std::numeric_limits<int>::min(),
-                     std::numeric_limits<int>::max());
+    editor->setAutoFillBackground(true);
+    editor->setFrame(false);
+    editor->setRange(std::numeric_limits<int>::min(),std::numeric_limits<int>::max());
     editor->setProperty("spinBoxButtonLayout", PlusMinusHorizontalSides);
-    editor->setProperty(NoRoundedCorners, true);
     return editor;
 }
