@@ -22,6 +22,7 @@ SOURCES += \
     src/models/RecordListModel.cpp \
     src/models/TemplateListModel.cpp \
     src/ui/AboutInfoDialog.cpp \
+    src/ui/HomeActionCard.cpp \
     src/ui/ItemSelectionDialog.cpp \
     src/ui/MainWindow.cpp \
     src/ui/PasteStudentsDialog.cpp \
@@ -39,6 +40,7 @@ HEADERS += \
     src/models/RecordListModel.h \
     src/models/TemplateListModel.h \
     src/ui/AboutInfoDialog.h \
+    src/ui/HomeActionCard.h \
     src/ui/ItemSelectionDialog.h \
     src/ui/MainWindow.h \
     src/ui/PasteStudentsDialog.h \

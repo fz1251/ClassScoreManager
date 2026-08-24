@@ -1,6 +1,7 @@
 #include "MainWindow.h"
 #include "ui_MainWindow.h"
 #include "AboutInfoDialog.h"
+#include "HomeActionCard.h"
 #include "ItemSelectionDialog.h"
 #include "PasteStudentsDialog.h"
 #include "SumExportDialog.h"
@@ -13,6 +14,7 @@
 #include <QListView>
 #include <QPushButton>
 #include <QSizePolicy>
+#include <QStyle>
 #include <QTabBar>
 #include <QInputDialog>
 #include <QFileDialog>
@@ -27,6 +29,11 @@ MainWindow::MainWindow(QWidget *parent)
     , templateModel(new TemplateListModel(manager,this))
 {
     ui->setupUi(this);
+
+    ui->openFileCard->setIcon(style()->standardIcon(QStyle::SP_DialogOpenButton, nullptr, this));
+    ui->newFileCard->setIcon(style()->standardIcon(QStyle::SP_FileIcon, nullptr, this));
+    connect(ui->openFileCard, &QAbstractButton::clicked, this, &MainWindow::on_action_OpenFile_triggered);
+    connect(ui->newFileCard, &QAbstractButton::clicked, this, &MainWindow::on_action_NewFile_triggered);
 
     ui->tableView->setModel(tableModel);
     ui->recordListView->setModel(recordModel);

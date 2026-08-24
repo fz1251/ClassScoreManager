@@ -69,26 +69,48 @@
         </item>
         <item>
          <layout class="QHBoxLayout" name="horizontalLayout">
+          <property name="spacing">
+           <number>28</number>
+          </property>
           <item>
-           <widget class="QPushButton" name="pushButton">
+           <spacer name="homeActionLeftSpacer">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>40</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+          <item>
+           <widget class="HomeActionCard" name="openFileCard">
             <property name="text">
-             <string>占位</string>
+             <string>打开文件</string>
             </property>
            </widget>
           </item>
           <item>
-           <widget class="QPushButton" name="pushButton_2">
+           <widget class="HomeActionCard" name="newFileCard">
             <property name="text">
-             <string>占位</string>
+             <string>新建文件</string>
             </property>
            </widget>
           </item>
           <item>
-           <widget class="QPushButton" name="pushButton_3">
-            <property name="text">
-             <string>占位</string>
+           <spacer name="homeActionRightSpacer">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
             </property>
-           </widget>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>40</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
           </item>
          </layout>
         </item>
@@ -223,7 +245,7 @@
      <x>0</x>
      <y>0</y>
      <width>800</width>
-     <height>25</height>
+     <height>33</height>
     </rect>
    </property>
    <widget class="QMenu" name="menu_File">
@@ -421,6 +443,11 @@
    <class>ShineLabel</class>
    <extends>QLabel</extends>
    <header>.\src\ui\ShineLabel.h</header>
+  </customwidget>
+  <customwidget>
+   <class>HomeActionCard</class>
+   <extends>QAbstractButton</extends>
+   <header>.\src\ui\HomeActionCard.h</header>
   </customwidget>
  </customwidgets>
  <resources/>
