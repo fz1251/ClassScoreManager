@@ -1,5 +1,4 @@
-#ifndef HOMEACTIONCARD_H
-#define HOMEACTIONCARD_H
+#pragma once
 
 #include <QAbstractButton>
 #include <QPixmap>
@@ -43,4 +42,3 @@ private:
     QPixmap m_shadowCache;
 };
 
-#endif // HOMEACTIONCARD_H

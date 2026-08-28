@@ -1,5 +1,4 @@
-#ifndef CLASSTABLEMODEL_H
-#define CLASSTABLEMODEL_H
+#pragma once
 
 #include "../core/ClassDataManager.h"
 #include <QMap>
@@ -99,4 +98,3 @@ private:
     int activatedTemplateIndex;
 };
 
-#endif // CLASSTABLEMODEL_H

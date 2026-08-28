@@ -1,5 +1,4 @@
-#ifndef MAINWINDOW_H
-#define MAINWINDOW_H
+#pragma once
 
 #include "../core/DataTypes.h"
 #include "../models/ClassTableModel.h"
@@ -123,4 +122,3 @@ private:
     RecordListModel* recordModel;
     TemplateListModel* templateModel;
 };
-#endif // MAINWINDOW_H

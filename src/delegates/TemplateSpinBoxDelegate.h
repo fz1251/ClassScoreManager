@@ -1,5 +1,4 @@
-#ifndef TEMPLATESPINBOXDELEGATE_H
-#define TEMPLATESPINBOXDELEGATE_H
+#pragma once
 
 #include <QStyledItemDelegate>
 
@@ -12,4 +11,3 @@ public:
     QWidget *createEditor(QWidget *parent, const QStyleOptionViewItem &option, const QModelIndex &index) const override;
 };
 
-#endif // TEMPLATESPINBOXDELEGATE_H

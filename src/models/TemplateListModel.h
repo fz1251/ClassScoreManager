@@ -1,5 +1,4 @@
-#ifndef TEMPLATELISTMODEL_H
-#define TEMPLATELISTMODEL_H
+#pragma once
 
 #include "../core/ClassDataManager.h"
 #include <QAbstractListModel>
@@ -20,4 +19,3 @@ private:
     ClassDataManager* manager;
 };
 
-#endif // TEMPLATELISTMODEL_H

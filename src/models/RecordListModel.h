@@ -1,5 +1,4 @@
-#ifndef RECORDLISTMODEL_H
-#define RECORDLISTMODEL_H
+#pragma once
 
 #include "../core/ClassDataManager.h"
 #include <QAbstractListModel>
@@ -20,4 +19,3 @@ private:
     ClassDataManager* manager;
 };
 
-#endif // RECORDLISTMODEL_H

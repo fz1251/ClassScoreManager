@@ -1,5 +1,4 @@
-#ifndef CLASSDATAMANAGER_H
-#define CLASSDATAMANAGER_H
+#pragma once
 
 #include "DataTypes.h"
 #include <QObject>
@@ -75,4 +74,3 @@ private:
     QVector<ScoreRecord> records;
 };
 
-#endif // CLASSDATAMANAGER_H

@@ -1,5 +1,4 @@
-#ifndef SHINELABEL_H
-#define SHINELABEL_H
+#pragma once
 
 #include <QElapsedTimer>
 #include <QFont>
@@ -60,4 +59,3 @@ private:
     Qt::Alignment m_cachedAlignment = Qt::AlignLeft | Qt::AlignTop;
 };
 
-#endif // SHINELABEL_H

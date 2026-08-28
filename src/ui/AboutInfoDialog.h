@@ -1,6 +1,5 @@
 // about_info_dialog.h
-#ifndef ABOUTINFODIALOG_H
-#define ABOUTINFODIALOG_H
+#pragma once
 
 #include <QDialog>
 #include <QIcon>
@@ -63,4 +62,3 @@ private:
     static const inline int BLUR_RADIUS = 8;
 };
 
-#endif // ABOUTINFODIALOG_H

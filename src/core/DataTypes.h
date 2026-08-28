@@ -1,5 +1,4 @@
-#ifndef DATATYPES_H
-#define DATATYPES_H
+#pragma once
 
 #include <QString>
 #include <QVector>
@@ -196,4 +195,3 @@ inline QDataStream &operator <<(QDataStream &out, const ScoreRecord &data)
     return out;
 }
 
-#endif // DATATYPES_H

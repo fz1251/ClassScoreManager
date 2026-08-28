@@ -1,5 +1,4 @@
-#ifndef SUMEXPORTDIALOG_H
-#define SUMEXPORTDIALOG_H
+#pragma once
 
 #include "../core/DataTypes.h"
 #include <QDialog>
@@ -28,4 +27,3 @@ private:
     QStringList recordList;
 };
 
-#endif // SUMEXPORTDIALOG_H

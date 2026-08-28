@@ -1,5 +1,4 @@
-#ifndef SCOREEXPRDELEGATE_H
-#define SCOREEXPRDELEGATE_H
+#pragma once
 
 #include <QString>
 #include <QStringList>
@@ -26,4 +25,3 @@ private:
     static const inline QString scoreRegExpStr="^(?:[+-]?\\d+)(?:[+-]\\d+)*$";
 };
 
-#endif // SCOREEXPRDELEGATE_H

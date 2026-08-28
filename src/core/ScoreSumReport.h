@@ -1,5 +1,4 @@
-#ifndef SCORESUMREPORT_H
-#define SCORESUMREPORT_H
+#pragma once
 
 #include "DataTypes.h"
 
@@ -17,4 +16,3 @@ QString generateHtmlString(QVector<SummaryData> dataList,SortSettings mode);
 
 } // namespace ScoreSumReport
 
-#endif // SCORESUMREPORT_H
