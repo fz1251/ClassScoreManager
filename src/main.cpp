@@ -2,6 +2,8 @@
 
 #include <QApplication>
 
+#include "fluentui3style.h"
+
 int main(int argc, char *argv[])
 {
 
@@ -17,8 +19,8 @@ int main(int argc, char *argv[])
 
     QApplication a(argc, argv);
 
-    // 启用 FluentUI3 样式（插件已部署到 Qt 插件目录）
-    a.setStyle(QStringLiteral("FluentUI3"));
+    // FluentUI3 样式库随项目一起构建，直接实例化，不依赖 Qt 样式插件目录
+    a.setStyle(new FluentUI3Style);
 
 #if QT_VERSION_MAJOR == 5
     QFont defaultFont = a.font();

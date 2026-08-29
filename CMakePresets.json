@@ -1,0 +1,37 @@
+{
+    "version": 3,
+    "configurePresets": [
+        {
+            "name": "qt5-msvc2022-debug",
+            "displayName": "Qt 5.15.19 MSVC2022 Debug",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/build/vscode-qt5.15.19-debug",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "CMAKE_PREFIX_PATH": "D:/Projects/Qt5.15.19/msvc2022_64",
+                "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+            }
+        },
+        {
+            "name": "qt5-msvc2022-release",
+            "displayName": "Qt 5.15.19 MSVC2022 Release",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/build/vscode-qt5.15.19-release",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release",
+                "CMAKE_PREFIX_PATH": "D:/Projects/Qt5.15.19/msvc2022_64",
+                "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+            }
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "qt5-msvc2022-debug",
+            "configurePreset": "qt5-msvc2022-debug"
+        },
+        {
+            "name": "qt5-msvc2022-release",
+            "configurePreset": "qt5-msvc2022-release"
+        }
+    ]
+}

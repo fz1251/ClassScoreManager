@@ -9,7 +9,7 @@
 #include "../delegates/TemplateSpinBoxDelegate.h"
 #include "../delegates/ScoreExprDelegate.h"
 #include "../core/ScoreSumReport.h"
-#include <FluentUI3Style/fluentui3styleproperties.h>
+#include "fluentui3styleproperties.h"
 #include <QDir>
 #include <QListView>
 #include <QPushButton>

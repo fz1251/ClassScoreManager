@@ -1,6 +1,6 @@
 #include "TemplateSpinBoxDelegate.h"
 
-#include <FluentUI3Style/fluentui3styleproperties.h>
+#include "fluentui3styleproperties.h"
 #include <QSpinBox>
 #include <limits>
 

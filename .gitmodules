@@ -1,0 +1,3 @@
+[submodule "third_party/FluentUIStyle"]
+	path = third_party/FluentUIStyle
+	url = https://github.com/XHY-ChuJian/FluentUIStyle.git
