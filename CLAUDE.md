@@ -71,9 +71,9 @@
 - CMake 构建：
   - 预设：`qt5-msvc2022-debug` → `build/vscode-qt5.15.19-debug`；`qt5-msvc2022-release` → `build/vscode-qt5.15.19-release`。两个预设的 `CMAKE_PREFIX_PATH` 均指向上述 Qt，并开启 `CMAKE_EXPORT_COMPILE_COMMANDS=ON`。
   - 两个预设继承隐藏预设 `msvc2022-x64-base`：固定 `CMAKE_C_COMPILER` / `CMAKE_CXX_COMPILER` 为 `cl`，并在 PATH/INCLUDE/LIB 中内置 VS2022 x64 工具链与 Windows SDK 路径；普通终端和 VS Code 构建都无需先进入 VS 开发环境，也不能让 CMake 自行选中 Strawberry Perl 的 GCC。
-  - VS 或 Windows SDK 版本升级后，需同步更新 `msvc2022-x64-base` 里写死的 MSVC / Windows Kits 版本路径。
+  - VS 或 Windows SDK 版本升级后，需同步更新 `msvc2022-x64-base` 与根目录 `.clangd` 里写死的 MSVC / Windows Kits 版本路径。
   - 产物统一输出到对应构建目录的 `bin/`（exe 与所有 DLL）和 `lib/`。
-  - 当前状态：Debug 与 Release 均已用上述预设构建成功；clangd 可直接读取 debug 的 `compile_commands.json`。
+  - 当前状态：Debug 与 Release 均已用上述预设构建成功；clangd 使用 Qt Creator 自带版本（VS Code 中由 `clangd.path` 指定），读取 debug 的 `compile_commands.json`，系统头目录由根目录 `.clangd` 补充。
   - 排查提示：若构建错误显示编译器是 `C:/dev/runtimes/StrawberryPerl/c/bin/c++.exe` / `gcc.exe`，说明该 build 目录的 CMakeCache 被错误环境污染；删除对应 build 目录后用预设重新配置即可。
   - 构建信息：每次构建都会运行 `cmake/generate_build_info.cmake`，生成 `${CMAKE_BINARY_DIR}/generated/app_build_info.h`（仅在日期变化时重写，避免无谓重编译）；界面通过其中的 `APP_BUILD_DATE` 宏显示构建日期。
 - `CMakeLists.txt` 关键点：

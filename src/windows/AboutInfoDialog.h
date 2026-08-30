@@ -1,4 +1,3 @@
-// about_info_dialog.h
 #pragma once
 
 #include <QDialog>
