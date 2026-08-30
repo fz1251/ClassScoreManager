@@ -1,7 +1,7 @@
 # ClassScoreManager 项目记忆
 
-> 本文件是当前项目**唯一权威**的记忆文件，由早期分散的记忆条目合并整理而来。
-> 其他位置不再维护，也不要在多处重复存放记忆。
+> 本文件是项目**唯一权威**的记忆文件：保存协作规则、关键项目约束和纯代码 UI 编写规范。
+> 详细项目上下文与第三方库知识放在 `docs/`，QSS 参考放在 `references/`，按需查阅，不整体读入。
 
 ## 1. 用户画像
 
@@ -32,12 +32,12 @@
 3. 遇到问题追根因，不打补丁；每个决策都要能回答“为什么”。
 4. 不要过度考虑边界情况；当前项目中不可能出现的边界情况不需要处理。
 5. 代码行宽最多容忍到约 100 个字符；声明、调用、短 lambda 不要因为 60 几个字符就折行，过早换行会影响屏幕观感。
-6. 纯代码 UI 的控件指针：只在构造函数之外还需要访问的控件才声明为类成员，否则用构造函数局部变量；成员指针集中放一个区块，区块上下各空一行，顶部用一行统一注释说明该区块，指针本身不再逐项注释；构造函数中每个控件创建块单独注释。
+6. 手写 UI 必须遵守 2.8 的纯代码 UI 编写规范。
 
 ### 2.4 文件与记忆
 
 1. 不主动创建无关文档文件（*.md）；用户要求或为协作理解架构/实现而需要时除外。
-2. 项目记忆（规则与上下文）只维护本文件；详细技术知识统一放入 `docs/`（主索引 `docs/README.md`），不要在其他位置另建重复说明文件。
+2. 项目记忆（协作规则与关键约束）只维护本文件；详细技术知识统一放入 `docs/`（主索引 `docs/README.md`），不要在其他位置另建重复说明文件。
 
 ### 2.5 工具与环境
 
@@ -50,65 +50,52 @@
 ### 2.6 交付物与变更表达
 
 1. 每次修改完成后，只产出面向当前最终状态的独立可交付物；注释、文档、提交信息等只描述“现在是什么”，不写“由 A 改为 B”“V2（已移除 X）”这类变更过程描述。
-2. 删除某个功能或内容后，不要把它沉淀成“原则上不应包含 X”的新规则或文档章节（例如移除游泳池后新增“卫生间原则上不应包含游泳池”）；文档只保留当前有效的内容，避免充斥已经不存在的“现状”。
+2. 删除某个功能或内容后，不要把它沉淀成“原则上不应包含 X”的新规则或文档章节；文档只保留当前有效的内容。
 
-### 2.7 FluentUIStyle 子模块更新流程
+### 2.7 FluentUIStyle 子模块更新
 
-1. 触发条件：用户要求更新 FluentUIStyle 时执行；它现在是 `third_party/FluentUIStyle` 的 git 子模块，随主项目一起构建，不再单独构建或部署 Qt 样式插件。
-2. 更新前：如需访问 GitHub 先设置代理 `export http_proxy=http://127.0.0.1:10808 https_proxy=http://127.0.0.1:10808`；用 `git submodule status` 和 `git -C third_party/FluentUIStyle status` 确认子模块工作区干净，并和用户确认目标分支/提交。工作区不干净时停下询问，不要直接 reset。
-3. 更新：`git -C third_party/FluentUIStyle fetch origin --prune`，然后 checkout/merge 到目标提交；同步检查 FluentUIStyle 及其 QWindowKit 的构建选项、目标名、接口是否有变化，必要时调整主项目 `CMakeLists.txt`。
-4. 验证：按 2.2 构建完整项目；构建通过后由用户运行程序做视觉验证。
-5. 收尾：不执行 git commit；用户验证通过后给出建议提交文本（子模块指针更新 + 必要适配说明）。
+- 完整更新流程见 `docs/third-party.md`。
+- 红线：更新前必须确认子模块工作区干净并与用户确认目标提交；全过程不执行 git commit。
 
-## 3. 项目上下文
+### 2.8 纯代码 UI 编写规范
 
-- 项目：ClassScoreManager，班级积分管理系统，面向班级日常积分管理。
-- 技术栈：C++17 + Qt Widgets（纯 Widgets，禁用 QML）；构建用 CMake + Ninja，开发环境为 VS Code（CMake Tools + clangd）；代码同时保留 Qt5/Qt6 条件编译兼容。
-- 当前 Qt 套件：自编译 Qt 5.15.19（qtbase + qtsvg），MSVC 2022 x64，debug-and-release，prefix `D:/Projects/Qt5.15.19/msvc2022_64`。
-  - 重建脚本：`D:\Projects\Qt5.15.19\build_qt.ps1`（qtbase）、`D:\Projects\Qt5.15.19\build_qtsvg.ps1`（qtsvg）。必须在 x64 VS2022 环境中运行；脚本会先验证 cl 为 x64 并清空旧构建再 configure/build/install。
-  - 该 Qt 曾整库被误建成 i386（`qsizetype` 4 字节）导致 `.cls` 文件兼容问题；凡涉及 Qt 重建或新装，必须确认编译器和产物都是 x64，不能只依赖目录名。
-  - 旧 Qt 5.15.2 暂保留，等新套件稳定后再清理。
-- CMake 构建：
-  - 预设：`qt5-msvc2022-debug` → `build/vscode-qt5.15.19-debug`；`qt5-msvc2022-release` → `build/vscode-qt5.15.19-release`。两个预设的 `CMAKE_PREFIX_PATH` 均指向上述 Qt，并开启 `CMAKE_EXPORT_COMPILE_COMMANDS=ON`。
-  - 两个预设继承隐藏预设 `msvc2022-x64-base`：固定 `CMAKE_C_COMPILER` / `CMAKE_CXX_COMPILER` 为 `cl`，并在 PATH/INCLUDE/LIB 中内置 VS2022 x64 工具链与 Windows SDK 路径；普通终端和 VS Code 构建都无需先进入 VS 开发环境，也不能让 CMake 自行选中 Strawberry Perl 的 GCC。
-  - VS 或 Windows SDK 版本升级后，需同步更新 `msvc2022-x64-base` 与根目录 `.clangd` 里写死的 MSVC / Windows Kits 版本路径。
-  - 产物统一输出到对应构建目录的 `bin/`（exe 与所有 DLL）和 `lib/`。
-  - 当前状态：Debug 与 Release 均已用上述预设构建成功；clangd 使用 Qt Creator 自带版本（VS Code 中由 `clangd.path` 指定），读取 debug 的 `compile_commands.json`，系统头目录由根目录 `.clangd` 补充。
-  - 排查提示：若构建错误显示编译器是 `C:/dev/runtimes/StrawberryPerl/c/bin/c++.exe` / `gcc.exe`，说明该 build 目录的 CMakeCache 被错误环境污染；删除对应 build 目录后用预设重新配置即可。
-  - 构建信息：每次构建都会运行 `cmake/generate_build_info.cmake`，生成 `${CMAKE_BINARY_DIR}/generated/app_build_info.h`（仅在日期变化时重写，避免无谓重编译）；界面通过其中的 `APP_BUILD_DATE` 宏显示构建日期。
-- `CMakeLists.txt` 关键点：
-  - 版本无关 `find_package(QT NAMES Qt6 Qt5 ...)`；当前实际走 Qt 5.15.19。
-  - 开启 AUTOMOC/AUTOUIC/AUTORCC；仅剩 SumExportDialog.ui，不含 customwidget；项目根目录 include 暂保留，待最后一个 `.ui` 迁移后统一评估删除。
-  - rc.exe 的字符串中 `\` 是转义符，图标路径必须把反斜杠翻倍后再写入 RC 文件；MSVC 加 `/utf-8`。
-  - FluentUIStyle 以子目录构建：`BUILD_LIBRARY ON`、`BUILD_PLUGIN OFF`、`BUILD_EXAMPLES OFF`、`EXWIDGETS_BUILD_FRAMELESS ON`；其依赖 Qt5Svg。
-  - QWindowKit 必须预先 `add_subdirectory` 到浅目录 `${CMAKE_BINARY_DIR}/qwindowkit`，避免深路径生成的私有 forwarding header 相对路径过长；`QWINDOWKIT_INSTALL ON` 才能通过 CMake export 校验。
-  - 主程序链接：Qt Core/Gui/Widgets、FluentUI3Style、ExWidgets::ExWidgets、ExWidgets::Frameless、dwmapi。
-- 样式：
-  - `src/main.cpp` 直接 `a.setStyle(new FluentUI3Style)`；样式库随项目构建，不再使用或部署 Qt 样式插件。
-  - 需要 Fluent 属性头时写作 `#include "fluentui3styleproperties.h"`（不带 `FluentUI3Style/` 前缀）。
-  - 全局视觉统一走 FluentUI3Style；AboutInfoDialog 是整体独立定制的对话框，其局部 QSS 属该对话框自身的完整定制，与主界面样式不冲突。
-  - AboutInfoDialog 目前保留手写 DWM/无边框标题栏逻辑；已链接 ExWidgets::Frameless 但尚未切换，迁移到 `FluentTitleBar`/`FluentWindowFrame` 是单独待办。
-- 第三方库：
-  - FluentUIStyle：git 子模块 `third_party/FluentUIStyle`，上游 https://github.com/XHY-ChuJian/FluentUIStyle.git，当前固定在 `8d48defc9b8cb8b21cb86eca355cb4c47cb8e714`；QWindowKit 随其在 `3rd/qwindowkit` 提供。
-- 部署方式：打包后拷入 U 盘，免安装直接运行；保持体积小、启动快。运行时依赖 Qt bin（Qt DLL）与构建输出 `bin/`（FluentUI3Style、ExWidgets、QWK 等 DLL），打包时按需收集。
-- 主要模块：`src/core`（数据管理、报表）、`src/models`（表格模型）、`src/widgets`（自绘控件）、`src/pages`（页面）、`src/windows`（主窗口与对话框）、`src/delegates`（委托）。
-- 命名约定：业务命名不使用 `Score` 前缀；积分记录、积分模板分别用 `Record`、`Template` 命名，与 C++ 关键字冲突时视情况加修饰或复数。
-- 应用图标：`resources/icon.ico`，通过 CMake 生成的 RC 文件设置。
-- 技术文档定位：详细技术知识（第三方库配置、项目结构等）放在 `docs/`，主索引 `docs/README.md`；CLAUDE.md 只保存项目记忆与协作规则。代码与文档分离，代码注释只保留关键技术标注。
-- 待办：
-  1. AboutInfoDialog 从手写 DWM/QWindowKit 逻辑迁移到 ExWidgets::Frameless。
-  2. 编写 README（项目说明、构建与使用方式）。
-  3. 配置 clang-tidy 作为代码格式化工具；astyle 对复杂 lambda 表达式处理不佳，暂不作为标准。
-  4. 新 Qt 5.15.19 稳定后清理旧 Qt 5.15.2。
-  5. 软件图标等视觉资源在开发最后阶段统一处理。
+> 当前 UI 工作方向：全部迁移为纯代码；现存唯一 `.ui` 是 `SumExportDialog.ui`，尚未迁移。
 
-## 4. 参考资料（按需查阅，不要整体读入上下文）
+1. 样板文件：`src/windows/AboutInfoDialog.h/.cpp` 是纯代码 UI 的参考实现；新增 UI 一律纯代码，不再新增 `.ui`。
+2. 控件指针：
+   - 只有构造函数之外还需要访问的控件才声明为类成员；其余控件用构造函数局部变量。
+   - 成员指针集中放一个区块，区块上下各空一行；区块顶部只写一行统一注释“// 界面元素指针：构造函数中统一创建，供其他成员函数访问”；指针本身不再逐项注释。
+   - 构造函数中每个控件创建块单独注释，说明该控件的作用。
+3. 控件与动作命名：
+   - 不使用 `label_2`、`label_3` 等无意义名称。
+   - 成员、局部变量和 objectName 使用有意义名称，例如 `titleLabel`、`subtitleLabel`、`openFileCard`。
+   - QSS 不依赖的 objectName 可省略，不为凑 objectName 而强行命名。
+4. 从 `.ui` 迁移：
+   - 把 `build/vscode-qt5.15.19-debug/ClassScoreManager_autogen/include/ui_*.h` 当作要抄写的属性清单。
+   - 一次迁移一个 `.ui`；完成后从 `APP_FORMS` 移除对应条目、删除 `.ui`、完整构建一次、交用户做视觉验证；不要一次删光所有 `.ui` 后才构建验证。
+5. MainWindow 组装：
+   - 构造函数只做：创建页面并加入 QStackedWidget、创建导航与菜单/动作、设置模型与委托、连接页面/模型/动作信号。
+   - 菜单与 QAction 使用独立的 `createActions()` / `createMenus()`；动作连接一律显式 `connect`，不依赖 `connectSlotsByName`。
+   - 现有 `on_action_*_triggered` 槽可保留为普通私有函数，由显式连接调用，或按新命名规则逐步重命名。
+6. 页面类边界：
+   - 页面类只创建控件、暴露必要接口、发送信号；不得包含文件、记录、模板业务逻辑。
+   - 状态归属：数据与草稿归 manager，会话/预览状态归窗口层，渲染状态可留在模型内部。
+7. CMake 收尾：
+   - 新建页面/对话框类必须同时加入 `APP_SOURCES` 和 `APP_HEADERS`。
+   - 全部 `.ui` 移除后，检查 `CMAKE_AUTOUIC`、`APP_FORMS`、为 customwidget 相对头路径保留的项目根 include 是否仍需要；不需要的配置直接移除，并同步本文件。
 
-- `docs/README.md` — 技术文档主索引；第三方库配置、项目代码结构等详细知识见 `docs/`。
-- `references/qss/qt5_qss_reference.md` — Qt 5.15 QSS 属性/伪状态/子控件速查表。
-- `references/qss/qt6_qss_reference.md` — Qt 6.11 QSS 属性/伪状态/子控件速查表。
+## 3. 项目关键事实与文档索引
 
-## 5. 提交信息规范（C++/Qt 项目版）
+- 项目：ClassScoreManager，班级积分管理系统；技术栈 C++17 + Qt Widgets（禁用 QML），CMake + Ninja；代码保持 Qt5/Qt6 条件编译兼容。
+- 当前 Qt 套件：Qt 5.15.19（qtbase + qtsvg），MSVC 2022 x64，prefix `D:/Projects/Qt5.15.19/msvc2022_64`。
+- 构建：只使用预设 `qt5-msvc2022-debug` / `qt5-msvc2022-release`；产物在对应 `build/` 的 `bin/` 与 `lib/`。
+  - 若编译命令中出现 Strawberry Perl 的 `c++.exe` / `gcc.exe`，说明 build 目录被错误环境污染，删除该 build 目录后用预设重新配置。
+- 全局样式：`FluentUI3Style` 随项目构建；Fluent 属性头写作 `#include "fluentui3styleproperties.h"`。
+- UI 迁移状态：MainWindow 与其余对话框已纯代码，仅剩 `SumExportDialog.ui` 待迁移。
+- 详细项目上下文（Qt 重建、CMake 细节、部署、模块结构、待办）见 `docs/project-context.md`。
+- 第三方库与子模块更新见 `docs/third-party.md`。
+
+## 4. 提交信息规范（C++/Qt 项目版）
 
 - 写 commit message 前先评估改动量：
   - 单一独立改动点 → 单行写完；
