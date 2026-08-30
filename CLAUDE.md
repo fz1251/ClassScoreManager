@@ -32,6 +32,7 @@
 3. 遇到问题追根因，不打补丁；每个决策都要能回答“为什么”。
 4. 不要过度考虑边界情况；当前项目中不可能出现的边界情况不需要处理。
 5. 代码行宽最多容忍到约 140 个字符；声明、调用、短 lambda 不要因为 60 几个字符就折行，过早换行会影响屏幕观感。
+6. 纯代码 UI 的控件指针：只在构造函数之外还需要访问的控件才声明为类成员，否则用构造函数局部变量；成员指针集中放一个区块，区块上下各空一行，顶部用一行统一注释说明该区块，指针本身不再逐项注释；构造函数中每个控件创建块单独注释。
 
 ### 2.4 文件与记忆
 
@@ -74,6 +75,7 @@
   - 产物统一输出到对应构建目录的 `bin/`（exe 与所有 DLL）和 `lib/`。
   - 当前状态：Debug 与 Release 均已用上述预设构建成功；clangd 可直接读取 debug 的 `compile_commands.json`。
   - 排查提示：若构建错误显示编译器是 `C:/dev/runtimes/StrawberryPerl/c/bin/c++.exe` / `gcc.exe`，说明该 build 目录的 CMakeCache 被错误环境污染；删除对应 build 目录后用预设重新配置即可。
+  - 构建信息：每次构建都会运行 `cmake/generate_build_info.cmake`，生成 `${CMAKE_BINARY_DIR}/generated/app_build_info.h`（仅在日期变化时重写，避免无谓重编译）；界面通过其中的 `APP_BUILD_DATE` 宏显示构建日期。
 - `CMakeLists.txt` 关键点：
   - 版本无关 `find_package(QT NAMES Qt6 Qt5 ...)`；当前实际走 Qt 5.15.19。
   - 开启 AUTOMOC/AUTOUIC/AUTORCC；`.ui` 中 customwidget 头写作 `.\src\ui\*.h`，因此必须 `target_include_directories` 项目根目录，否则 AUTOUIC 找不到头。

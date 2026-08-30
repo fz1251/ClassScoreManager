@@ -19,6 +19,16 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
 
+set(APP_BUILD_INFO_DIR "${CMAKE_BINARY_DIR}/generated")
+set(APP_BUILD_INFO_HEADER "${APP_BUILD_INFO_DIR}/app_build_info.h")
+add_custom_target(generate_build_info ALL
+    COMMAND "${CMAKE_COMMAND}"
+            "-DOUTPUT_FILE=${APP_BUILD_INFO_HEADER}"
+            -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/generate_build_info.cmake"
+    COMMENT "Generating app build info"
+    VERBATIM
+)
+
 # 先把 QWindowKit 单独加到较浅的构建目录；
 # ExWidgets 检测到 QWindowKit::Widgets 已存在后，不会再从过深的子目录重复添加
 set(QWINDOWKIT_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
@@ -48,6 +58,7 @@ set(APP_SOURCES
     src/ui/AboutInfoDialog.cpp
     src/ui/HomeActionCard.cpp
     src/ui/ItemSelectionDialog.cpp
+    src/ui/LineSpacedLabel.cpp
     src/ui/MainWindow.cpp
     src/ui/PasteStudentsDialog.cpp
     src/ui/ShineLabel.cpp
@@ -67,6 +78,7 @@ set(APP_HEADERS
     src/ui/AboutInfoDialog.h
     src/ui/HomeActionCard.h
     src/ui/ItemSelectionDialog.h
+    src/ui/LineSpacedLabel.h
     src/ui/MainWindow.h
     src/ui/PasteStudentsDialog.h
     src/ui/ShineLabel.h
@@ -74,7 +86,6 @@ set(APP_HEADERS
 )
 
 set(APP_FORMS
-    src/ui/AboutInfoDialog.ui
     src/ui/ItemSelectionDialog.ui
     src/ui/MainWindow.ui
     src/ui/PasteStudentsDialog.ui
@@ -104,7 +115,8 @@ add_executable(ClassScoreManager WIN32
 
 # MainWindow.ui 的 customwidget 头文件写作 .\src\ui\xxx.h，
 # AUTOUIC 生成的头文件需要从项目根目录解析该相对路径（qmake 默认带 -I 项目根目录）
-target_include_directories(ClassScoreManager PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(ClassScoreManager PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} ${APP_BUILD_INFO_DIR})
+add_dependencies(ClassScoreManager generate_build_info)
 
 target_link_libraries(ClassScoreManager PRIVATE
     Qt::Core

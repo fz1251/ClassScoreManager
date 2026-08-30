@@ -1,6 +1,7 @@
 // about_info_dialog.cpp
 #include "AboutInfoDialog.h"
-#include "ui_AboutInfoDialog.h"
+#include "LineSpacedLabel.h"
+#include "app_build_info.h"
 #include <QWindow>
 #include <QPushButton>
 #include <QButtonGroup>
@@ -95,8 +96,7 @@ const QString modeButtonStyle = QStringLiteral(R"(
 // □ 若材料失效，尝试临时去掉 WA_TranslucentBackground，验证是否因 WS_EX_LAYERED 被 DWM 拒绝
 // □ Win11 22H2+ 的 MicaAlt 是否与 Mica 有可见差异
 AboutInfoDialog::AboutInfoDialog(QWidget *parent) :
-    QDialog(parent),
-    ui(new Ui::AboutInfoDialog)
+    QDialog(parent)
 {
 #ifdef Q_OS_WIN
     const QOperatingSystemVersion osVer = QOperatingSystemVersion::current();
@@ -113,7 +113,69 @@ AboutInfoDialog::AboutInfoDialog(QWidget *parent) :
         m_isWin7 = true;
     }
 #endif
-    ui->setupUi(this);
+    resize(550, 300);
+    setWindowTitle(tr("关于"));
+
+    // 对话框根布局：容纳下方文字区与无边框窗口标题栏
+    outerLayout = new QVBoxLayout(this);
+    outerLayout->setObjectName(QStringLiteral("outerLayout"));
+    outerLayout->setSpacing(0);
+    outerLayout->setContentsMargins(0, 0, 0, 0);
+
+    // 文字区垂直布局：标题、副标题与内容按 1:1:4 分配纵向空间
+    auto* textLayout = new QVBoxLayout;
+    textLayout->setObjectName(QStringLiteral("textLayout"));
+    textLayout->setSpacing(12);
+    textLayout->setContentsMargins(25, 20, 25, 20);
+
+    // 标题：应用名称
+    titleLabel = new QLabel(this);
+    titleLabel->setObjectName(QStringLiteral("titleLabel"));
+    QFont titleFont;
+    titleFont.setFamily(QStringLiteral("黑体"));
+    titleFont.setPointSize(24);
+    titleFont.setBold(true);
+    titleLabel->setFont(titleFont);
+    titleLabel->setAlignment(Qt::AlignCenter);
+    titleLabel->setText(tr("班级积分管理系统"));
+    textLayout->addWidget(titleLabel);
+
+    // 副标题：构建日期
+    subtitleLabel = new QLabel(this);
+    subtitleLabel->setObjectName(QStringLiteral("subtitleLabel"));
+    QFont subtitleFont;
+    subtitleFont.setFamily(QStringLiteral("宋体"));
+    subtitleFont.setPointSize(16);
+    subtitleLabel->setFont(subtitleFont);
+    subtitleLabel->setAlignment(Qt::AlignCenter);
+    subtitleLabel->setText(tr("构建日期：%1").arg(QStringLiteral(APP_BUILD_DATE)));
+    textLayout->addWidget(subtitleLabel);
+
+    // 内容：技术栈、版权与仓库信息
+    contentLabel = new LineSpacedLabel(this);
+    contentLabel->setObjectName(QStringLiteral("contentLabel"));
+    contentLabel->setLineHeight(1.4);
+    QFont contentFont;
+    contentFont.setPointSize(12);
+    contentLabel->setFont(contentFont);
+    contentLabel->setWordWrap(false);
+    const QString contentText = tr(
+        "Made with C++\n"
+        "Powered by Qt 5.15.2\n"
+        "Copyright© 2025-2026 mengfanzhen0501@163.com\n"
+        "本程序以MIT协议开源\n"
+        "仓库链接: github.com/fz1251/ClassScoreManager");
+    contentLabel->setText(contentText);
+    contentLabel->setFixedWidth(contentLabel->sizeHint().width());
+    textLayout->setAlignment(contentLabel, Qt::AlignLeft);
+    textLayout->addWidget(contentLabel);
+
+    textLayout->setStretch(0, 1);
+    textLayout->setStretch(1, 1);
+    textLayout->setStretch(2, 4);
+
+    outerLayout->addLayout(textLayout);
+
     if(m_isWin7 || m_isWin10or11)
     {
         setAttribute(Qt::WA_TranslucentBackground);
@@ -180,11 +242,11 @@ AboutInfoDialog::AboutInfoDialog(QWidget *parent) :
             titleBarLayout->addWidget(closeButton);
 
             // 调整原有布局以腾出标题栏空间
-            QMargins newMargins = ui->textVLayout->contentsMargins();
+            QMargins newMargins = textLayout->contentsMargins();
             newMargins.setTop(0);
-            ui->textVLayout->setContentsMargins(newMargins);
-            ui->OuterVLayout->setStretch(0, 1);
-            ui->OuterVLayout->insertLayout(0, titleBarLayout);
+            textLayout->setContentsMargins(newMargins);
+            outerLayout->setStretch(0, 1);
+            outerLayout->insertLayout(0, titleBarLayout);
 
             connect(closeButton, &QPushButton::clicked, this, &AboutInfoDialog::close);
             if(m_isWin11)
@@ -193,11 +255,6 @@ AboutInfoDialog::AboutInfoDialog(QWidget *parent) :
                 setStyleSheet(closeButtonStyle);
         }
     }
-}
-
-AboutInfoDialog::~AboutInfoDialog()
-{
-    delete ui;
 }
 
 void AboutInfoDialog::keyPressEvent(QKeyEvent *event)
@@ -409,14 +466,14 @@ void AboutInfoDialog::enableEffects()
         {
             connect(animation, &QAbstractAnimation::finished, this, [this]()
             {
-                ui->OuterVLayout->addStretch();
+                outerLayout->addStretch();
             });
             firstEntered = false;
         }
     };
-    animateWidgetFadeOut(ui->label);
-    animateWidgetFadeOut(ui->label_2);
-    animateWidgetFadeOut(ui->label_3);
+    animateWidgetFadeOut(titleLabel);
+    animateWidgetFadeOut(subtitleLabel);
+    animateWidgetFadeOut(contentLabel);
     enableBackgroundBlurEffect();
 }
 

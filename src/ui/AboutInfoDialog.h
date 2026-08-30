@@ -7,11 +7,10 @@
 #include <QKeyEvent>
 #include <QTimer>
 #include <QHBoxLayout>
+#include <QLabel>
+#include <QVBoxLayout>
 
-namespace Ui
-{
-class AboutInfoDialog;
-}
+class LineSpacedLabel;
 
 class AboutInfoDialog : public QDialog
 {
@@ -19,7 +18,6 @@ class AboutInfoDialog : public QDialog
 
 public:
     explicit AboutInfoDialog(QWidget *parent = nullptr);
-    ~AboutInfoDialog();
 
 protected:
     void keyPressEvent(QKeyEvent *event) override;
@@ -37,9 +35,14 @@ private slots:
 private:
     void enableBackgroundBlurEffect();
     void windowBounce(int dx, int dy, int duration_ms = 350);
-    Ui::AboutInfoDialog* ui;
-    // 动态创建的窗口控件
+
+    // 界面元素指针：构造函数中统一创建，供其他成员函数访问
+    QVBoxLayout* outerLayout = nullptr;
+    QLabel* titleLabel = nullptr;
+    QLabel* subtitleLabel = nullptr;
+    LineSpacedLabel* contentLabel = nullptr;
     QHBoxLayout* titleBarLayout = nullptr;
+
     // 关闭按钮的 Normal/Hover 图标，eventFilter 中切换
     QIcon m_closeIconNormal;
     QIcon m_closeIconHover;

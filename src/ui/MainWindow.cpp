@@ -376,7 +376,7 @@ void MainWindow::on_action_ClearTemplates_triggered()
 /*关于菜单(menu_About)功能实现*/
 void MainWindow::on_action_AboutApp_triggered()
 {
-    AboutInfoDialog* dialog=new AboutInfoDialog();
+    AboutInfoDialog* dialog=new AboutInfoDialog(this);
     dialog->setAttribute(Qt::WA_DeleteOnClose);
     dialog->show();
 }
