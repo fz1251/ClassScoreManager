@@ -36,13 +36,13 @@
 ### 2.4 文件与记忆
 
 1. 不主动创建无关文档文件（*.md）；用户要求或为协作理解架构/实现而需要时除外。
-2. 项目记忆只维护本文件，不再使用其他分散的记忆文件或位置，也不要在项目内另建重复说明文件。
+2. 项目记忆（规则与上下文）只维护本文件；详细技术知识统一放入 `docs/`（主索引 `docs/README.md`），不要在其他位置另建重复说明文件。
 
 ### 2.5 工具与环境
 
 1. 如认为某个目录为空，**必须**再用 `dir` 命令验证一次。
 2. 如需调用 PowerShell 命令（如 `Select-String`、`Get-Content` 等），必须显式使用 PowerShell 7，即 `pwsh -NoProfile -ExecutionPolicy Bypass -Command "[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; ..."` 调用并指定 UTF-8 编码；不要再使用 PowerShell 5.1（`powershell.exe`）。
-3. 如需临时写代码验证 Qt 行为，把验证程序放进 `C:\Users\dell\Desktop\C++\projects\widget_demo`，由用户选择 Qt 5.15.2 或 6.8.3 编译；助手没有视觉能力，交付验证程序时必须明确写出需要用户观察什么现象。
+3. 如需临时写代码验证 Qt 行为，把验证程序放进 `C:\Users\dell\Desktop\C++\projects\widget_demo`，由用户选择 Qt 5.15.19（项目当前套件）、5.15.2 或 6.8.3 编译；助手没有视觉能力，交付验证程序时必须明确写出需要用户观察什么现象。
 4. 不要做无意义的静态验证（括号配对、残留字符串搜索、`git diff --check` 等）；编译和用户测试足以发现全部问题，把算力和上下文留给实际修改。
 5. 用 Python 处理 Windows 路径时，普通字符串里的 `\` 会被当成转义符并吃掉字符；必须使用 raw string（`r'C:\path'`）、正斜杠或双反斜杠。写临时 Python 脚本时优先用单引号 heredoc（`<<'PY'`）。
 
@@ -51,38 +51,58 @@
 1. 每次修改完成后，只产出面向当前最终状态的独立可交付物；注释、文档、提交信息等只描述“现在是什么”，不写“由 A 改为 B”“V2（已移除 X）”这类变更过程描述。
 2. 删除某个功能或内容后，不要把它沉淀成“原则上不应包含 X”的新规则或文档章节（例如移除游泳池后新增“卫生间原则上不应包含游泳池”）；文档只保留当前有效的内容，避免充斥已经不存在的“现状”。
 
-### 2.7 样式库更新流程
+### 2.7 FluentUIStyle 子模块更新流程
 
-1. 触发条件：用户要求更新项目使用的 FluentUIStyle 样式库时，按本节流程执行；目标是更新 Qt 5.15.2 的样式插件，不构建 ClassScoreManager。
-2. Git 同步：先在当前 shell 设置代理 `export http_proxy=http://127.0.0.1:10808 https_proxy=http://127.0.0.1:10808`；确认 `D:\projects\FluentUIStyle` 工作区干净后 `git fetch origin --prune`，再 `git reset --hard origin/master` 让 `master` 对齐上游；旧 QMake 状态保留在 `backup/qmake-support` 分支。工作区不干净时停下询问，不要直接 reset。
-3. CMake 构建：用 VS2022 Developer PowerShell（`pwsh` 中执行 `Launch-VsDevShell.ps1 -Arch amd64 -HostArch amd64 -SkipAutomaticLocation`）后执行：
-```
-cmake -S . -B build-cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="C:\Qt\5.15.2\msvc2019_64" -DBUILD_LIBRARY=OFF -DBUILD_PLUGIN=ON -DBUILD_EXAMPLES=OFF -DEXWIDGETS_BUILD_FRAMELESS=OFF -DFLUENTUI3STYLE_COPY_TO_QT_DIR=ON
-cmake --build build-cmake --config Release
-```
-4. 校验：构建后插件自动复制到 `C:\Qt\5.15.2\msvc2019_64\plugins\styles\FluentUI3StylePlugin.dll`；确认其与 `D:\projects\FluentUIStyle\build-cmake\plugins\styles\FluentUI3StylePlugin.dll` 均存在且哈希一致即可。
-5. 收尾：不执行 git commit；用户编译验证通过后，如要求同步 fork，再执行 `git push --force-with-lease myfork master`。
+1. 触发条件：用户要求更新 FluentUIStyle 时执行；它现在是 `third_party/FluentUIStyle` 的 git 子模块，随主项目一起构建，不再单独构建或部署 Qt 样式插件。
+2. 更新前：如需访问 GitHub 先设置代理 `export http_proxy=http://127.0.0.1:10808 https_proxy=http://127.0.0.1:10808`；用 `git submodule status` 和 `git -C third_party/FluentUIStyle status` 确认子模块工作区干净，并和用户确认目标分支/提交。工作区不干净时停下询问，不要直接 reset。
+3. 更新：`git -C third_party/FluentUIStyle fetch origin --prune`，然后 checkout/merge 到目标提交；同步检查 FluentUIStyle 及其 QWindowKit 的构建选项、目标名、接口是否有变化，必要时调整主项目 `CMakeLists.txt`。
+4. 验证：按 2.2 构建完整项目；构建通过后由用户运行程序做视觉验证。
+5. 收尾：不执行 git commit；用户验证通过后给出建议提交文本（子模块指针更新 + 必要适配说明）。
 
 ## 3. 项目上下文
 
 - 项目：ClassScoreManager，班级积分管理系统，面向班级日常积分管理。
-- 技术栈：C++17 + Qt Widgets（纯 Widgets，禁用 QML）。
-- 当前构建套件：Qt 5.15.2 / MSVC 2019 64bit（以 `ClassScoreManager.pro.user` 为准）。
-- 代码同时保留 Qt5/Qt6 条件编译兼容（`QT_VERSION` / `QT_VERSION_CHECK`）。
-- 部署方式：打包后拷入 U 盘，免安装直接运行；保持体积小、启动快。
-- 约束：核心功能阶段不引入大型美化/主题库；Fluent 风格美化作为后续独立阶段统一实施。
-- 界面基线：目前所有控件使用 Qt 默认皮肤；美化集中进行，不做分散样式改动。
-- 美化约束：QSS 与后续 QProxyStyle 美化库互斥（启用 QProxyStyle 后 QSS 失效）；视觉指示一律使用 QStyle / QStyledItemDelegate / QPalette / 模型角色，不引入 QSS。
-- 当前阶段范围：仅把 MainWindow 中调用底层处迁移为私有操作函数；QListView 选中行跟随预览的高亮暂缓，相关选中同步逻辑删除。
+- 技术栈：C++17 + Qt Widgets（纯 Widgets，禁用 QML）；构建用 CMake + Ninja，开发环境为 VS Code（CMake Tools + clangd）；代码同时保留 Qt5/Qt6 条件编译兼容。
+- 当前 Qt 套件：自编译 Qt 5.15.19（qtbase + qtsvg），MSVC 2022 x64，debug-and-release，prefix `D:/Projects/Qt5.15.19/msvc2022_64`。
+  - 重建脚本：`D:\Projects\Qt5.15.19\build_qt.ps1`（qtbase）、`D:\Projects\Qt5.15.19\build_qtsvg.ps1`（qtsvg）。必须在 x64 VS2022 环境中运行；脚本会先验证 cl 为 x64 并清空旧构建再 configure/build/install。
+  - 该 Qt 曾整库被误建成 i386（`qsizetype` 4 字节）导致 `.cls` 文件兼容问题；凡涉及 Qt 重建或新装，必须确认编译器和产物都是 x64，不能只依赖目录名。
+  - 旧 Qt 5.15.2 暂保留，等新套件稳定后再清理。
+- CMake 构建：
+  - 预设：`qt5-msvc2022-debug` → `build/vscode-qt5.15.19-debug`；`qt5-msvc2022-release` → `build/vscode-qt5.15.19-release`。两个预设的 `CMAKE_PREFIX_PATH` 均指向上述 Qt，并开启 `CMAKE_EXPORT_COMPILE_COMMANDS=ON`。
+  - 两个预设继承隐藏预设 `msvc2022-x64-base`：固定 `CMAKE_C_COMPILER` / `CMAKE_CXX_COMPILER` 为 `cl`，并在 PATH/INCLUDE/LIB 中内置 VS2022 x64 工具链与 Windows SDK 路径；普通终端和 VS Code 构建都无需先进入 VS 开发环境，也不能让 CMake 自行选中 Strawberry Perl 的 GCC。
+  - VS 或 Windows SDK 版本升级后，需同步更新 `msvc2022-x64-base` 里写死的 MSVC / Windows Kits 版本路径。
+  - 产物统一输出到对应构建目录的 `bin/`（exe 与所有 DLL）和 `lib/`。
+  - 当前状态：Debug 与 Release 均已用上述预设构建成功；clangd 可直接读取 debug 的 `compile_commands.json`。
+  - 排查提示：若构建错误显示编译器是 `C:/dev/runtimes/StrawberryPerl/c/bin/c++.exe` / `gcc.exe`，说明该 build 目录的 CMakeCache 被错误环境污染；删除对应 build 目录后用预设重新配置即可。
+- `CMakeLists.txt` 关键点：
+  - 版本无关 `find_package(QT NAMES Qt6 Qt5 ...)`；当前实际走 Qt 5.15.19。
+  - 开启 AUTOMOC/AUTOUIC/AUTORCC；`.ui` 中 customwidget 头写作 `.\src\ui\*.h`，因此必须 `target_include_directories` 项目根目录，否则 AUTOUIC 找不到头。
+  - rc.exe 的字符串中 `\` 是转义符，图标路径必须把反斜杠翻倍后再写入 RC 文件；MSVC 加 `/utf-8`。
+  - FluentUIStyle 以子目录构建：`BUILD_LIBRARY ON`、`BUILD_PLUGIN OFF`、`BUILD_EXAMPLES OFF`、`EXWIDGETS_BUILD_FRAMELESS ON`；其依赖 Qt5Svg。
+  - QWindowKit 必须预先 `add_subdirectory` 到浅目录 `${CMAKE_BINARY_DIR}/qwindowkit`，避免深路径生成的私有 forwarding header 相对路径过长；`QWINDOWKIT_INSTALL ON` 才能通过 CMake export 校验。
+  - 主程序链接：Qt Core/Gui/Widgets、FluentUI3Style、ExWidgets::ExWidgets、ExWidgets::Frameless、dwmapi。
+- 样式：
+  - `src/main.cpp` 直接 `a.setStyle(new FluentUI3Style)`；样式库随项目构建，不再使用或部署 Qt 样式插件。
+  - 需要 Fluent 属性头时写作 `#include "fluentui3styleproperties.h"`（不带 `FluentUI3Style/` 前缀）。
+  - 全局视觉统一走 FluentUI3Style；AboutInfoDialog 是整体独立定制的对话框，其局部 QSS 属该对话框自身的完整定制，与主界面样式不冲突。
+  - AboutInfoDialog 目前保留手写 DWM/无边框标题栏逻辑；已链接 ExWidgets::Frameless 但尚未切换，迁移到 `FluentTitleBar`/`FluentWindowFrame` 是单独待办。
+- 第三方库：
+  - FluentUIStyle：git 子模块 `third_party/FluentUIStyle`，上游 https://github.com/XHY-ChuJian/FluentUIStyle.git，当前固定在 `8d48defc9b8cb8b21cb86eca355cb4c47cb8e714`；QWindowKit 随其在 `3rd/qwindowkit` 提供。
+- 部署方式：打包后拷入 U 盘，免安装直接运行；保持体积小、启动快。运行时依赖 Qt bin（Qt DLL）与构建输出 `bin/`（FluentUI3Style、ExWidgets、QWK 等 DLL），打包时按需收集。
 - 主要模块：`src/core`（数据管理、报表）、`src/models`（表格模型）、`src/ui`（界面）、`src/delegates`（委托）。
 - 命名约定：业务命名不使用 `Score` 前缀；积分记录、积分模板分别用 `Record`、`Template` 命名，与 C++ 关键字冲突时视情况加修饰或复数。
-- 应用图标：`resources/icon.ico`（`RC_ICONS`）。
-- 技术文档定位：服务于协作开发，帮助快速了解项目架构与模块实现，避免每次通读代码；代码与文档分离，代码注释只保留关键技术标注。
-- 第三方 Fluent 风格库：FluentUIStyle，源仓库 https://github.com/XHY-ChuJian/FluentUIStyle，本地目录 `D:\projects\FluentUIStyle`；使用 CMake 构建，插件构建后自动复制到当前 Qt 的 `plugins/styles`。
-- 待办：当前美化阶段完成后配置 clang-tidy 作为代码格式化工具；astyle 对复杂 lambda 表达式处理不佳，暂不作为格式化标准。
+- 应用图标：`resources/icon.ico`，通过 CMake 生成的 RC 文件设置。
+- 技术文档定位：详细技术知识（第三方库配置、项目结构等）放在 `docs/`，主索引 `docs/README.md`；CLAUDE.md 只保存项目记忆与协作规则。代码与文档分离，代码注释只保留关键技术标注。
+- 待办：
+  1. AboutInfoDialog 从手写 DWM/QWindowKit 逻辑迁移到 ExWidgets::Frameless。
+  2. 编写 README（项目说明、构建与使用方式）。
+  3. 配置 clang-tidy 作为代码格式化工具；astyle 对复杂 lambda 表达式处理不佳，暂不作为标准。
+  4. 新 Qt 5.15.19 稳定后清理旧 Qt 5.15.2。
+  5. 软件图标等视觉资源在开发最后阶段统一处理。
 
 ## 4. 参考资料（按需查阅，不要整体读入上下文）
 
+- `docs/README.md` — 技术文档主索引；第三方库配置、项目代码结构等详细知识见 `docs/`。
 - `references/qss/qt5_qss_reference.md` — Qt 5.15 QSS 属性/伪状态/子控件速查表。
 - `references/qss/qt6_qss_reference.md` — Qt 6.11 QSS 属性/伪状态/子控件速查表。
 

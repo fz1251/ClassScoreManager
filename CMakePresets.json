@@ -2,9 +2,23 @@
     "version": 3,
     "configurePresets": [
         {
+            "name": "msvc2022-x64-base",
+            "hidden": true,
+            "generator": "Ninja",
+            "environment": {
+                "PATH": "C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64;C:/Program Files (x86)/Windows Kits/10/bin/10.0.19041.0/x64;D:/Projects/Qt5.15.19/msvc2022_64/bin;$penv{PATH}",
+                "INCLUDE": "C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/MSVC/14.44.35207/include;C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/MSVC/14.44.35207/ATLMFC/include;C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Auxiliary/VS/include;C:/Program Files (x86)/Windows Kits/10/include/10.0.19041.0/ucrt;C:/Program Files (x86)/Windows Kits/10/include/10.0.19041.0/um;C:/Program Files (x86)/Windows Kits/10/include/10.0.19041.0/shared;C:/Program Files (x86)/Windows Kits/10/include/10.0.19041.0/winrt;C:/Program Files (x86)/Windows Kits/10/include/10.0.19041.0/cppwinrt",
+                "LIB": "C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/MSVC/14.44.35207/lib/x64;C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/MSVC/14.44.35207/ATLMFC/lib/x64;C:/Program Files (x86)/Windows Kits/10/Lib/10.0.19041.0/ucrt/x64;C:/Program Files (x86)/Windows Kits/10/Lib/10.0.19041.0/um/x64"
+            },
+            "cacheVariables": {
+                "CMAKE_C_COMPILER": "cl",
+                "CMAKE_CXX_COMPILER": "cl"
+            }
+        },
+        {
             "name": "qt5-msvc2022-debug",
             "displayName": "Qt 5.15.19 MSVC2022 Debug",
-            "generator": "Ninja",
+            "inherits": "msvc2022-x64-base",
             "binaryDir": "${sourceDir}/build/vscode-qt5.15.19-debug",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Debug",
@@ -15,7 +29,7 @@
         {
             "name": "qt5-msvc2022-release",
             "displayName": "Qt 5.15.19 MSVC2022 Release",
-            "generator": "Ninja",
+            "inherits": "msvc2022-x64-base",
             "binaryDir": "${sourceDir}/build/vscode-qt5.15.19-release",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Release",
