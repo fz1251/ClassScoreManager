@@ -31,7 +31,7 @@
 2. 代码是代码，文档是文档：代码注释只标关键技术实现（特殊外部 API/方法、与逻辑强相关的算法），其余靠清晰命名自解释。
 3. 遇到问题追根因，不打补丁；每个决策都要能回答“为什么”。
 4. 不要过度考虑边界情况；当前项目中不可能出现的边界情况不需要处理。
-5. 代码行宽最多容忍到约 140 个字符；声明、调用、短 lambda 不要因为 60 几个字符就折行，过早换行会影响屏幕观感。
+5. 代码行宽最多容忍到约 100 个字符；声明、调用、短 lambda 不要因为 60 几个字符就折行，过早换行会影响屏幕观感。
 6. 纯代码 UI 的控件指针：只在构造函数之外还需要访问的控件才声明为类成员，否则用构造函数局部变量；成员指针集中放一个区块，区块上下各空一行，顶部用一行统一注释说明该区块，指针本身不再逐项注释；构造函数中每个控件创建块单独注释。
 
 ### 2.4 文件与记忆
@@ -78,7 +78,7 @@
   - 构建信息：每次构建都会运行 `cmake/generate_build_info.cmake`，生成 `${CMAKE_BINARY_DIR}/generated/app_build_info.h`（仅在日期变化时重写，避免无谓重编译）；界面通过其中的 `APP_BUILD_DATE` 宏显示构建日期。
 - `CMakeLists.txt` 关键点：
   - 版本无关 `find_package(QT NAMES Qt6 Qt5 ...)`；当前实际走 Qt 5.15.19。
-  - 开启 AUTOMOC/AUTOUIC/AUTORCC；MainWindow 已迁移为纯代码，剩余 `.ui` 不含 customwidget；项目根目录 include 暂保留，待剩余 `.ui` 全部迁移后统一评估删除。
+  - 开启 AUTOMOC/AUTOUIC/AUTORCC；仅剩 SumExportDialog.ui，不含 customwidget；项目根目录 include 暂保留，待最后一个 `.ui` 迁移后统一评估删除。
   - rc.exe 的字符串中 `\` 是转义符，图标路径必须把反斜杠翻倍后再写入 RC 文件；MSVC 加 `/utf-8`。
   - FluentUIStyle 以子目录构建：`BUILD_LIBRARY ON`、`BUILD_PLUGIN OFF`、`BUILD_EXAMPLES OFF`、`EXWIDGETS_BUILD_FRAMELESS ON`；其依赖 Qt5Svg。
   - QWindowKit 必须预先 `add_subdirectory` 到浅目录 `${CMAKE_BINARY_DIR}/qwindowkit`，避免深路径生成的私有 forwarding header 相对路径过长；`QWINDOWKIT_INSTALL ON` 才能通过 CMake export 校验。

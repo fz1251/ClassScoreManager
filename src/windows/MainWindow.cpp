@@ -13,7 +13,6 @@
 #include "../pages/WelcomePage.h"
 #include "AboutInfoDialog.h"
 #include "ItemSelectionDialog.h"
-#include "PasteStudentsDialog.h"
 #include "SumExportDialog.h"
 #include "fluentui3styleproperties.h"
 #include <QAbstractItemView>
@@ -156,11 +155,9 @@ void MainWindow::createActions()
 
     /*学生菜单动作*/
     action_AddStudent = new QAction(tr("添加学生"), this);
-    action_ImportStudents = new QAction(tr("批量导入学生"), this);
     action_DeleteStudent = new QAction(tr("删除一个学生"), this);
     action_ClearStudents = new QAction(tr("清空班级信息"), this);
     connect(action_AddStudent, &QAction::triggered, this, &MainWindow::on_action_AddStudent_triggered);
-    connect(action_ImportStudents, &QAction::triggered, this, &MainWindow::on_action_ImportStudents_triggered);
     connect(action_DeleteStudent, &QAction::triggered, this, &MainWindow::on_action_DeleteStudent_triggered);
     connect(action_ClearStudents, &QAction::triggered, this, &MainWindow::on_action_ClearStudents_triggered);
 
@@ -217,7 +214,6 @@ void MainWindow::createMenus()
 
     QMenu *menu_Student = menubar->addMenu(tr("学生"));
     menu_Student->addAction(action_AddStudent);
-    menu_Student->addAction(action_ImportStudents);
     menu_Student->addAction(action_DeleteStudent);
     menu_Student->addAction(action_ClearStudents);
 
@@ -317,20 +313,23 @@ void MainWindow::on_action_ExitApp_triggered()
 /*学生菜单(menu_Student)功能实现*/
 void MainWindow::on_action_AddStudent_triggered()
 {
-    bool ok;
-    QString studentName=QInputDialog::getText(this,tr("添加学生对话框"),tr("输入新的学生姓名"),
-                                              QLineEdit::Normal,QString(),&ok);
-    if(ok)
-        addStudent(studentName);
-}
+    bool ok = false;
+    const QString inputText = QInputDialog::getMultiLineText(
+        this, tr("添加学生对话框"), tr("输入学生姓名，可用换行分隔多个学生"), QString(), &ok);
+    if(!ok)
+        return;
 
-void MainWindow::on_action_ImportStudents_triggered()
-{
-    PasteStudentsDialog dialog;
-    if(dialog.exec()==QDialog::Accepted)
+    QStringList newNames;
+    const QStringList rawList = inputText.split('\n', Qt::SkipEmptyParts);
+    for(const QString &rawName : rawList)
     {
-        importStudents(dialog.getNameList());
+        const QString studentName = rawName.simplified();
+        if(!studentName.isEmpty())
+            newNames.append(studentName);
     }
+    if(newNames.isEmpty())
+        return;
+    importStudents(newNames);
 }
 
 void MainWindow::on_action_DeleteStudent_triggered()
@@ -361,8 +360,9 @@ void MainWindow::on_action_ClearStudents_triggered()
 void MainWindow::on_action_NewScoreRecord_triggered()
 {
     bool ok;
-    QString descriptionText=QInputDialog::getText(this,tr("新建积分记录对话框"),tr("输入新的积分记录名"),
-                                                  QLineEdit::Normal,QString(),&ok);
+    QString descriptionText = QInputDialog::getText(
+        this, tr("新建积分记录对话框"), tr("输入新的积分记录名"),
+        QLineEdit::Normal, QString(), &ok);
     if(ok)
     {
         if(!newScoreRecord(descriptionText))
@@ -384,8 +384,7 @@ void MainWindow::on_action_SaveScoreRecord_triggered()
 void MainWindow::on_action_UseScoreTemplate_triggered()
 {
     QStringList templateList=manager->getTemplateList();
-    ItemSelectionDialog dialog(this,tr("选择积分模板对话框"),tr("选择您要使用的积分模板"),
-                               templateList,templateList.size()-1);
+    ItemSelectionDialog dialog(this,tr("选择积分模板对话框"),tr("选择您要使用的积分模板"),templateList,templateList.size()-1);
     if(dialog.exec()==QDialog::Accepted)
     {
         int index=dialog.selectedIndex();
@@ -417,8 +416,7 @@ void MainWindow::on_action_HideRecordHistory_triggered()
 void MainWindow::on_action_DeleteRecordHistory_triggered()
 {
     QStringList recordList=manager->getRecordList();
-    ItemSelectionDialog dialog(this,tr("选择积分记录对话框"),tr("选择您要删除的积分记录"),
-                                    recordList,recordPreviewIndex);
+    ItemSelectionDialog dialog(this,tr("选择积分记录对话框"),tr("选择您要删除的积分记录"),recordList,recordPreviewIndex);
     if(dialog.exec()==QDialog::Accepted)
     {
         int index=dialog.selectedIndex();
@@ -444,9 +442,9 @@ void MainWindow::on_action_NewTemplate_triggered()
 void MainWindow::on_action_EditTemplate_triggered()
 {
     bool ok;
-    QString descriptionText=QInputDialog::getText(this,tr("修改积分模板对话框"),tr("输入新的积分模板名"),
-                            QLineEdit::Normal,
-                            manager->getTemplates().at(templatePreviewIndex).description,&ok);
+    QString descriptionText = QInputDialog::getText(
+        this, tr("修改积分模板对话框"), tr("输入新的积分模板名"), QLineEdit::Normal,
+        manager->getTemplates().at(templatePreviewIndex).description, &ok);
     if(ok)
     {
         if(!renameTemplate(descriptionText))
@@ -515,7 +513,6 @@ void MainWindow::onFileLoaded()
     action_CloseFile->setDisabled(false);
 
     action_AddStudent->setDisabled(false);
-    action_ImportStudents->setDisabled(false);
     action_DeleteStudent->setDisabled(false);
     action_ClearStudents->setDisabled(false);
 
@@ -542,7 +539,6 @@ void MainWindow::onFileClosed()
     action_CloseFile->setDisabled(true);
 
     action_AddStudent->setDisabled(true);
-    action_ImportStudents->setDisabled(true);
     action_DeleteStudent->setDisabled(true);
     action_ClearStudents->setDisabled(true);
 
@@ -659,11 +655,6 @@ void MainWindow::closeFile()
 }
 
 /*学生操作*/
-void MainWindow::addStudent(const QString &newName)
-{
-    tableModel->addStudent(newName);
-}
-
 void MainWindow::importStudents(const QStringList &newNames)
 {
     tableModel->importStudents(newNames);

@@ -274,19 +274,6 @@ bool ClassDataManager::verifyRecordName(const QString &recordName)
     return true;
 }
 
-void ClassDataManager::addStudent(const QString &newName)
-{
-    const int newId = students.size() + 1;
-    students.append({newName, newId, StudentInfo::NoGroup});
-    for(auto& i : records)
-        i.scores.append(0);
-    for(auto& i : templates)
-        i.values.append(0);
-    if(m_isRecordEditing)
-        tempRecord.scores.append(0);
-    setDirty(true);
-}
-
 void ClassDataManager::addTemplate(const ScoreTemplate &newTemplate)
 {
     templates.append(newTemplate);

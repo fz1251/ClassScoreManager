@@ -4,20 +4,18 @@
 #include <QString>
 #include <QStringList>
 
-namespace Ui {
-class ItemSelectionDialog;
-}
+class QComboBox;
 
 class ItemSelectionDialog : public QDialog
 {
     Q_OBJECT
 
 public:
-    explicit ItemSelectionDialog(QWidget *parent, const QString &title, const QString &label,const QStringList &items, int current = 0);
-    ~ItemSelectionDialog();
-    int selectedIndex();
+    explicit ItemSelectionDialog(QWidget *parent, const QString &title, const QString &label,
+                                 const QStringList &items, int current = 0);
+    int selectedIndex() const;
 
 private:
-    Ui::ItemSelectionDialog *ui;
+    // 界面元素指针：构造函数中统一创建，供其他成员函数访问
+    QComboBox *selectionComboBox = nullptr;
 };
-

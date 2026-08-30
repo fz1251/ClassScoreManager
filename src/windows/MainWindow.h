@@ -36,7 +36,6 @@ private slots:
 
     /*学生菜单(menu_Student)操作*/
     void on_action_AddStudent_triggered();
-    void on_action_ImportStudents_triggered();
     void on_action_DeleteStudent_triggered();
     void on_action_ClearStudents_triggered();
 
@@ -91,7 +90,6 @@ private:
     void closeFile();
 
     /*学生操作*/
-    void addStudent(const QString& newName);
     void importStudents(const QStringList& newNames);
     void removeStudent(int displayIndex);
     void clearStudents();
@@ -127,7 +125,6 @@ private:
     QAction* action_CloseFile = nullptr;
     QAction* action_ExitApp = nullptr;
     QAction* action_AddStudent = nullptr;
-    QAction* action_ImportStudents = nullptr;
     QAction* action_DeleteStudent = nullptr;
     QAction* action_ClearStudents = nullptr;
     QAction* action_NewScoreRecord = nullptr;

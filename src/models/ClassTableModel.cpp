@@ -289,15 +289,6 @@ bool ClassTableModel::dropMimeData(const QMimeData *data, Qt::DropAction action,
     return true;
 }
 
-void ClassTableModel::addStudent(const QString& newName)
-{
-    const int newIndex = students().size();
-    beginInsertRows(QModelIndex(), newIndex, newIndex);
-    manager->addStudent(newName);
-    rowToIndex.append(newIndex);
-    endInsertRows();
-}
-
 void ClassTableModel::importStudents(const QStringList& newNames)
 {
     const int beginIndex = students().size();

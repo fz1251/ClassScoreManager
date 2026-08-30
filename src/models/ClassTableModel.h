@@ -37,7 +37,6 @@ public:
     bool dropMimeData(const QMimeData *data, Qt::DropAction action, int row, int column, const QModelIndex &parent) override;
 
     // 学生信息相关函数
-    void addStudent (const QString& newName);
     void importStudents(const QStringList& newNames);
     void removeStudent (int displayIndex);
     void clearStudents();

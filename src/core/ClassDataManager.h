@@ -47,7 +47,6 @@ public:
     bool verifyTemplateName(const QString& templateName);
     bool verifyRecordName  (const QString& recordName);
     //数据增删与清空
-    void addStudent (const QString      & newName);
     void addTemplate(const ScoreTemplate& newTemplate);
     void newRecord  (const QString      & recordName);
     void activateTemplate(int index);

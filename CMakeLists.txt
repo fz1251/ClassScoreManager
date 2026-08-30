@@ -64,7 +64,6 @@ set(APP_SOURCES
     src/windows/ItemSelectionDialog.cpp
     src/widgets/LineSpacedLabel.cpp
     src/windows/MainWindow.cpp
-    src/windows/PasteStudentsDialog.cpp
     src/widgets/ShineLabel.cpp
     src/windows/SumExportDialog.cpp
 )
@@ -88,14 +87,11 @@ set(APP_HEADERS
     src/windows/ItemSelectionDialog.h
     src/widgets/LineSpacedLabel.h
     src/windows/MainWindow.h
-    src/windows/PasteStudentsDialog.h
     src/widgets/ShineLabel.h
     src/windows/SumExportDialog.h
 )
 
 set(APP_FORMS
-    src/windows/ItemSelectionDialog.ui
-    src/windows/PasteStudentsDialog.ui
     src/windows/SumExportDialog.ui
 )
 
