@@ -1,6 +1,6 @@
 // about_info_dialog.cpp
 #include "AboutInfoDialog.h"
-#include "LineSpacedLabel.h"
+#include "../widgets/LineSpacedLabel.h"
 #include "app_build_info.h"
 #include <QWindow>
 #include <QPushButton>

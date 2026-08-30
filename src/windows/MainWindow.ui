@@ -442,12 +442,12 @@
   <customwidget>
    <class>ShineLabel</class>
    <extends>QLabel</extends>
-   <header>.\src\ui\ShineLabel.h</header>
+   <header>.\src\widgets\ShineLabel.h</header>
   </customwidget>
   <customwidget>
    <class>HomeActionCard</class>
    <extends>QAbstractButton</extends>
-   <header>.\src\ui\HomeActionCard.h</header>
+   <header>.\src\widgets\HomeActionCard.h</header>
   </customwidget>
  </customwidgets>
  <resources/>

@@ -91,7 +91,7 @@
 - 第三方库：
   - FluentUIStyle：git 子模块 `third_party/FluentUIStyle`，上游 https://github.com/XHY-ChuJian/FluentUIStyle.git，当前固定在 `8d48defc9b8cb8b21cb86eca355cb4c47cb8e714`；QWindowKit 随其在 `3rd/qwindowkit` 提供。
 - 部署方式：打包后拷入 U 盘，免安装直接运行；保持体积小、启动快。运行时依赖 Qt bin（Qt DLL）与构建输出 `bin/`（FluentUI3Style、ExWidgets、QWK 等 DLL），打包时按需收集。
-- 主要模块：`src/core`（数据管理、报表）、`src/models`（表格模型）、`src/ui`（界面）、`src/delegates`（委托）。
+- 主要模块：`src/core`（数据管理、报表）、`src/models`（表格模型）、`src/widgets`（自绘控件）、`src/pages`（页面）、`src/windows`（主窗口与对话框）、`src/delegates`（委托）。
 - 命名约定：业务命名不使用 `Score` 前缀；积分记录、积分模板分别用 `Record`、`Template` 命名，与 C++ 关键字冲突时视情况加修饰或复数。
 - 应用图标：`resources/icon.ico`，通过 CMake 生成的 RC 文件设置。
 - 技术文档定位：详细技术知识（第三方库配置、项目结构等）放在 `docs/`，主索引 `docs/README.md`；CLAUDE.md 只保存项目记忆与协作规则。代码与文档分离，代码注释只保留关键技术标注。

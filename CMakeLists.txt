@@ -55,14 +55,14 @@ set(APP_SOURCES
     src/models/ClassTableModel.cpp
     src/models/RecordListModel.cpp
     src/models/TemplateListModel.cpp
-    src/ui/AboutInfoDialog.cpp
-    src/ui/HomeActionCard.cpp
-    src/ui/ItemSelectionDialog.cpp
-    src/ui/LineSpacedLabel.cpp
-    src/ui/MainWindow.cpp
-    src/ui/PasteStudentsDialog.cpp
-    src/ui/ShineLabel.cpp
-    src/ui/SumExportDialog.cpp
+    src/windows/AboutInfoDialog.cpp
+    src/widgets/HomeActionCard.cpp
+    src/windows/ItemSelectionDialog.cpp
+    src/widgets/LineSpacedLabel.cpp
+    src/windows/MainWindow.cpp
+    src/windows/PasteStudentsDialog.cpp
+    src/widgets/ShineLabel.cpp
+    src/windows/SumExportDialog.cpp
 )
 
 set(APP_HEADERS
@@ -75,21 +75,21 @@ set(APP_HEADERS
     src/models/ClassTableModel.h
     src/models/RecordListModel.h
     src/models/TemplateListModel.h
-    src/ui/AboutInfoDialog.h
-    src/ui/HomeActionCard.h
-    src/ui/ItemSelectionDialog.h
-    src/ui/LineSpacedLabel.h
-    src/ui/MainWindow.h
-    src/ui/PasteStudentsDialog.h
-    src/ui/ShineLabel.h
-    src/ui/SumExportDialog.h
+    src/windows/AboutInfoDialog.h
+    src/widgets/HomeActionCard.h
+    src/windows/ItemSelectionDialog.h
+    src/widgets/LineSpacedLabel.h
+    src/windows/MainWindow.h
+    src/windows/PasteStudentsDialog.h
+    src/widgets/ShineLabel.h
+    src/windows/SumExportDialog.h
 )
 
 set(APP_FORMS
-    src/ui/ItemSelectionDialog.ui
-    src/ui/MainWindow.ui
-    src/ui/PasteStudentsDialog.ui
-    src/ui/SumExportDialog.ui
+    src/windows/ItemSelectionDialog.ui
+    src/windows/MainWindow.ui
+    src/windows/PasteStudentsDialog.ui
+    src/windows/SumExportDialog.ui
 )
 
 set(APP_RESOURCES

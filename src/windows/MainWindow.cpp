@@ -1,7 +1,7 @@
 #include "MainWindow.h"
 #include "ui_MainWindow.h"
 #include "AboutInfoDialog.h"
-#include "HomeActionCard.h"
+#include "../widgets/HomeActionCard.h"
 #include "ItemSelectionDialog.h"
 #include "PasteStudentsDialog.h"
 #include "SumExportDialog.h"
