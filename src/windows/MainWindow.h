@@ -7,12 +7,16 @@
 #include <QMessageBox>
 #include <QString>
 #include <QStringList>
+#include <QVector>
 
 class QAction;
 class QStackedWidget;
 class QTabBar;
 class ClassDataManager;
 class ClassTableModel;
+class RecordListPage;
+class StudentTablePage;
+class TemplateListPage;
 
 class MainWindow : public QMainWindow
 {
@@ -25,42 +29,6 @@ protected:
     void dragEnterEvent(QDragEnterEvent *event) override;
     void dropEvent(QDropEvent *event) override;
     void closeEvent(QCloseEvent *event) override;
-
-private slots:
-    /*文件菜单(menu_File)操作*/
-    void on_action_OpenFile_triggered();
-    void on_action_NewFile_triggered();
-    void on_action_SaveFile_triggered();
-    void on_action_CloseFile_triggered();
-    void on_action_ExitApp_triggered();
-
-    /*学生菜单(menu_Student)操作*/
-    void on_action_AddStudent_triggered();
-    void on_action_DeleteStudent_triggered();
-    void on_action_ClearStudents_triggered();
-
-    /*积分菜单(menu_Score)操作*/
-    void on_action_NewScoreRecord_triggered();
-    void on_action_SaveScoreRecord_triggered();
-    void on_action_UseScoreTemplate_triggered();
-    void on_action_ExportScoreSum_triggered();
-    /*---------------分割线---------------*/
-    void on_action_ShowRecordHistory_triggered();
-    void on_action_HideRecordHistory_triggered();
-    void on_action_DeleteRecordHistory_triggered();
-    void on_action_ClearRecords_triggered();
-
-    /*积分模板菜单(menu_ScoreTemplate)操作*/
-    void on_action_NewTemplate_triggered();
-    void on_action_EditTemplate_triggered();
-    void on_action_ShowTemplate_triggered();
-    void on_action_HideTemplate_triggered();
-    void on_action_DeleteTemplate_triggered();
-    void on_action_ClearTemplates_triggered();
-
-    /*关于菜单(menu_About)操作*/
-    void on_action_AboutApp_triggered();
-    void on_action_AboutQt_triggered();
 
 private:
     enum StackedPageIndex
@@ -77,44 +45,67 @@ private:
     /*界面状态维护*/
     void onFileLoaded();
     void onFileClosed();
-    void updateWindowTitle(const QString& fileName);
+    void updateFilePreview();
     void resetTable();
     void updateRecordEditingActions();
-    void updateRecordPreviewActions();
-    void updateTemplatePreviewActions();
+    void updateRecordPreviewPanel();
+    void updateTemplatePreviewPanel();
 
     /*文件操作*/
+    void openFileDialog();
+    void createNewFile();
     void openFile(const QString& filePath);
     void newFile();
     void saveFile();
+    void closeFileWithConfirm();
     void closeFile();
 
     /*学生操作*/
+    void addStudentsDialog();
+    void deleteStudentDialog();
+    void clearStudentsWithConfirm();
     void importStudents(const QStringList& newNames);
     void removeStudent(int displayIndex);
     void clearStudents();
 
     /*积分记录操作*/
-    bool newScoreRecord(const QString& recordName);
-    void saveScoreRecord();
+    void createScoreRecordDraft();
+    void newScoreRecordFromList();
+    bool saveScoreRecord();
+    void applyTemplateDialog();
     void activateTemplate(int index);
-    void exportScoreSum();
+    void exportScoreSum(const QVector<int>& recordIndices);
+    void exportSelectedRecords();
     void showRecord(int index);
     void hideRecord();
-    void deleteRecord(int index);
+    void showPreviousRecord();
+    void showNextRecord();
+    void deleteSelectedRecords();
     void clearRecords();
+    void clearRecordsWithConfirm();
 
     /*积分模板操作*/
     void newTemplate();
-    bool renameTemplate(const QString& newDescription);
+    void newTemplateFromList();
+    void newTemplateFromSidebar();
+    void updateTemplateName(const QString& newDescription);
+    void discardTemplateNameEdit();
     void showTemplate(int index);
     void hideTemplate();
-    void deleteTemplate(int index);
+    void showPreviousTemplate();
+    void showNextTemplate();
+    void deleteSelectedTemplates();
     void clearTemplates();
+    void clearTemplatesWithConfirm();
+
+    /*关于*/
+    void showAboutDialog();
+    void showAboutQt();
 
     /*通用确认*/
     QMessageBox::ButtonRole confirmUnsavedChanges();
     bool confirmClearOperation(const QString& description);
+    bool confirmDeleteOperation(const QString& description);
 
     // 界面元素指针：构造函数中统一创建，供其他成员函数访问
     QStackedWidget* stackedWidget = nullptr;
@@ -127,25 +118,15 @@ private:
     QAction* action_AddStudent = nullptr;
     QAction* action_DeleteStudent = nullptr;
     QAction* action_ClearStudents = nullptr;
-    QAction* action_NewScoreRecord = nullptr;
-    QAction* action_SaveScoreRecord = nullptr;
-    QAction* action_UseScoreTemplate = nullptr;
-    QAction* action_ExportScoreSum = nullptr;
-    QAction* action_ShowRecordHistory = nullptr;
-    QAction* action_HideRecordHistory = nullptr;
-    QAction* action_DeleteRecordHistory = nullptr;
-    QAction* action_ClearRecords = nullptr;
-    QAction* action_NewTemplate = nullptr;
-    QAction* action_EditTemplate = nullptr;
-    QAction* action_ShowTemplate = nullptr;
-    QAction* action_HideTemplate = nullptr;
-    QAction* action_DeleteTemplate = nullptr;
-    QAction* action_ClearTemplates = nullptr;
     QAction* action_AboutApp = nullptr;
     QAction* action_AboutQt = nullptr;
 
     ClassDataManager* manager = nullptr;
     ClassTableModel* tableModel = nullptr;
+    ::StudentTablePage* studentTablePage = nullptr;
+    RecordListPage* recordListPage = nullptr;
+    TemplateListPage* templateListPage = nullptr;
+    QString currentFileName;
     int recordPreviewIndex = -1;
     int templatePreviewIndex = -1;
 };

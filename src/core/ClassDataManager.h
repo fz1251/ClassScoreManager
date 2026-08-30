@@ -49,6 +49,7 @@ public:
     //数据增删与清空
     void addTemplate(const ScoreTemplate& newTemplate);
     void newRecord  (const QString      & recordName);
+    void setRecordDraftDescription(const QString& description);
     void activateTemplate(int index);
     void saveRecord ();
     QVector<qint32>& getTempRecord();

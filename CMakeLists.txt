@@ -7,7 +7,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 set(CMAKE_AUTOMOC ON)
-set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTORCC ON)
 
 # 优先找 Qt6，找不到就用 Qt5；实际使用哪个由当前 Kit 的 CMAKE_PREFIX_PATH 决定
@@ -58,6 +57,7 @@ set(APP_SOURCES
     src/pages/RecordListPage.cpp
     src/pages/StudentTablePage.cpp
     src/pages/TemplateListPage.cpp
+    src/pages/StudentTableSidebar.cpp
     src/pages/WelcomePage.cpp
     src/windows/AboutInfoDialog.cpp
     src/widgets/HomeActionCard.cpp
@@ -80,6 +80,7 @@ set(APP_HEADERS
     src/models/TemplateListModel.h
     src/pages/RecordListPage.h
     src/pages/StudentTablePage.h
+    src/pages/StudentTableSidebar.h
     src/pages/TemplateListPage.h
     src/pages/WelcomePage.h
     src/windows/AboutInfoDialog.h
@@ -91,9 +92,6 @@ set(APP_HEADERS
     src/windows/SumExportDialog.h
 )
 
-set(APP_FORMS
-    src/windows/SumExportDialog.ui
-)
 
 set(APP_RESOURCES
     resources.qrc
@@ -112,12 +110,10 @@ endif()
 add_executable(ClassScoreManager WIN32
     ${APP_SOURCES}
     ${APP_HEADERS}
-    ${APP_FORMS}
     ${APP_RESOURCES}
 )
 
-# 项目根 include 暂予保留；剩余 .ui 全部迁移为纯代码后再评估是否仍需要
-target_include_directories(ClassScoreManager PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} ${APP_BUILD_INFO_DIR})
+target_include_directories(ClassScoreManager PRIVATE ${APP_BUILD_INFO_DIR})
 add_dependencies(ClassScoreManager generate_build_info)
 
 target_link_libraries(ClassScoreManager PRIVATE

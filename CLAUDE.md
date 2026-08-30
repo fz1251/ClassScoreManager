@@ -59,7 +59,7 @@
 
 ### 2.8 纯代码 UI 编写规范
 
-> 当前 UI 工作方向：全部迁移为纯代码；现存唯一 `.ui` 是 `SumExportDialog.ui`，尚未迁移。
+> 当前 UI 状态：项目全部界面均为纯代码，不包含 `.ui` 文件。
 
 1. 样板文件：`src/windows/AboutInfoDialog.h/.cpp` 是纯代码 UI 的参考实现；新增 UI 一律纯代码，不再新增 `.ui`。
 2. 控件指针：
@@ -70,19 +70,15 @@
    - 不使用 `label_2`、`label_3` 等无意义名称。
    - 成员、局部变量和 objectName 使用有意义名称，例如 `titleLabel`、`subtitleLabel`、`openFileCard`。
    - QSS 不依赖的 objectName 可省略，不为凑 objectName 而强行命名。
-4. 从 `.ui` 迁移：
-   - 把 `build/vscode-qt5.15.19-debug/ClassScoreManager_autogen/include/ui_*.h` 当作要抄写的属性清单。
-   - 一次迁移一个 `.ui`；完成后从 `APP_FORMS` 移除对应条目、删除 `.ui`、完整构建一次、交用户做视觉验证；不要一次删光所有 `.ui` 后才构建验证。
-5. MainWindow 组装：
+4. MainWindow 组装：
    - 构造函数只做：创建页面并加入 QStackedWidget、创建导航与菜单/动作、设置模型与委托、连接页面/模型/动作信号。
    - 菜单与 QAction 使用独立的 `createActions()` / `createMenus()`；动作连接一律显式 `connect`，不依赖 `connectSlotsByName`。
-   - 现有 `on_action_*_triggered` 槽可保留为普通私有函数，由显式连接调用，或按新命名规则逐步重命名。
-6. 页面类边界：
+5. 页面类边界：
    - 页面类只创建控件、暴露必要接口、发送信号；不得包含文件、记录、模板业务逻辑。
    - 状态归属：数据与草稿归 manager，会话/预览状态归窗口层，渲染状态可留在模型内部。
-7. CMake 收尾：
+6. CMake：
    - 新建页面/对话框类必须同时加入 `APP_SOURCES` 和 `APP_HEADERS`。
-   - 全部 `.ui` 移除后，检查 `CMAKE_AUTOUIC`、`APP_FORMS`、为 customwidget 相对头路径保留的项目根 include 是否仍需要；不需要的配置直接移除，并同步本文件。
+   - 项目不使用 `.ui`，CMake 不启用 `AUTOUIC`，也不使用 `APP_FORMS`。
 
 ## 3. 项目关键事实与文档索引
 
@@ -91,7 +87,7 @@
 - 构建：只使用预设 `qt5-msvc2022-debug` / `qt5-msvc2022-release`；产物在对应 `build/` 的 `bin/` 与 `lib/`。
   - 若编译命令中出现 Strawberry Perl 的 `c++.exe` / `gcc.exe`，说明 build 目录被错误环境污染，删除该 build 目录后用预设重新配置。
 - 全局样式：`FluentUI3Style` 随项目构建；Fluent 属性头写作 `#include "fluentui3styleproperties.h"`。
-- UI 迁移状态：MainWindow 与其余对话框已纯代码，仅剩 `SumExportDialog.ui` 待迁移。
+- UI 状态：全部界面均为纯代码，不包含 `.ui` 文件。
 - 详细项目上下文（Qt 重建、CMake 细节、部署、模块结构、待办）见 `docs/project-context.md`。
 - 第三方库与子模块更新见 `docs/third-party.md`。
 

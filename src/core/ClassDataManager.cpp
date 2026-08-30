@@ -309,6 +309,13 @@ int ClassDataManager::getActivatedTemplateIndex() const
     return activatedTemplateIndex;
 }
 
+void ClassDataManager::setRecordDraftDescription(const QString &description)
+{
+    if(!m_isRecordEditing)
+        return;
+    tempRecord.description = description;
+}
+
 void ClassDataManager::activateTemplate(int index)
 {
     if(index >= 0 && index < templates.size())

@@ -44,8 +44,8 @@
 ## 4. CMakeLists.txt 关键点
 
 - 版本无关 `find_package(QT NAMES Qt6 Qt5 ...)`；当前实际走 Qt 5.15.19。
-- 开启 AUTOMOC/AUTOUIC/AUTORCC。
-- 当前仅剩 `SumExportDialog.ui`，不含 customwidget；项目根目录 include 暂保留，待最后一个 `.ui` 迁移后统一评估删除。
+- 开启 AUTOMOC/AUTORCC；不使用 `.ui`，未启用 AUTOUIC。
+- `target_include_directories` 只包含 `generated` 目录；项目根目录 include 与 customwidget 相对头路径支持均不再需要。
 - rc.exe 的字符串中 `\` 是转义符，图标路径必须把反斜杠翻倍后再写入 RC 文件；MSVC 加 `/utf-8`。
 - FluentUIStyle 以子目录构建：
   - `BUILD_LIBRARY ON`、`BUILD_PLUGIN OFF`、`BUILD_EXAMPLES OFF`、`EXWIDGETS_BUILD_FRAMELESS ON`。
@@ -71,9 +71,9 @@
   - `src/pages/StudentTablePage`
   - `src/pages/RecordListPage`
   - `src/pages/TemplateListPage`
-- `src/windows`：
-  - `AboutInfoDialog`、`ItemSelectionDialog`、`MainWindow` 为纯代码实现。
-  - `SumExportDialog` 仍使用 `.ui`，是当前唯一待迁移的 `.ui`。
+- `StudentTablePage` 右侧为 `StudentTableSidebar`，用 ExWidgets 的 `ExExpander` 组织文件信息、表格选项、积分记录、积分模板四个折叠块；积分记录块包含预览导航、新建/应用模板、名称输入与保存（新建直接开草稿，保存时校验并填写名称），积分模板块包含预览导航、新建模板与改名编辑。
+- `RecordListPage`、`TemplateListPage` 支持多选，顶部有新建、导出/删除选中、清空工具按钮。
+- `src/windows` 的 `AboutInfoDialog`、`ItemSelectionDialog`、`MainWindow`、`SumExportDialog` 均为纯代码实现。
 - 学生添加与批量导入合并为同一个多行输入入口。
 
 ## 7. 第三方库
@@ -108,8 +108,7 @@
 ## 12. 待办
 
 1. `AboutInfoDialog` 从手写 DWM/QWindowKit 逻辑迁移到 `ExWidgets::Frameless`。
-2. 迁移 `SumExportDialog.ui` 为纯代码，随后清理 AUTOUIC/APP_FORMS/项目根 include。
-3. 编写 README（项目说明、构建与使用方式）。
-4. 配置 clang-tidy 作为代码格式化工具；astyle 对复杂 lambda 表达式处理不佳，暂不作为标准。
-5. 新 Qt 5.15.19 稳定后清理旧 Qt 5.15.2。
-6. 软件图标等视觉资源在开发最后阶段统一处理。
+2. 编写 README（项目说明、构建与使用方式）。
+3. 配置 clang-tidy 作为代码格式化工具；astyle 对复杂 lambda 表达式处理不佳，暂不作为标准。
+4. 新 Qt 5.15.19 稳定后清理旧 Qt 5.15.2。
+5. 软件图标等视觉资源在开发最后阶段统一处理。

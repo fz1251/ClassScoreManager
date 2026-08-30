@@ -7,6 +7,7 @@
 
 | 文档 | 内容 |
 | --- | --- |
+| [structure.md](structure.md) | 代码结构、模块关系图与数据流向图 |
 | [project-context.md](project-context.md) | 项目技术栈、Qt 套件、CMake 构建、样式、部署、模块结构与待办 |
 | [third-party.md](third-party.md) | 第三方美化库 FluentUIStyle 及其携带依赖（QWindowKit、kissfft、qmsetup）的配置与使用 |
 

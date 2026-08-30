@@ -1,160 +1,187 @@
 #include "SumExportDialog.h"
-#include "ui_SumExportDialog.h"
 #include <QButtonGroup>
+#include <QCheckBox>
+#include <QHBoxLayout>
+#include <QLabel>
+#include <QPushButton>
+#include <QVBoxLayout>
 
-SumExportDialog::SumExportDialog(QWidget *parent, SortSettings settings) :
-    QDialog(parent),
-    ui(new Ui::ExportSumDialog)
+SumExportDialog::SumExportDialog(QWidget *parent, SortSettings settings)
+    : QDialog(parent)
 {
-    ui->setupUi(this);
+    setWindowTitle(tr("积分求和统计导出"));
 
-    connect(ui->beginTimeComboBox, qOverload<int>(&QComboBox::currentIndexChanged), this, &SumExportDialog::updateRecordList);
-    connect(ui->endTimeComboBox, qOverload<int>(&QComboBox::currentIndexChanged), this, &SumExportDialog::updateRecordList);
-    connect(ui->btn_groupMode,&QPushButton::toggled,this,&SumExportDialog::setGroupModeVisibility);
+    // 对话框根布局：只保留排序配置，不再选择记录范围
+    auto *rootLayout = new QVBoxLayout(this);
+    rootLayout->setContentsMargins(16, 16, 16, 16);
+    rootLayout->setSpacing(10);
 
-    auto addToButtonGroup = [this](QPushButton* btn1, QPushButton* btn2)
-    {
-        QButtonGroup* group = new QButtonGroup(this);
-        group->addButton(btn1);
-        group->addButton(btn2);
+    // 排序模式行：个人/小组互斥
+    auto *modeRow = new QHBoxLayout;
+    modeRow->setSpacing(6);
+    modeRow->addWidget(new QLabel(tr("排序模式："), this));
+    studentModeButton = new QPushButton(tr("个人"), this);
+    groupModeButton = new QPushButton(tr("小组"), this);
+    studentModeButton->setCheckable(true);
+    groupModeButton->setCheckable(true);
+    modeRow->addWidget(studentModeButton);
+    modeRow->addWidget(groupModeButton);
+    modeRow->addStretch();
+    rootLayout->addLayout(modeRow);
+
+    showStudentNumberBox = new QCheckBox(tr("显示学生编号"), this);
+    rootLayout->addWidget(showStudentNumberBox);
+
+    // 排序行创建辅助：标签 + 两个互斥按钮
+    auto createSortRow = [this](const QString &label, QPushButton *&firstButton,
+                                QPushButton *&secondButton) {
+        auto *row = new QWidget(this);
+        auto *rowLayout = new QHBoxLayout(row);
+        rowLayout->setContentsMargins(0, 0, 0, 0);
+        rowLayout->setSpacing(6);
+        rowLayout->addWidget(new QLabel(label, row));
+        firstButton = new QPushButton(row);
+        secondButton = new QPushButton(row);
+        firstButton->setCheckable(true);
+        secondButton->setCheckable(true);
+        rowLayout->addWidget(firstButton);
+        rowLayout->addWidget(secondButton);
+        rowLayout->addStretch();
+        return row;
     };
-    // 设置每组的QButtonGroup
-    addToButtonGroup(ui->btn_studentMode,ui->btn_groupMode);
-    addToButtonGroup(ui->btn_studentNo,ui->btn_studentScore);
-    addToButtonGroup(ui->btn_studentAsc,ui->btn_studentDesc);
-    addToButtonGroup(ui->btn_groupNo,ui->btn_groupScore);
-    addToButtonGroup(ui->btn_groupAsc,ui->btn_groupDesc);
 
-    // 根据传入的SortSettings设置控件的选中状态
-    ui->box_showStudentNumber->setChecked(settings.showStudentNumberFlag);
+    // 学生排序依据与顺序
+    auto *studentFieldRow = createSortRow(tr("学生排序依据："), studentNumberButton,
+                                          studentScoreButton);
+    studentNumberButton->setText(tr("编号"));
+    studentScoreButton->setText(tr("总分"));
+    rootLayout->addWidget(studentFieldRow);
+
+    auto *studentOrderRow = createSortRow(tr("学生排序顺序："), studentAscButton,
+                                          studentDescButton);
+    studentAscButton->setText(tr("升序"));
+    studentDescButton->setText(tr("降序"));
+    rootLayout->addWidget(studentOrderRow);
+
+    // 小组排序依据与顺序：小组模式下才显示
+    groupFieldRow = createSortRow(tr("小组排序依据："), groupNumberButton, groupScoreButton);
+    groupNumberButton->setText(tr("编号"));
+    groupScoreButton->setText(tr("总分"));
+    rootLayout->addWidget(groupFieldRow);
+
+    groupOrderRow = createSortRow(tr("小组排序顺序："), groupAscButton, groupDescButton);
+    groupAscButton->setText(tr("升序"));
+    groupDescButton->setText(tr("降序"));
+    rootLayout->addWidget(groupOrderRow);
+
+    // 确定与取消按钮
+    auto *dialogButtonLayout = new QHBoxLayout;
+    dialogButtonLayout->addStretch();
+    auto *confirmButton = new QPushButton(tr("确定"), this);
+    auto *cancelButton = new QPushButton(tr("取消"), this);
+    confirmButton->setDefault(true);
+    dialogButtonLayout->addWidget(confirmButton);
+    dialogButtonLayout->addWidget(cancelButton);
+    rootLayout->addLayout(dialogButtonLayout);
+
+    connect(confirmButton, &QPushButton::clicked, this, &QDialog::accept);
+    connect(cancelButton, &QPushButton::clicked, this, &QDialog::reject);
+
+    // 互斥按钮组
+    auto makeExclusive = [this](QPushButton *firstButton, QPushButton *secondButton) {
+        auto *group = new QButtonGroup(this);
+        group->addButton(firstButton);
+        group->addButton(secondButton);
+    };
+    makeExclusive(studentModeButton, groupModeButton);
+    makeExclusive(studentNumberButton, studentScoreButton);
+    makeExclusive(studentAscButton, studentDescButton);
+    makeExclusive(groupNumberButton, groupScoreButton);
+    makeExclusive(groupAscButton, groupDescButton);
+
+    connect(groupModeButton, &QPushButton::toggled, this, [this](bool checked) {
+        setGroupModeVisibility(checked);
+    });
+
+    // 按保存的配置恢复控件状态
+    showStudentNumberBox->setChecked(settings.showStudentNumberFlag);
     if(settings.useGroupModeFlag)
     {
-        // 标记使用小组模式
-        ui->btn_groupMode->setChecked(true);
-        // 设置学生排序依据
-        if(settings.groupStuSpec.field==SortField::StudentNumber)
-            ui->btn_studentNo->setChecked(true);
-        else if(settings.groupStuSpec.field==SortField::StudentSum)
-            ui->btn_studentScore->setChecked(true);
-        // 设置学生排序顺序
-        if(settings.groupStuSpec.order==SortOrder::Ascending)
-            ui->btn_studentAsc->setChecked(true);
-        else if(settings.groupStuSpec.order==SortOrder::Descending)
-            ui->btn_studentDesc->setChecked(true);
+        groupModeButton->setChecked(true);
+        if(settings.groupStuSpec.field == SortField::StudentNumber)
+            studentNumberButton->setChecked(true);
+        else if(settings.groupStuSpec.field == SortField::StudentSum)
+            studentScoreButton->setChecked(true);
+        if(settings.groupStuSpec.order == SortOrder::Ascending)
+            studentAscButton->setChecked(true);
+        else if(settings.groupStuSpec.order == SortOrder::Descending)
+            studentDescButton->setChecked(true);
     }
     else
     {
-        // 标记不使用小组模式，而使用学生模式
-        ui->btn_studentMode->setChecked(true);
+        studentModeButton->setChecked(true);
         setGroupModeVisibility(false);
-        // 设置学生排序依据
-        if(settings.studentSpec.field==SortField::StudentNumber)
-            ui->btn_studentNo->setChecked(true);
-        else if(settings.studentSpec.field==SortField::StudentSum)
-            ui->btn_studentScore->setChecked(true);
-        // 设置学生排序顺序
-        if(settings.studentSpec.order==SortOrder::Ascending)
-            ui->btn_studentAsc->setChecked(true);
-        else if(settings.studentSpec.order==SortOrder::Descending)
-            ui->btn_studentDesc->setChecked(true);
+        if(settings.studentSpec.field == SortField::StudentNumber)
+            studentNumberButton->setChecked(true);
+        else if(settings.studentSpec.field == SortField::StudentSum)
+            studentScoreButton->setChecked(true);
+        if(settings.studentSpec.order == SortOrder::Ascending)
+            studentAscButton->setChecked(true);
+        else if(settings.studentSpec.order == SortOrder::Descending)
+            studentDescButton->setChecked(true);
     }
-    // 均要进行小组相关的设置，防止互斥按钮均未被选中
-    // 设置小组排序依据
-    if(settings.groupSpec.field==SortField::GroupNumber)
-        ui->btn_groupNo->setChecked(true);
-    else if(settings.groupSpec.field==SortField::GroupSum)
-        ui->btn_groupScore->setChecked(true);
-    // 设置小组排序顺序
-    if(settings.groupSpec.order==SortOrder::Ascending)
-        ui->btn_groupAsc->setChecked(true);
-    else if(settings.groupSpec.order==SortOrder::Descending)
-        ui->btn_groupDesc->setChecked(true);
+
+    if(settings.groupSpec.field == SortField::GroupNumber)
+        groupNumberButton->setChecked(true);
+    else if(settings.groupSpec.field == SortField::GroupSum)
+        groupScoreButton->setChecked(true);
+    if(settings.groupSpec.order == SortOrder::Ascending)
+        groupAscButton->setChecked(true);
+    else if(settings.groupSpec.order == SortOrder::Descending)
+        groupDescButton->setChecked(true);
 }
 
-SumExportDialog::~SumExportDialog()
-{
-    delete ui;
-}
-
-void SumExportDialog::setRecordText(QStringList records)
-{
-    recordList=records;
-    ui->beginTimeComboBox->addItems(recordList);
-    ui->endTimeComboBox->addItems(recordList);
-}
-
-int SumExportDialog::getBeginIndex()
-{
-    return ui->beginTimeComboBox->currentIndex();
-}
-
-int SumExportDialog::getEndIndex()
-{
-    return ui->endTimeComboBox->currentIndex();
-}
-
-SortSettings SumExportDialog::getCurrentConfig()
+SortSettings SumExportDialog::getCurrentConfig() const
 {
     SortSettings settings;
-    // 设置结果是否显示学生编号
-    settings.showStudentNumberFlag=ui->box_showStudentNumber->isChecked();
-    if(ui->btn_groupMode->isChecked())
+    settings.showStudentNumberFlag = showStudentNumberBox->isChecked();
+    if(groupModeButton->isChecked())
     {
-        // 标记使用小组模式
-        settings.useGroupModeFlag=true;
-        // 设置学生排序依据
-        if(ui->btn_studentNo->isChecked())
-            settings.groupStuSpec.field=SortField::StudentNumber;
-        else if(ui->btn_studentScore->isChecked())
-            settings.groupStuSpec.field=SortField::StudentSum;
-        // 设置学生排序顺序
-        if(ui->btn_studentAsc->isChecked())
-            settings.groupStuSpec.order=SortOrder::Ascending;
-        else if(ui->btn_studentDesc->isChecked())
-            settings.groupStuSpec.order=SortOrder::Descending;
-        // 设置小组排序依据
-        if(ui->btn_groupNo->isChecked())
-            settings.groupSpec.field=SortField::GroupNumber;
-        else if(ui->btn_groupScore->isChecked())
-            settings.groupSpec.field=SortField::GroupSum;
-        // 设置小组排序顺序
-        if(ui->btn_groupAsc->isChecked())
-            settings.groupSpec.order=SortOrder::Ascending;
-        else if(ui->btn_groupDesc->isChecked())
-            settings.groupSpec.order=SortOrder::Descending;
+        settings.useGroupModeFlag = true;
+        if(studentNumberButton->isChecked())
+            settings.groupStuSpec.field = SortField::StudentNumber;
+        else if(studentScoreButton->isChecked())
+            settings.groupStuSpec.field = SortField::StudentSum;
+        if(studentAscButton->isChecked())
+            settings.groupStuSpec.order = SortOrder::Ascending;
+        else if(studentDescButton->isChecked())
+            settings.groupStuSpec.order = SortOrder::Descending;
+        if(groupNumberButton->isChecked())
+            settings.groupSpec.field = SortField::GroupNumber;
+        else if(groupScoreButton->isChecked())
+            settings.groupSpec.field = SortField::GroupSum;
+        if(groupAscButton->isChecked())
+            settings.groupSpec.order = SortOrder::Ascending;
+        else if(groupDescButton->isChecked())
+            settings.groupSpec.order = SortOrder::Descending;
     }
     else
     {
-        // 标记不使用小组模式，而使用学生模式
-        settings.useGroupModeFlag=false;
-        // 设置学生排序依据
-        if(ui->btn_studentNo->isChecked())
-            settings.studentSpec.field=SortField::StudentNumber;
-        else if(ui->btn_studentScore->isChecked())
-        // 设置学生排序顺序
-            settings.studentSpec.field=SortField::StudentSum;
-        if(ui->btn_studentAsc->isChecked())
-            settings.studentSpec.order=SortOrder::Ascending;
-        else if(ui->btn_studentDesc->isChecked())
-            settings.studentSpec.order=SortOrder::Descending;
+        settings.useGroupModeFlag = false;
+        if(studentNumberButton->isChecked())
+            settings.studentSpec.field = SortField::StudentNumber;
+        else if(studentScoreButton->isChecked())
+            settings.studentSpec.field = SortField::StudentSum;
+        if(studentAscButton->isChecked())
+            settings.studentSpec.order = SortOrder::Ascending;
+        else if(studentDescButton->isChecked())
+            settings.studentSpec.order = SortOrder::Descending;
     }
     return settings;
 }
 
-void SumExportDialog::updateRecordList(int index_)
+void SumExportDialog::setGroupModeVisibility(bool visible)
 {
-    Q_UNUSED(index_);
-    ui->recordListWidget->clear();
-    for(int i=getBeginIndex();i<=getEndIndex();i++)
-        new QListWidgetItem(recordList.at(i),ui->recordListWidget);
-}
-
-void SumExportDialog::setGroupModeVisibility(bool f)
-{
-    ui->label_3->setVisible(f);
-    ui->label_4->setVisible(f);
-    ui->btn_groupNo->setVisible(f);
-    ui->btn_groupScore->setVisible(f);
-    ui->btn_groupAsc->setVisible(f);
-    ui->btn_groupDesc->setVisible(f);
+    groupFieldRow->setVisible(visible);
+    groupOrderRow->setVisible(visible);
 }
