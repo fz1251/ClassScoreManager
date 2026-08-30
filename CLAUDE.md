@@ -78,7 +78,7 @@
   - 构建信息：每次构建都会运行 `cmake/generate_build_info.cmake`，生成 `${CMAKE_BINARY_DIR}/generated/app_build_info.h`（仅在日期变化时重写，避免无谓重编译）；界面通过其中的 `APP_BUILD_DATE` 宏显示构建日期。
 - `CMakeLists.txt` 关键点：
   - 版本无关 `find_package(QT NAMES Qt6 Qt5 ...)`；当前实际走 Qt 5.15.19。
-  - 开启 AUTOMOC/AUTOUIC/AUTORCC；`.ui` 中 customwidget 头写作 `.\src\ui\*.h`，因此必须 `target_include_directories` 项目根目录，否则 AUTOUIC 找不到头。
+  - 开启 AUTOMOC/AUTOUIC/AUTORCC；MainWindow 已迁移为纯代码，剩余 `.ui` 不含 customwidget；项目根目录 include 暂保留，待剩余 `.ui` 全部迁移后统一评估删除。
   - rc.exe 的字符串中 `\` 是转义符，图标路径必须把反斜杠翻倍后再写入 RC 文件；MSVC 加 `/utf-8`。
   - FluentUIStyle 以子目录构建：`BUILD_LIBRARY ON`、`BUILD_PLUGIN OFF`、`BUILD_EXAMPLES OFF`、`EXWIDGETS_BUILD_FRAMELESS ON`；其依赖 Qt5Svg。
   - QWindowKit 必须预先 `add_subdirectory` 到浅目录 `${CMAKE_BINARY_DIR}/qwindowkit`，避免深路径生成的私有 forwarding header 相对路径过长；`QWINDOWKIT_INSTALL ON` 才能通过 CMake export 校验。

@@ -4,16 +4,19 @@
 #include <QFont>
 #include <QPainter>
 #include <QPainterPath>
+#include <QFontMetricsF>
 #include <QVariantAnimation>
 
 namespace
 {
-constexpr int kWidgetWidth{250};
-constexpr int kWidgetHeight{170};
+constexpr int kWidgetWidth{220};
+constexpr int kWidgetHeight{270};
 constexpr int kCardLeft{10};
 constexpr int kCardTop{16};
-constexpr int kCardWidth{230};
-constexpr int kCardHeight{138};
+constexpr int kCardRight{kCardLeft};
+constexpr int kCardBottom{kCardTop};
+constexpr int kCardWidth{kWidgetWidth - kCardLeft - kCardRight};
+constexpr int kCardHeight{kWidgetHeight - kCardTop - kCardBottom};
 constexpr int kCardRadius{14};
 constexpr int kHoverLift{6};
 constexpr int kHoverDurationMs{150};
@@ -22,9 +25,8 @@ constexpr int kShadowRingCount{10};
 constexpr qreal kShadowRingPeakAlpha{0.45};
 constexpr qreal kShadowRestOpacity{0.35};
 constexpr qreal kShadowHoverOpacity{0.9};
-constexpr int kIconSize{44};
-constexpr int kIconTextSpacing{8};
-constexpr int kTextHeight{24};
+constexpr qreal kIconScale{0.4};
+constexpr int kIconTextSpacing{24};
 
 qreal mixChannel(qreal from, qreal to, qreal progress)
 {
@@ -48,8 +50,7 @@ HomeActionCard::HomeActionCard(QWidget *parent)
     setFocusPolicy(Qt::StrongFocus);
 
     QFont cardFont = font();
-    cardFont.setPointSize(14);
-    cardFont.setBold(true);
+    cardFont.setPointSize(22);
     setFont(cardFont);
 
     m_hoverAnimation = new QVariantAnimation(this);
@@ -95,14 +96,17 @@ void HomeActionCard::paintEvent(QPaintEvent*)
     painter.setPen(QPen(borderColor, 1.0));
     painter.drawRoundedRect(card, kCardRadius, kCardRadius);
 
-    //阶段3：图标与标题——共用 contentTop 定位，整体随卡片一起上浮
-    const qreal contentTop = card.top() + (card.height() - kIconSize - kIconTextSpacing - kTextHeight) / 2.0;
-    const QRectF iconRect(card.center().x() - kIconSize / 2.0, contentTop, kIconSize, kIconSize);
+    //阶段3：图标与标题——图标边长取卡片宽高中较小者的固定比例，整体垂直居中后文字自然落在中下方
+    const qreal iconSize = kIconScale * qMin(card.width(), card.height());
+    const qreal textHeight = QFontMetricsF(font()).height();
+    const qreal contentBlockHeight = iconSize + kIconTextSpacing + textHeight;
+    const qreal contentTop = card.top() + (card.height() - contentBlockHeight) / 2.0;
+    const QRectF iconRect(card.center().x() - iconSize / 2.0, contentTop, iconSize, iconSize);
     if (!icon().isNull())
         icon().paint(&painter, iconRect.toRect(), Qt::AlignCenter, isEnabled() ? QIcon::Normal : QIcon::Disabled, QIcon::Off);
 
     painter.setPen(palette().buttonText().color());
-    const QRectF textRect(card.left(), contentTop + kIconSize + kIconTextSpacing, card.width(), kTextHeight);
+    const QRectF textRect(card.left(), contentTop + iconSize + kIconTextSpacing, card.width(), textHeight);
     painter.drawText(textRect, Qt::AlignHCenter | Qt::AlignTop, text());
 
 }

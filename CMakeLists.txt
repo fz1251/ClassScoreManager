@@ -55,6 +55,10 @@ set(APP_SOURCES
     src/models/ClassTableModel.cpp
     src/models/RecordListModel.cpp
     src/models/TemplateListModel.cpp
+    src/pages/RecordListPage.cpp
+    src/pages/StudentTablePage.cpp
+    src/pages/TemplateListPage.cpp
+    src/pages/WelcomePage.cpp
     src/windows/AboutInfoDialog.cpp
     src/widgets/HomeActionCard.cpp
     src/windows/ItemSelectionDialog.cpp
@@ -75,6 +79,10 @@ set(APP_HEADERS
     src/models/ClassTableModel.h
     src/models/RecordListModel.h
     src/models/TemplateListModel.h
+    src/pages/RecordListPage.h
+    src/pages/StudentTablePage.h
+    src/pages/TemplateListPage.h
+    src/pages/WelcomePage.h
     src/windows/AboutInfoDialog.h
     src/widgets/HomeActionCard.h
     src/windows/ItemSelectionDialog.h
@@ -87,7 +95,6 @@ set(APP_HEADERS
 
 set(APP_FORMS
     src/windows/ItemSelectionDialog.ui
-    src/windows/MainWindow.ui
     src/windows/PasteStudentsDialog.ui
     src/windows/SumExportDialog.ui
 )
@@ -113,8 +120,7 @@ add_executable(ClassScoreManager WIN32
     ${APP_RESOURCES}
 )
 
-# MainWindow.ui 的 customwidget 头文件写作 .\src\ui\xxx.h，
-# AUTOUIC 生成的头文件需要从项目根目录解析该相对路径（qmake 默认带 -I 项目根目录）
+# 项目根 include 暂予保留；剩余 .ui 全部迁移为纯代码后再评估是否仍需要
 target_include_directories(ClassScoreManager PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} ${APP_BUILD_INFO_DIR})
 add_dependencies(ClassScoreManager generate_build_info)
 
