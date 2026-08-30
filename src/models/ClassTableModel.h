@@ -42,24 +42,14 @@ public:
     void removeStudent (int displayIndex);
     void clearStudents();
 
-    // 积分记录相关函数
-    int  getCurRecordIndex() const;
-    void showRecordHistory(int index);
-    void hideRecordHistory();
+    // 积分记录编辑相关函数
     void newScoreRecord(const QString& newRecordName);
     void activateTemplate(int index);
     void saveScoreRecord();
-    void deleteRecordHistory(int index);
-    void clearScoreRecord();
 
-    // 积分模板相关函数
-    int  getCurTemplateIndex() const;
-    void showScoreTemplate(int index);
-    void hideScoreTemplate();
-    void newScoreTemplate(const ScoreTemplate& newTemplate);
-    void setTemplateDescription(const QString& newDescription);
-    void deleteScoreTemplate(int index);
-    void clearScoreTemplate();
+    // 预览状态(由主窗口传入，模型只负责按此渲染)
+    void setRecordPreviewIndex(int index);
+    void setTemplatePreviewIndex(int index);
 
     // 刷新全表格函数
     void resetTable();
@@ -94,7 +84,7 @@ private:
     bool canEditStudent = true;
     bool canEditGroup   = true;
     QVector<int> rowToIndex; // rowIndex[0,size-1]=>students[0,size-1]
-    int templateIndex, recordIndex;
-    int activatedTemplateIndex;
+    int previewRecordIndex = INVALID_INDEX;
+    int previewTemplateIndex = INVALID_INDEX;
 };
 

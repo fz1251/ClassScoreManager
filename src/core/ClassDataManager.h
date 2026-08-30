@@ -43,13 +43,15 @@ public:
     QStringList getStudentList () const;
     QStringList getTemplateList() const;
     QStringList getRecordList  () const;
+    int  getActivatedTemplateIndex() const;
     bool verifyTemplateName(const QString& templateName);
     bool verifyRecordName  (const QString& recordName);
     //数据增删与清空
     void addStudent (const QString      & newName);
     void addTemplate(const ScoreTemplate& newTemplate);
     void newRecord  (const QString      & recordName);
-    void saveRecord (int templateIndex);
+    void activateTemplate(int index);
+    void saveRecord ();
     QVector<qint32>& getTempRecord();
     void importStudents(const QStringList& newNames);
     void removeStudent (int index);
@@ -62,10 +64,13 @@ public:
 private:
     static constexpr quint64 CorrectFileHeader=0x0123456789abcdefull;
     void setDirty(bool isDirty);
+    void clearRecordDraft();
     bool m_hasData   = false;
     bool m_isNewFile = false;
     bool m_isDirty   = false;
     ScoreRecord tempRecord;
+    bool m_isRecordEditing = false;
+    int activatedTemplateIndex = -1;
     QString filePath;
     HeaderData header;
     SortSettings settings;

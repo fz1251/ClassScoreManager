@@ -3,11 +3,16 @@
 ClassTableModel::ClassTableModel(ClassDataManager* dataManager, QObject *parent)
     : QAbstractTableModel(parent)
     , manager(dataManager)
-    , templateIndex(INVALID_INDEX)
-    , recordIndex(INVALID_INDEX)
-    , activatedTemplateIndex(INVALID_INDEX)
 {
     Q_ASSERT(dataManager);
+    // 模板集合变化会影响当前模板列与模板预览列的取值
+    connect(manager,&ClassDataManager::templatesChanged,this,[this](){
+        if(rowCount() == 0)
+            return;
+        const QModelIndex topLeft = index(0, CurrentTemplate);
+        const QModelIndex bottomRight = index(rowCount() - 1, CurrentTemplate);
+        emit dataChanged(topLeft, bottomRight, {Qt::DisplayRole, Qt::ForegroundRole});
+    });
 }
 
 int ClassTableModel::rowCount(const QModelIndex &parent) const
@@ -49,14 +54,14 @@ QVariant ClassTableModel::data(const QModelIndex &index, int role) const
         case CurrentRecord:
             return manager->getTempRecord().at(rowToIndex[index.row()]);
         case CurrentTemplate:
-            if(isValidIndex(activatedTemplateIndex))
-                return templates().at(activatedTemplateIndex).values.at(rowToIndex[index.row()]);
+            if(isValidIndex(manager->getActivatedTemplateIndex()))
+                return templates().at(manager->getActivatedTemplateIndex()).values.at(rowToIndex[index.row()]);
             else
                 return 0;
         case RecordHistoryPreview:
-            return records().at(recordIndex).scores.at(rowToIndex[index.row()]);
+            return records().at(previewRecordIndex).scores.at(rowToIndex[index.row()]);
         case ScoreTemplatePreview:
-            return templates().at(templateIndex).values.at(rowToIndex[index.row()]);
+            return templates().at(previewTemplateIndex).values.at(rowToIndex[index.row()]);
         default :
             return QVariant();
         }
@@ -71,14 +76,14 @@ QVariant ClassTableModel::data(const QModelIndex &index, int role) const
             // return getScoreColor(manager->getTempRecord().at(rowToIndex[index.row()]));
             return getScoreColor(manager->getTempRecord().value(rowToIndex[index.row()], 0));
         case CurrentTemplate:
-            if(isValidIndex(activatedTemplateIndex))
-                return getScoreColor(templates().at(activatedTemplateIndex).values.at(rowToIndex[index.row()]));
+            if(isValidIndex(manager->getActivatedTemplateIndex()))
+                return getScoreColor(templates().at(manager->getActivatedTemplateIndex()).values.at(rowToIndex[index.row()]));
             else
                 return getScoreColor(0);
         case RecordHistoryPreview:
-            return getScoreColor(records().at(recordIndex).scores.at(rowToIndex[index.row()]));
+            return getScoreColor(records().at(previewRecordIndex).scores.at(rowToIndex[index.row()]));
         case ScoreTemplatePreview:
-            return getScoreColor(templates().at(templateIndex).values.at(rowToIndex[index.row()]));
+            return getScoreColor(templates().at(previewTemplateIndex).values.at(rowToIndex[index.row()]));
         default:
             return QVariant();
         }
@@ -169,7 +174,7 @@ bool ClassTableModel::setData(const QModelIndex &index, const QVariant &value, i
             bool ok;
             const int val = value.toInt(&ok);
             if(ok)
-                manager->templateAt(templateIndex).values[rowToIndex[index.row()]] = val;
+                manager->templateAt(previewTemplateIndex).values[rowToIndex[index.row()]] = val;
             return ok;
         }
         default:
@@ -336,119 +341,62 @@ void ClassTableModel::clearStudents()
     resetTable();
 }
 
-// 积分记录相关函数
-int ClassTableModel::getCurRecordIndex() const
-{
-    return recordIndex;
-}
-
-void ClassTableModel::showRecordHistory(int index)
-{
-    recordIndex = index;
-    showColumnWrapper(RecordHistoryPreview);
-}
-
-void ClassTableModel::hideRecordHistory()
-{
-    recordIndex = INVALID_INDEX;
-    hideColumnWrapper(RecordHistoryPreview);
-}
-
+// 积分记录编辑相关函数
 void ClassTableModel::newScoreRecord(const QString &newRecordName)
 {
     manager->newRecord(newRecordName);
-    activatedTemplateIndex = INVALID_INDEX;
     showColumnWrapper(CurrentRecord);
     showColumnWrapper(CurrentTemplate);
 }
 
 void ClassTableModel::activateTemplate(int index)
 {
-    activatedTemplateIndex = index;
+    manager->activateTemplate(index);
+    if(rowCount() == 0)
+        return;
+    const QModelIndex topLeft = this->index(0, CurrentTemplate);
+    const QModelIndex bottomRight = this->index(rowCount() - 1, CurrentTemplate);
+    emit dataChanged(topLeft, bottomRight, {Qt::DisplayRole, Qt::ForegroundRole});
 }
 
 void ClassTableModel::saveScoreRecord()
 {
-    manager->saveRecord(activatedTemplateIndex);
-    activatedTemplateIndex = INVALID_INDEX;
+    manager->saveRecord();
     hideColumnWrapper(CurrentRecord);
     hideColumnWrapper(CurrentTemplate);
 }
 
-void ClassTableModel::deleteRecordHistory(int index)
+// 预览状态(由主窗口传入，模型只负责按此渲染)
+void ClassTableModel::setRecordPreviewIndex(int index)
 {
-    manager->removeRecord(index);
-    if(index == recordIndex)
-        hideRecordHistory();
-    else
+    previewRecordIndex = index;
+    if(!isValidIndex(index))
     {
-        if(index < recordIndex)
-            recordIndex--;
+        hideColumnWrapper(RecordHistoryPreview);
+        return;
     }
+    showColumnWrapper(RecordHistoryPreview);
+    if(rowCount() == 0)
+        return;
+    const QModelIndex topLeft = this->index(0, RecordHistoryPreview);
+    const QModelIndex bottomRight = this->index(rowCount() - 1, RecordHistoryPreview);
+    emit dataChanged(topLeft, bottomRight, {Qt::DisplayRole, Qt::ForegroundRole});
 }
 
-void ClassTableModel::clearScoreRecord()
+void ClassTableModel::setTemplatePreviewIndex(int index)
 {
-    const bool hadRecordPreview = isValidIndex(recordIndex);
-    manager->clearRecords();
-    if(hadRecordPreview)
-        hideRecordHistory();
-}
-
-// 积分模板相关函数
-int ClassTableModel::getCurTemplateIndex() const
-{
-    return templateIndex;
-}
-
-void ClassTableModel::showScoreTemplate(int index)
-{
-    templateIndex = index;
+    previewTemplateIndex = index;
+    if(!isValidIndex(index))
+    {
+        hideColumnWrapper(ScoreTemplatePreview);
+        return;
+    }
     showColumnWrapper(ScoreTemplatePreview);
-}
-
-void ClassTableModel::hideScoreTemplate()
-{
-    templateIndex = INVALID_INDEX;
-    hideColumnWrapper(ScoreTemplatePreview);
-}
-
-void ClassTableModel::newScoreTemplate(const ScoreTemplate& newTemplate)
-{
-    manager->addTemplate(newTemplate);
-    showScoreTemplate(manager->getTemplates().count() - 1);
-}
-
-void ClassTableModel::setTemplateDescription(const QString &newDescription)
-{
-    if(isValidIndex(templateIndex))
-    {
-        manager->setTemplateDescription(templateIndex, newDescription);
-    }
-}
-
-void ClassTableModel::deleteScoreTemplate(int index)
-{
-    manager->removeTemplate(index);
-    if(index == templateIndex)
-        hideScoreTemplate();
-    else
-    {
-        if(index < templateIndex)
-            templateIndex--;
-    }
-    if(activatedTemplateIndex == index)
-        activatedTemplateIndex = INVALID_INDEX;
-    else if(index < activatedTemplateIndex)
-        activatedTemplateIndex--;
-}
-
-void ClassTableModel::clearScoreTemplate()
-{
-    const bool hadTemplatePreview = isValidIndex(templateIndex);
-    manager->clearTemplates();
-    if(hadTemplatePreview)
-        hideScoreTemplate();
+    if(rowCount() == 0)
+        return;
+    const QModelIndex topLeft = this->index(0, ScoreTemplatePreview);
+    const QModelIndex bottomRight = this->index(rowCount() - 1, ScoreTemplatePreview);
+    emit dataChanged(topLeft, bottomRight, {Qt::DisplayRole, Qt::ForegroundRole});
 }
 
 void ClassTableModel::resetTable()
@@ -466,9 +414,8 @@ void ClassTableModel::resetTable()
     hideColumnWrapper(CurrentTemplate);
     hideColumnWrapper(RecordHistoryPreview);
     hideColumnWrapper(ScoreTemplatePreview);
-    recordIndex = INVALID_INDEX;
-    templateIndex = INVALID_INDEX;
-    activatedTemplateIndex = INVALID_INDEX;
+    previewRecordIndex = INVALID_INDEX;
+    previewTemplateIndex = INVALID_INDEX;
 }
 
 void ClassTableModel::setStudentEditable(bool editable)

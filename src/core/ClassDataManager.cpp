@@ -56,6 +56,7 @@ void ClassDataManager::debugPrint()
 
 QString ClassDataManager::openFile(const QString& openFilePath)
 {
+    clearRecordDraft();
     filePath = openFilePath;
     QFile file(filePath);
     if(!file.open(QIODevice::ReadOnly))
@@ -101,6 +102,7 @@ QString ClassDataManager::openFile(const QString& openFilePath)
 
 void ClassDataManager::newFile()
 {
+    clearRecordDraft();
     m_hasData = true;
     m_isNewFile = true;
     m_isDirty = true;
@@ -136,6 +138,7 @@ void ClassDataManager::saveFile()
 
 void ClassDataManager::closeFile()
 {
+    clearRecordDraft();
     filePath.clear();
     settings.defaultSettings();
     students.clear();
@@ -166,7 +169,7 @@ bool ClassDataManager::isDirty() const
 
 bool ClassDataManager::isRecordUnsaved() const
 {
-    return !tempRecord.scores.isEmpty();
+    return m_isRecordEditing;
 }
 
 void ClassDataManager::setPreviousSettings(SortSettings curSettings)
@@ -279,6 +282,8 @@ void ClassDataManager::addStudent(const QString &newName)
         i.scores.append(0);
     for(auto& i : templates)
         i.values.append(0);
+    if(m_isRecordEditing)
+        tempRecord.scores.append(0);
     setDirty(true);
 }
 
@@ -294,18 +299,33 @@ void ClassDataManager::newRecord(const QString &recordName)
     tempRecord.description = recordName;
     tempRecord.scores.resize(students.size());
     tempRecord.scores.fill(0);
+    activatedTemplateIndex = -1;
+    m_isRecordEditing = true;
     setDirty(true);
 }
 
-void ClassDataManager::saveRecord(int templateIndex)
+void ClassDataManager::saveRecord()
 {
     tempRecord.saveTime = QDateTime::currentDateTime();
-    if(templateIndex >= 0 && templateIndex < templates.size())
+    if(activatedTemplateIndex >= 0 && activatedTemplateIndex < templates.size())
         for(int i = 0; i < tempRecord.scores.size(); i++)
-            tempRecord.scores[i] += templates.at(templateIndex).values[i];
+            tempRecord.scores[i] += templates.at(activatedTemplateIndex).values[i];
     records.append(tempRecord);
     tempRecord.scores.clear();
+    activatedTemplateIndex = -1;
+    m_isRecordEditing = false;
     emit recordsChanged();
+}
+
+int ClassDataManager::getActivatedTemplateIndex() const
+{
+    return activatedTemplateIndex;
+}
+
+void ClassDataManager::activateTemplate(int index)
+{
+    if(index >= 0 && index < templates.size())
+        activatedTemplateIndex = index;
 }
 
 QVector<qint32>& ClassDataManager::getTempRecord()
@@ -326,6 +346,8 @@ void ClassDataManager::importStudents(const QStringList &newNames)
         i.scores.append(zeros);
     for(auto& i : templates)
         i.values.append(zeros);
+    if(m_isRecordEditing)
+        tempRecord.scores.append(zeros);
     setDirty(true);
 }
 
@@ -340,11 +362,17 @@ void ClassDataManager::removeStudent(int index)
         i.scores.removeAt(index);
     for(auto& i : templates)
         i.values.removeAt(index);
+    if(m_isRecordEditing)
+        tempRecord.scores.removeAt(index);
     setDirty(true);
 }
 
 void ClassDataManager::removeTemplate(int index)
 {
+    if(activatedTemplateIndex == index)
+        activatedTemplateIndex = -1;
+    else if(index < activatedTemplateIndex)
+        activatedTemplateIndex--;
     templates.removeAt(index);
     setDirty(true);
     emit templatesChanged();
@@ -359,6 +387,7 @@ void ClassDataManager::removeRecord(int index)
 
 void ClassDataManager::clearStudents()
 {
+    clearRecordDraft();
     students.clear();
     templates.clear();
     records.clear();
@@ -369,6 +398,7 @@ void ClassDataManager::clearStudents()
 
 void ClassDataManager::clearTemplates()
 {
+    activatedTemplateIndex = -1;
     templates.clear();
     setDirty(true);
     emit templatesChanged();
@@ -379,6 +409,13 @@ void ClassDataManager::clearRecords()
     records.clear();
     setDirty(true);
     emit recordsChanged();
+}
+
+void ClassDataManager::clearRecordDraft()
+{
+    tempRecord = ScoreRecord();
+    m_isRecordEditing = false;
+    activatedTemplateIndex = -1;
 }
 
 void ClassDataManager::setDirty(bool isDirty)

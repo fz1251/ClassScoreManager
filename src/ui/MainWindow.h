@@ -79,6 +79,7 @@ private:
     void onFileClosed();
     void updateWindowTitle(const QString& fileName);
     void resetTable();
+    void updateRecordEditingActions();
     void updateRecordPreviewActions();
     void updateTemplatePreviewActions();
 
@@ -121,4 +122,6 @@ private:
     ClassTableModel* tableModel;
     RecordListModel* recordModel;
     TemplateListModel* templateModel;
+    int recordPreviewIndex = -1;
+    int templatePreviewIndex = -1;
 };

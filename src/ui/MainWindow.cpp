@@ -255,18 +255,14 @@ void MainWindow::on_action_NewScoreRecord_triggered()
             return ;
         }
 
-        ui->action_NewScoreRecord->setDisabled(true);
-        ui->action_SaveScoreRecord->setDisabled(false);
-        ui->action_UseScoreTemplate->setDisabled(false);
+        updateRecordEditingActions();
     }
 }
 
 void MainWindow::on_action_SaveScoreRecord_triggered()
 {
     saveScoreRecord();
-    ui->action_NewScoreRecord->setDisabled(false);
-    ui->action_SaveScoreRecord->setDisabled(true);
-    ui->action_UseScoreTemplate->setDisabled(true);
+    updateRecordEditingActions();
 }
 
 void MainWindow::on_action_UseScoreTemplate_triggered()
@@ -306,7 +302,7 @@ void MainWindow::on_action_DeleteRecordHistory_triggered()
 {
     QStringList recordList=manager->getRecordList();
     ItemSelectionDialog dialog(this,tr("选择积分记录对话框"),tr("选择您要删除的积分记录"),
-                                    recordList,tableModel->getCurRecordIndex());
+                                    recordList,recordPreviewIndex);
     if(dialog.exec()==QDialog::Accepted)
     {
         int index=dialog.selectedIndex();
@@ -334,7 +330,7 @@ void MainWindow::on_action_EditTemplate_triggered()
     bool ok;
     QString descriptionText=QInputDialog::getText(this,tr("修改积分模板对话框"),tr("输入新的积分模板名"),
                             QLineEdit::Normal,
-                            manager->getTemplates().at(tableModel->getCurTemplateIndex()).description,&ok);
+                            manager->getTemplates().at(templatePreviewIndex).description,&ok);
     if(ok)
     {
         if(!renameTemplate(descriptionText))
@@ -360,7 +356,7 @@ void MainWindow::on_action_DeleteTemplate_triggered()
 {
     QStringList templateList=manager->getTemplateList();
     ItemSelectionDialog dialog(this,tr("选择积分模板对话框"),tr("选择您要查看的积分模板"),
-                                    templateList,tableModel->getCurTemplateIndex());
+                                    templateList,templatePreviewIndex);
     if(dialog.exec()==QDialog::Accepted)
     {
         int index=dialog.selectedIndex();
@@ -407,7 +403,7 @@ void MainWindow::onFileLoaded()
     ui->action_DeleteStudent->setDisabled(false);
     ui->action_ClearStudents->setDisabled(false);
 
-    ui->action_NewScoreRecord->setDisabled(false);
+    updateRecordEditingActions();
     ui->action_ExportScoreSum->setDisabled(false);
     ui->action_ShowRecordHistory->setDisabled(false);
     ui->action_DeleteRecordHistory->setDisabled(false);
@@ -434,9 +430,7 @@ void MainWindow::onFileClosed()
     ui->action_DeleteStudent->setDisabled(true);
     ui->action_ClearStudents->setDisabled(true);
 
-    ui->action_NewScoreRecord->setDisabled(true);
-    ui->action_UseScoreTemplate->setDisabled(true);
-    ui->action_SaveScoreRecord->setDisabled(true);
+    updateRecordEditingActions();
     ui->action_ExportScoreSum->setDisabled(true);
     ui->action_ShowRecordHistory->setDisabled(true);
     ui->action_HideRecordHistory->setDisabled(true);
@@ -459,8 +453,18 @@ void MainWindow::updateWindowTitle(const QString &fileName)
         this->setWindowTitle(tr("[*]%1 - 班级积分管理系统").arg(fileName));
 }
 
+void MainWindow::updateRecordEditingActions()
+{
+    const bool isEditing = manager->isRecordUnsaved();
+    ui->action_NewScoreRecord->setDisabled(isEditing);
+    ui->action_SaveScoreRecord->setDisabled(!isEditing);
+    ui->action_UseScoreTemplate->setDisabled(!isEditing);
+}
+
 void MainWindow::resetTable()
 {
+    recordPreviewIndex = -1;
+    templatePreviewIndex = -1;
     tableModel->resetTable();
     updateRecordPreviewActions();
     updateTemplatePreviewActions();
@@ -468,12 +472,12 @@ void MainWindow::resetTable()
 
 void MainWindow::updateRecordPreviewActions()
 {
-    ui->action_HideRecordHistory->setDisabled(tableModel->getCurRecordIndex()==-1);
+    ui->action_HideRecordHistory->setDisabled(recordPreviewIndex == -1);
 }
 
 void MainWindow::updateTemplatePreviewActions()
 {
-    const bool hasPreview=tableModel->getCurTemplateIndex()!=-1;
+    const bool hasPreview = templatePreviewIndex != -1;
     ui->action_HideTemplate->setDisabled(!hasPreview);
     ui->action_EditTemplate->setDisabled(!hasPreview);
 }
@@ -556,7 +560,10 @@ void MainWindow::removeStudent(int displayIndex)
 
 void MainWindow::clearStudents()
 {
+    recordPreviewIndex = -1;
+    templatePreviewIndex = -1;
     tableModel->clearStudents();
+    updateRecordEditingActions();
     updateRecordPreviewActions();
     updateTemplatePreviewActions();
 }
@@ -619,31 +626,38 @@ void MainWindow::exportScoreSum()
 
 void MainWindow::showRecord(int index)
 {
-    if(index!=-1)
-    {
-        tableModel->showRecordHistory(index);
-        updateRecordPreviewActions();
-    }
+    if(index == -1)
+        return;
+    recordPreviewIndex = index;
+    tableModel->setRecordPreviewIndex(index);
+    updateRecordPreviewActions();
 }
 
 void MainWindow::hideRecord()
 {
-    tableModel->hideRecordHistory();
+    recordPreviewIndex = -1;
+    tableModel->setRecordPreviewIndex(-1);
     updateRecordPreviewActions();
 }
 
 void MainWindow::deleteRecord(int index)
 {
-    if(index!=-1)
-    {
-        tableModel->deleteRecordHistory(index);
-        updateRecordPreviewActions();
-    }
+    if(index == -1)
+        return;
+    manager->removeRecord(index);
+    if(index == recordPreviewIndex)
+        recordPreviewIndex = -1;
+    else if(index < recordPreviewIndex)
+        --recordPreviewIndex;
+    tableModel->setRecordPreviewIndex(recordPreviewIndex);
+    updateRecordPreviewActions();
 }
 
 void MainWindow::clearRecords()
 {
-    tableModel->clearScoreRecord();
+    manager->clearRecords();
+    recordPreviewIndex = -1;
+    tableModel->setRecordPreviewIndex(-1);
     updateRecordPreviewActions();
 }
 
@@ -654,47 +668,54 @@ void MainWindow::newTemplate()
     newTemplate.description=tr("未命名-%1").arg(QDateTime::currentDateTime()
                                                 .toString("yy/MM/dd hh:mm:ss:zzz"));
     newTemplate.values=QVector<qint32>(manager->getStudents().count());
-    tableModel->newScoreTemplate(newTemplate);
-    updateTemplatePreviewActions();
+    manager->addTemplate(newTemplate);
+    showTemplate(manager->getTemplates().count() - 1);
 }
 
 bool MainWindow::renameTemplate(const QString &newDescription)
 {
-    if(tableModel->getCurTemplateIndex()==-1)
+    if(templatePreviewIndex == -1)
         return false;
     if(!manager->verifyTemplateName(newDescription))
         return false;
-    tableModel->setTemplateDescription(newDescription);
+    manager->setTemplateDescription(templatePreviewIndex, newDescription);
     return true;
 }
 
 void MainWindow::showTemplate(int index)
 {
-    if(index!=-1)
-    {
-        tableModel->showScoreTemplate(index);
-        updateTemplatePreviewActions();
-    }
+    if(index == -1)
+        return;
+    templatePreviewIndex = index;
+    tableModel->setTemplatePreviewIndex(index);
+    updateTemplatePreviewActions();
 }
 
 void MainWindow::hideTemplate()
 {
-    tableModel->hideScoreTemplate();
+    templatePreviewIndex = -1;
+    tableModel->setTemplatePreviewIndex(-1);
     updateTemplatePreviewActions();
 }
 
 void MainWindow::deleteTemplate(int index)
 {
-    if(index!=-1)
-    {
-        tableModel->deleteScoreTemplate(index);
-        updateTemplatePreviewActions();
-    }
+    if(index == -1)
+        return;
+    manager->removeTemplate(index);
+    if(index == templatePreviewIndex)
+        templatePreviewIndex = -1;
+    else if(index < templatePreviewIndex)
+        --templatePreviewIndex;
+    tableModel->setTemplatePreviewIndex(templatePreviewIndex);
+    updateTemplatePreviewActions();
 }
 
 void MainWindow::clearTemplates()
 {
-    tableModel->clearScoreTemplate();
+    manager->clearTemplates();
+    templatePreviewIndex = -1;
+    tableModel->setTemplatePreviewIndex(-1);
     updateTemplatePreviewActions();
 }
 
