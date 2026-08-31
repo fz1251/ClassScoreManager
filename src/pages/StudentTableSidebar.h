@@ -24,6 +24,7 @@ public:
                             bool hasPreview, bool canPrevious, bool canNext);
     void setTemplateNameDraft(const QString &name);
     void setRecordEditingInProgress(bool isEditing);
+    void setStudentActionsEnabled(bool enabled);
     QString recordNameText() const;
     void setRecordNameText(const QString &text);
     void focusRecordNameEdit();
@@ -33,6 +34,8 @@ signals:
     void dragSortChanged(bool enabled);
     void nameEditChanged(bool enabled);
     void groupEditChanged(bool enabled);
+    void addStudentsRequested();
+    void deleteStudentRequested();
     void recordPreviousRequested();
     void recordNextRequested();
     void recordPreviewCloseRequested();
@@ -52,6 +55,8 @@ private:
     QLabel *studentCountLabel = nullptr;
     QLabel *recordCountLabel = nullptr;
     QLabel *templateCountLabel = nullptr;
+    QPushButton *addStudentButton = nullptr;
+    QPushButton *deleteStudentButton = nullptr;
     ExExpander *recordExpander = nullptr;
     QLabel *recordPreviewLabel = nullptr;
     QLabel *recordPositionLabel = nullptr;

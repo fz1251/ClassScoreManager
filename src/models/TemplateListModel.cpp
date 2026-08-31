@@ -21,7 +21,7 @@ QVariant TemplateListModel::data(const QModelIndex &index, int role) const
     if(!index.isValid() || index.row() < 0 || index.row() >= rowCount())
         return QVariant();
     if(role == Qt::DisplayRole)
-        return manager->getTemplates().at(index.row()).description;
+        return manager->getTemplateDisplayName(index.row());
     return QVariant();
 }
 

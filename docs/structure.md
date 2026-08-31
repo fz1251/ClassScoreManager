@@ -25,7 +25,7 @@ src/
 ├── pages/                      # 堆叠窗口页面（只建 UI、发信号，不含业务）
 │   ├── WelcomePage.h/.cpp      # 欢迎页：打开/新建两个入口卡片
 │   ├── StudentTablePage.h/.cpp # 班级表格页：左表格 + 右侧 StudentTableSidebar
-│   ├── StudentTableSidebar.h/.cpp # 侧栏：文件信息/表格选项/积分记录/积分模板 4 个 ExExpander
+│   ├── StudentTableSidebar.h/.cpp # 侧栏：文件信息/表格选项/学生操作/积分记录/积分模板 5 个 ExExpander
 │   ├── RecordListPage.h/.cpp   # 记录列表页：顶部工具行 + 多选列表
 │   └── TemplateListPage.h/.cpp # 模板列表页：顶部工具行 + 多选列表
 ├── delegates/                  # 表格单元格委托
@@ -37,7 +37,7 @@ src/
 │   ├── LineSpacedLabel.h/.cpp  # 可调节行距标签
 │   └── ShineLabel.h/.cpp       # 发光标题标签
 └── windows/                    # 主窗口与对话框（全部纯代码）
-    ├── MainWindow.h/.cpp       # 窗口层协调器：文件/学生/关于菜单，所有页面与模型的连接
+    ├── MainWindow.h/.cpp       # 窗口层协调器：文件/关于菜单，页面、侧栏与模型的信号连接
     ├── SumExportDialog.h/.cpp  # 积分导出对话框：只保留排序配置，确定/取消
     ├── ItemSelectionDialog.h/.cpp # 下拉选择对话框：删除学生、应用模板
     └── AboutInfoDialog.h/.cpp  # 关于对话框

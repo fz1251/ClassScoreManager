@@ -87,6 +87,24 @@ StudentTableSidebar::StudentTableSidebar(QWidget *parent)
     tableOptionsExpander->addContentWidget(tableOptionsBlock);
     contentLayout->addWidget(tableOptionsExpander);
 
+    // 学生操作折叠块：添加学生与删除学生，默认展开
+    auto *studentActionsExpander = new ExExpander(contentWidget);
+    studentActionsExpander->setHeader(tr("学生操作"));
+    studentActionsExpander->setExpandDirection(ExExpander::Down);
+
+    auto *studentActionsBlock = new QWidget;
+    auto *studentActionsLayout = new QHBoxLayout(studentActionsBlock);
+    studentActionsLayout->setContentsMargins(0, 0, 0, 0);
+    studentActionsLayout->setSpacing(6);
+    addStudentButton = new QPushButton(tr("添加学生"), studentActionsBlock);
+    deleteStudentButton = new QPushButton(tr("删除学生"), studentActionsBlock);
+    studentActionsLayout->addWidget(addStudentButton);
+    studentActionsLayout->addWidget(deleteStudentButton);
+
+    studentActionsExpander->addContentWidget(studentActionsBlock);
+    studentActionsExpander->setExpanded(true);
+    contentLayout->addWidget(studentActionsExpander);
+
     // 积分记录折叠块：当前查看的记录与上一条/下一条/关闭，默认展开
     recordExpander = new ExExpander(contentWidget);
     recordExpander->setHeader(tr("积分记录"));
@@ -199,6 +217,11 @@ StudentTableSidebar::StudentTableSidebar(QWidget *parent)
         emit groupEditChanged(state == Qt::Checked);
     });
 
+    connect(addStudentButton, &QPushButton::clicked,
+            this, &StudentTableSidebar::addStudentsRequested);
+    connect(deleteStudentButton, &QPushButton::clicked,
+            this, &StudentTableSidebar::deleteStudentRequested);
+
     connect(recordPreviousButton, &QPushButton::clicked,
             this, &StudentTableSidebar::recordPreviousRequested);
     connect(recordNextButton, &QPushButton::clicked,
@@ -287,6 +310,12 @@ void StudentTableSidebar::setRecordEditingInProgress(bool isEditing)
     newRecordButton->setEnabled(!isEditing);
     saveRecordButton->setEnabled(isEditing);
     applyTemplateButton->setEnabled(isEditing);
+}
+
+void StudentTableSidebar::setStudentActionsEnabled(bool enabled)
+{
+    addStudentButton->setEnabled(enabled);
+    deleteStudentButton->setEnabled(enabled);
 }
 
 QString StudentTableSidebar::recordNameText() const

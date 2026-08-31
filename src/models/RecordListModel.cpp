@@ -21,7 +21,7 @@ QVariant RecordListModel::data(const QModelIndex &index, int role) const
     if(!index.isValid() || index.row() < 0 || index.row() >= rowCount())
         return QVariant();
     if(role == Qt::DisplayRole)
-        return manager->getRecordList().at(index.row());
+        return manager->getRecordDisplayName(index.row());
     return QVariant();
 }
 

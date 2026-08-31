@@ -39,7 +39,6 @@ public:
     // 学生信息相关函数
     void importStudents(const QStringList& newNames);
     void removeStudent (int displayIndex);
-    void clearStudents();
 
     // 积分记录编辑相关函数
     void newScoreRecord(const QString& newRecordName);

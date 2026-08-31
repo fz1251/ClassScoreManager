@@ -41,8 +41,8 @@ public:
     const QVector<ScoreTemplate>& getTemplates()const;
     const QVector<ScoreRecord>&   getRecords()  const;
     QStringList getStudentList () const;
-    QStringList getTemplateList() const;
-    QStringList getRecordList  () const;
+    QString getTemplateDisplayName(int index) const;
+    QString getRecordDisplayName(int index) const;
     int  getActivatedTemplateIndex() const;
     bool verifyTemplateName(const QString& templateName);
     bool verifyRecordName  (const QString& recordName);
@@ -57,7 +57,6 @@ public:
     void removeStudent (int index);
     void removeTemplate(int index);
     void removeRecord  (int index);
-    void clearStudents();
     void clearTemplates();
     void clearRecords();
 

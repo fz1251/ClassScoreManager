@@ -326,12 +326,6 @@ void ClassTableModel::removeStudent(int displayIndex)
     endRemoveRows();
 }
 
-void ClassTableModel::clearStudents()
-{
-    manager->clearStudents();
-    resetTable();
-}
-
 // 积分记录编辑相关函数
 void ClassTableModel::newScoreRecord(const QString &newRecordName)
 {

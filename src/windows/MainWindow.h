@@ -1,8 +1,6 @@
 #pragma once
 
 #include <QCloseEvent>
-#include <QDragEnterEvent>
-#include <QDropEvent>
 #include <QMainWindow>
 #include <QMessageBox>
 #include <QString>
@@ -26,8 +24,6 @@ public:
     MainWindow(QWidget *parent = nullptr);
 
 protected:
-    void dragEnterEvent(QDragEnterEvent *event) override;
-    void dropEvent(QDropEvent *event) override;
     void closeEvent(QCloseEvent *event) override;
 
 private:
@@ -63,10 +59,8 @@ private:
     /*学生操作*/
     void addStudentsDialog();
     void deleteStudentDialog();
-    void clearStudentsWithConfirm();
     void importStudents(const QStringList& newNames);
     void removeStudent(int displayIndex);
-    void clearStudents();
 
     /*积分记录操作*/
     void createScoreRecordDraft();
@@ -115,9 +109,6 @@ private:
     QAction* action_SaveFile = nullptr;
     QAction* action_CloseFile = nullptr;
     QAction* action_ExitApp = nullptr;
-    QAction* action_AddStudent = nullptr;
-    QAction* action_DeleteStudent = nullptr;
-    QAction* action_ClearStudents = nullptr;
     QAction* action_AboutApp = nullptr;
     QAction* action_AboutQt = nullptr;
 

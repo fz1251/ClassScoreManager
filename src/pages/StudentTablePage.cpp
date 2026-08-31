@@ -28,7 +28,7 @@ StudentTablePage::StudentTablePage(QWidget *parent)
     m_tableView->setSelectionBehavior(QAbstractItemView::SelectRows);
     splitter->addWidget(m_tableView);
 
-    // 右侧边栏：文件信息、表格选项、记录与模板折叠块
+    // 右侧边栏：文件信息、表格选项、学生操作、记录与模板折叠块
     m_sidebar = new StudentTableSidebar(splitter);
     splitter->addWidget(m_sidebar);
 }

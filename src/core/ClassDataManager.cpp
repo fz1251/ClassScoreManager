@@ -236,22 +236,15 @@ QStringList ClassDataManager::getStudentList() const
     return studentList;
 }
 
-QStringList ClassDataManager::getTemplateList() const
+QString ClassDataManager::getTemplateDisplayName(int index) const
 {
-    QStringList templateList;
-    templateList.reserve(templates.size());
-    for(const auto& i : templates)
-        templateList.append(i.description);
-    return templateList;
+    return templates.at(index).description;
 }
 
-QStringList ClassDataManager::getRecordList() const
+QString ClassDataManager::getRecordDisplayName(int index) const
 {
-    QStringList recordList;
-    recordList.reserve(records.size());
-    for(const auto& i : records)
-        recordList.append(tr("%1 [%2]").arg(i.description).arg(i.saveTime.toString("yyyy/M/d")));
-    return recordList;
+    const ScoreRecord& record = records.at(index);
+    return tr("%1 [%2]").arg(record.description).arg(record.saveTime.toString("yyyy/M/d"));
 }
 
 bool ClassDataManager::verifyTemplateName(const QString &templateName)
@@ -377,17 +370,6 @@ void ClassDataManager::removeRecord(int index)
     records.removeAt(index);
     setDirty(true);
     emit recordsChanged();
-}
-
-void ClassDataManager::clearStudents()
-{
-    clearRecordDraft();
-    students.clear();
-    templates.clear();
-    records.clear();
-    setDirty(true);
-    emit recordsChanged();
-    emit templatesChanged();
 }
 
 void ClassDataManager::clearTemplates()
