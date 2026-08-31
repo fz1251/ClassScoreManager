@@ -70,6 +70,7 @@ private:
     void activateTemplate(int index);
     void exportScoreSum(const QVector<int>& recordIndices);
     void exportSelectedRecords();
+    void selectRecordToView();
     void showRecord(int index);
     void hideRecord();
     void showPreviousRecord();
@@ -84,6 +85,7 @@ private:
     void newTemplateFromSidebar();
     void updateTemplateName(const QString& newDescription);
     void discardTemplateNameEdit();
+    void selectTemplateToView();
     void showTemplate(int index);
     void hideTemplate();
     void showPreviousTemplate();
@@ -108,7 +110,6 @@ private:
     QAction* action_NewFile = nullptr;
     QAction* action_SaveFile = nullptr;
     QAction* action_CloseFile = nullptr;
-    QAction* action_ExitApp = nullptr;
     QAction* action_AboutApp = nullptr;
     QAction* action_AboutQt = nullptr;
 

@@ -75,7 +75,7 @@
    - 菜单与 QAction 使用独立的 `createActions()` / `createMenus()`；动作连接一律显式 `connect`，不依赖 `connectSlotsByName`。
 5. 页面类边界：
    - 页面类只创建控件、暴露必要接口、发送信号；不得包含文件、记录、模板业务逻辑。
-   - 状态归属：数据与草稿归 manager，会话/预览状态归窗口层，渲染状态可留在模型内部。
+   - 状态归属：数据与草稿归 manager，会话/查看状态归窗口层，渲染状态可留在模型内部。
 6. CMake：
    - 新建页面/对话框类必须同时加入 `APP_SOURCES` 和 `APP_HEADERS`。
    - 项目不使用 `.ui`，CMake 不启用 `AUTOUIC`，也不使用 `APP_FORMS`。

@@ -3,9 +3,9 @@
 #include "../widgets/ShineLabel.h"
 #include <QFont>
 #include <QHBoxLayout>
+#include <QIcon>
 #include <QSizePolicy>
 #include <QSpacerItem>
-#include <QStyle>
 #include <QVBoxLayout>
 
 WelcomePage::WelcomePage(QWidget *parent)
@@ -37,7 +37,7 @@ WelcomePage::WelcomePage(QWidget *parent)
 
     // 打开文件卡片
     auto *openFileCard = new HomeActionCard(tr("打开文件"), this);
-    openFileCard->setIcon(style()->standardIcon(QStyle::SP_DialogOpenButton, nullptr, this));
+    openFileCard->setIcon(QIcon(QStringLiteral(":/icons/resources/icons/open-file.svg")));
     cardLayout->addWidget(openFileCard);
 
     // 两张卡片之间的固定间距
@@ -45,7 +45,7 @@ WelcomePage::WelcomePage(QWidget *parent)
 
     // 新建文件卡片
     auto *newFileCard = new HomeActionCard(tr("新建文件"), this);
-    newFileCard->setIcon(style()->standardIcon(QStyle::SP_FileIcon, nullptr, this));
+    newFileCard->setIcon(QIcon(QStringLiteral(":/icons/resources/icons/new-file.svg")));
     cardLayout->addWidget(newFileCard);
 
     cardLayout->addItem(new QSpacerItem(40, 20, QSizePolicy::Expanding, QSizePolicy::Minimum));

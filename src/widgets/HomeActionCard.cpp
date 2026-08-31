@@ -9,8 +9,8 @@
 
 namespace
 {
-constexpr int kWidgetWidth{220};
-constexpr int kWidgetHeight{270};
+constexpr int kWidgetWidth{205};
+constexpr int kWidgetHeight{260};
 constexpr int kCardLeft{10};
 constexpr int kCardTop{16};
 constexpr int kCardRight{kCardLeft};

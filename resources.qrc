@@ -2,5 +2,7 @@
     <qresource prefix="/icons">
         <file>resources/about-dialog-close.svg</file>
         <file>resources/about-dialog-close-hovered.svg</file>
+        <file>resources/icons/open-file.svg</file>
+        <file>resources/icons/new-file.svg</file>
     </qresource>
 </RCC>

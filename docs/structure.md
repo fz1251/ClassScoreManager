@@ -19,13 +19,13 @@ src/
 │   ├── ClassDataManager.h/.cpp # 唯一数据源：学生/模板/记录/草稿/排序设置/文件读写
 │   └── ScoreSumReport.h/.cpp   # 按排序设置生成积分求和 HTML 报告
 ├── models/                     # Qt Model/View 模型
-│   ├── ClassTableModel.h/.cpp  # 学生表格：列显隐、编辑开关、预览索引、拖拽排序
+│   ├── ClassTableModel.h/.cpp  # 学生表格：列显隐、编辑开关、查看索引、拖拽排序
 │   ├── RecordListModel.h/.cpp  # 积分记录列表模型：recordsChanged 后重置
 │   └── TemplateListModel.h/.cpp# 积分模板列表模型：templatesChanged 后重置
 ├── pages/                      # 堆叠窗口页面（只建 UI、发信号，不含业务）
-│   ├── WelcomePage.h/.cpp      # 欢迎页：打开/新建两个入口卡片
+│   ├── WelcomePage.h/.cpp      # 欢迎页：打开/新建两个入口卡片，使用 resources/icons 矢量图标
 │   ├── StudentTablePage.h/.cpp # 班级表格页：左表格 + 右侧 StudentTableSidebar
-│   ├── StudentTableSidebar.h/.cpp # 侧栏：文件信息/表格选项/学生操作/积分记录/积分模板 5 个 ExExpander
+│   ├── StudentTableSidebar.h/.cpp # 侧栏：5 个 ExExpander；记录/模板块默认展开，支持查看/退出查看与上下项导航
 │   ├── RecordListPage.h/.cpp   # 记录列表页：顶部工具行 + 多选列表
 │   └── TemplateListPage.h/.cpp # 模板列表页：顶部工具行 + 多选列表
 ├── delegates/                  # 表格单元格委托
@@ -39,7 +39,7 @@ src/
 └── windows/                    # 主窗口与对话框（全部纯代码）
     ├── MainWindow.h/.cpp       # 窗口层协调器：文件/关于菜单，页面、侧栏与模型的信号连接
     ├── SumExportDialog.h/.cpp  # 积分导出对话框：只保留排序配置，确定/取消
-    ├── ItemSelectionDialog.h/.cpp # 下拉选择对话框：删除学生、应用模板
+    ├── ItemSelectionDialog.h/.cpp # 下拉选择对话框：删除学生、应用模板、选择查看记录/模板
     └── AboutInfoDialog.h/.cpp  # 关于对话框
 ```
 
@@ -126,16 +126,21 @@ flowchart LR
     EmitRecords --> FilePreview[updateFilePreview 更新数量]
 ```
 
-### 4.3 记录 / 模板预览
+### 4.3 记录 / 模板查看
 
 ```mermaid
 flowchart LR
     Double[列表双击] --> Show[MainWindow::showRecord / showTemplate]
-    Nav[侧栏 前 / 后] --> Show
+    View[侧栏 查看记录/模板] --> Select[ItemSelectionDialog 选择条目]
+    Select --> Show
+    Nav[侧栏 上一项/下一项] --> Show
+    Exit[侧栏 退出查看] --> Hide[MainWindow::hideRecord / hideTemplate]
     Show --> SetPreview[tableModel->setRecordPreviewIndex / setTemplatePreviewIndex]
-    SetPreview --> Column[表格显示对应预览列]
+    Hide --> SetPreview
+    SetPreview --> Column[表格显示对应查看列]
     Show --> SidebarSet[侧栏 setRecordPreview / setTemplatePreview]
-    SidebarSet --> Pos[更新描述文字与 x/x]
+    Hide --> SidebarSet
+    SidebarSet --> Pos[更新查看标题与 x/x]
 ```
 
 ### 4.4 新建 / 改名积分模板
@@ -173,6 +178,6 @@ flowchart LR
 | 状态 | 归属 |
 |---|---|
 | 学生、模板、记录、记录草稿、排序设置、脏标记 | `ClassDataManager` |
-| 当前文件名、记录/模板预览索引、页面会话状态 | `MainWindow` |
-| 表格列显隐、行排序映射、编辑开关、预览渲染状态 | `ClassTableModel` |
+| 当前文件名、记录/模板查看索引、页面会话状态 | `MainWindow` |
+| 表格列显隐、行排序映射、编辑开关、查看列渲染状态 | `ClassTableModel` |
 | 按钮可用性、折叠块展开状态、列表选中状态 | 各页面 / `StudentTableSidebar` |

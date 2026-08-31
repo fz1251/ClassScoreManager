@@ -26,6 +26,7 @@
 #include <QFileInfo>
 #include <QHBoxLayout>
 #include <QInputDialog>
+#include <QKeySequence>
 #include <QListView>
 #include <QMenu>
 #include <QMenuBar>
@@ -134,6 +135,8 @@ MainWindow::MainWindow(QWidget *parent)
             this, &MainWindow::applyTemplateDialog);
 
     // 侧栏记录与模板预览块
+    connect(studentTablePage->sidebar(), &StudentTableSidebar::recordViewRequested,
+            this, &MainWindow::selectRecordToView);
     connect(studentTablePage->sidebar(), &StudentTableSidebar::recordPreviousRequested,
             this, &MainWindow::showPreviousRecord);
     connect(studentTablePage->sidebar(), &StudentTableSidebar::recordNextRequested,
@@ -142,6 +145,8 @@ MainWindow::MainWindow(QWidget *parent)
             this, &MainWindow::hideRecord);
     connect(studentTablePage->sidebar(), &StudentTableSidebar::newTemplateRequested,
             this, &MainWindow::newTemplateFromSidebar);
+    connect(studentTablePage->sidebar(), &StudentTableSidebar::templateViewRequested,
+            this, &MainWindow::selectTemplateToView);
     connect(studentTablePage->sidebar(), &StudentTableSidebar::templatePreviousRequested,
             this, &MainWindow::showPreviousTemplate);
     connect(studentTablePage->sidebar(), &StudentTableSidebar::templateNextRequested,
@@ -200,15 +205,17 @@ void MainWindow::createActions()
 {
     /*文件菜单动作*/
     action_OpenFile = new QAction(tr("打开"), this);
+    action_OpenFile->setShortcut(QKeySequence::Open);
     action_NewFile = new QAction(tr("新建"), this);
+    action_NewFile->setShortcut(QKeySequence::New);
     action_SaveFile = new QAction(tr("保存"), this);
+    action_SaveFile->setShortcut(QKeySequence::Save);
     action_CloseFile = new QAction(tr("关闭"), this);
-    action_ExitApp = new QAction(tr("退出程序"), this);
+    action_CloseFile->setShortcut(QKeySequence::Close);
     connect(action_OpenFile, &QAction::triggered, this, &MainWindow::openFileDialog);
     connect(action_NewFile, &QAction::triggered, this, &MainWindow::createNewFile);
     connect(action_SaveFile, &QAction::triggered, this, &MainWindow::saveFile);
     connect(action_CloseFile, &QAction::triggered, this, &MainWindow::closeFileWithConfirm);
-    connect(action_ExitApp, &QAction::triggered, this, &MainWindow::close);
 
     /*关于菜单动作*/
     action_AboutApp = new QAction(tr("关于本程序"), this);
@@ -226,8 +233,6 @@ void MainWindow::createMenus()
     menu_File->addAction(action_NewFile);
     menu_File->addAction(action_SaveFile);
     menu_File->addAction(action_CloseFile);
-    menu_File->addSeparator();
-    menu_File->addAction(action_ExitApp);
 
     QMenu *menu_About = menubar->addMenu(tr("关于"));
     menu_About->addAction(action_AboutApp);
@@ -423,6 +428,7 @@ void MainWindow::updateRecordPreviewPanel()
         positionText = tr("%1/%2").arg(recordPreviewIndex + 1).arg(recordCount);
     }
     studentTablePage->sidebar()->setRecordPreview(displayText, positionText, hasPreview,
+                                                   recordCount > 0,
                                                    hasPreview && recordPreviewIndex > 0,
                                                    hasPreview && recordPreviewIndex < recordCount - 1);
 }
@@ -439,6 +445,7 @@ void MainWindow::updateTemplatePreviewPanel()
         positionText = tr("%1/%2").arg(templatePreviewIndex + 1).arg(templateCount);
     }
     studentTablePage->sidebar()->setTemplatePreview(displayText, positionText, hasPreview,
+                                                     templateCount > 0,
                                                      hasPreview && templatePreviewIndex > 0,
                                                      hasPreview && templatePreviewIndex < templateCount - 1);
     if(hasPreview)
@@ -595,6 +602,23 @@ void MainWindow::exportSelectedRecords()
     exportScoreSum(recordIndices);
 }
 
+void MainWindow::selectRecordToView()
+{
+    const auto& records = manager->getRecords();
+    if(records.isEmpty())
+        return;
+
+    QStringList recordNames;
+    recordNames.reserve(records.size());
+    for(int i = 0; i < records.size(); ++i)
+        recordNames.append(manager->getRecordDisplayName(i));
+
+    ItemSelectionDialog dialog(this, tr("选择积分记录对话框"), tr("选择您要查看的积分记录"),
+                               recordNames, recordPreviewIndex);
+    if(dialog.exec() == QDialog::Accepted && dialog.selectedIndex() != -1)
+        showRecord(dialog.selectedIndex());
+}
+
 void MainWindow::showRecord(int index)
 {
     if(index < 0 || index >= manager->getRecords().size())
@@ -697,6 +721,23 @@ void MainWindow::newTemplateFromSidebar()
 {
     newTemplate();
     studentTablePage->sidebar()->focusTemplateNameEdit();
+}
+
+void MainWindow::selectTemplateToView()
+{
+    const auto& templates = manager->getTemplates();
+    if(templates.isEmpty())
+        return;
+
+    QStringList templateNames;
+    templateNames.reserve(templates.size());
+    for(int i = 0; i < templates.size(); ++i)
+        templateNames.append(manager->getTemplateDisplayName(i));
+
+    ItemSelectionDialog dialog(this, tr("选择积分模板对话框"), tr("选择您要查看的积分模板"),
+                               templateNames, templatePreviewIndex);
+    if(dialog.exec() == QDialog::Accepted && dialog.selectedIndex() != -1)
+        showTemplate(dialog.selectedIndex());
 }
 
 void MainWindow::showTemplate(int index)

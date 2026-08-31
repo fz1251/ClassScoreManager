@@ -71,7 +71,7 @@
   - `src/pages/StudentTablePage`
   - `src/pages/RecordListPage`
   - `src/pages/TemplateListPage`
-- `StudentTablePage` 右侧为 `StudentTableSidebar`，用 ExWidgets 的 `ExExpander` 组织文件信息、表格选项、学生操作、积分记录、积分模板五个折叠块；学生操作块包含添加学生与删除学生按钮，积分记录块包含预览导航、新建/应用模板、名称输入与保存（新建直接开草稿，保存时校验并填写名称），积分模板块包含预览导航、新建模板与改名编辑。
+- `StudentTablePage` 右侧为 `StudentTableSidebar`，用 ExWidgets 的 `ExExpander` 组织文件信息、表格选项、学生操作、积分记录、积分模板五个折叠块；文件信息块标注未保存状态，积分记录块与积分模板块默认展开，均提供查看/退出查看与上下项图标导航；学生操作块包含添加学生与删除学生按钮，积分记录块还包含新建/应用模板、名称输入与保存（新建直接开草稿，保存时校验并填写名称），积分模板块还包含新建模板与改名编辑。
 - `RecordListPage`、`TemplateListPage` 支持多选，顶部有新建、导出/删除选中、清空工具按钮。
 - `src/windows` 的 `AboutInfoDialog`、`ItemSelectionDialog`、`MainWindow`、`SumExportDialog` 均为纯代码实现。
 - 学生添加与批量导入合并为同一个多行输入入口。
@@ -102,8 +102,8 @@
 
 ## 11. 应用图标
 
-- 图标文件：`resources/icon.ico`。
-- 通过 CMake 生成的 RC 文件设置。
+- 应用图标：`resources/icon.ico`，通过 CMake 生成的 RC 文件设置。
+- 欢迎页打开/新建图标：`resources/icons/open-file.svg`、`resources/icons/new-file.svg`，通过 `resources.qrc` 打包。
 
 ## 12. 待办
 
