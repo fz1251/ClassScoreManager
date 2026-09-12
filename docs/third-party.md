@@ -17,7 +17,7 @@
 
 - 子模块路径：`third_party/FluentUIStyle`
 - 上游仓库：https://github.com/XHY-ChuJian/FluentUIStyle.git
-- 当前固定提交：`8d48defc9b8cb8b21cb86eca355cb4c47cb8e714`
+- 当前固定提交：`7d25b77e085a53b0360ca653a2acc10af54e951f`
 - 用途：
   - `fluentui3style/`：`FluentUI3Style` 全局 QStyle，随程序直接实例化使用。
   - `ExWidgets/`：`ExWidgets::ExWidgets` 扩展控件库。

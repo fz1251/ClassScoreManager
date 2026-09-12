@@ -104,11 +104,3 @@
 
 - 应用图标：`resources/icon.ico`，通过 CMake 生成的 RC 文件设置。
 - 欢迎页打开/新建图标：`resources/icons/open-file.svg`、`resources/icons/new-file.svg`，通过 `resources.qrc` 打包。
-
-## 12. 待办
-
-1. `AboutInfoDialog` 从手写 DWM/QWindowKit 逻辑迁移到 `ExWidgets::Frameless`。
-2. 编写 README（项目说明、构建与使用方式）。
-3. 配置 clang-tidy 作为代码格式化工具；astyle 对复杂 lambda 表达式处理不佳，暂不作为标准。
-4. 新 Qt 5.15.19 稳定后清理旧 Qt 5.15.2。
-5. 软件图标等视觉资源在开发最后阶段统一处理。

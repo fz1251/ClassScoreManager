@@ -45,7 +45,7 @@
 2. 如需调用 PowerShell 命令（如 `Select-String`、`Get-Content` 等），必须显式使用 PowerShell 7，即 `pwsh -NoProfile -ExecutionPolicy Bypass -Command "[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; ..."` 调用并指定 UTF-8 编码；不要再使用 PowerShell 5.1（`powershell.exe`）。
 3. 如需临时写代码验证 Qt 行为，把验证程序放进 `C:\Users\dell\Desktop\C++\projects\widget_demo`，由用户选择 Qt 5.15.19（项目当前套件）、5.15.2 或 6.8.3 编译；助手没有视觉能力，交付验证程序时必须明确写出需要用户观察什么现象。
 4. 不要做无意义的静态验证（括号配对、残留字符串搜索、`git diff --check` 等）；编译和用户测试足以发现全部问题，把算力和上下文留给实际修改。
-5. 用 Python 处理 Windows 路径时，普通字符串里的 `\` 会被当成转义符并吃掉字符；必须使用 raw string（`r'C:\path'`）、正斜杠或双反斜杠。写临时 Python 脚本时优先用单引号 heredoc（`<<'PY'`）。
+5. 用 Python 处理 Windows 路径时，普通字符串里的 `\` 会被当成转义符并吃掉字符；必须使用 raw string（`r'C:\path'`）、正斜杠或双反斜杠。
 
 ### 2.6 交付物与变更表达
 
@@ -88,8 +88,9 @@
   - 若编译命令中出现 Strawberry Perl 的 `c++.exe` / `gcc.exe`，说明 build 目录被错误环境污染，删除该 build 目录后用预设重新配置。
 - 全局样式：`FluentUI3Style` 随项目构建；Fluent 属性头写作 `#include "fluentui3styleproperties.h"`。
 - UI 状态：全部界面均为纯代码，不包含 `.ui` 文件。
-- 详细项目上下文（Qt 重建、CMake 细节、部署、模块结构、待办）见 `docs/project-context.md`。
+- 详细项目上下文（Qt 重建、CMake 细节、部署、模块结构）见 `docs/project-context.md`。
 - 第三方库与子模块更新见 `docs/third-party.md`。
+- 待办事项见 `docs/todo.md`。
 
 ## 4. 提交信息规范（C++/Qt 项目版）
 
