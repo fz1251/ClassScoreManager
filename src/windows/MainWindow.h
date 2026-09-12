@@ -13,6 +13,7 @@ class QTabBar;
 class ClassDataManager;
 class ClassTableModel;
 class RecordListPage;
+class StudentSearchModel;
 class StudentTablePage;
 class TemplateListPage;
 
@@ -46,6 +47,7 @@ private:
     void updateRecordEditingActions();
     void updateRecordPreviewPanel();
     void updateTemplatePreviewPanel();
+    void syncListPageSelection();
 
     /*文件操作*/
     void openFileDialog();
@@ -61,6 +63,7 @@ private:
     void deleteStudentDialog();
     void importStudents(const QStringList& newNames);
     void removeStudent(int displayIndex);
+    void selectStudentFromSearch(int resultRow);
 
     /*积分记录操作*/
     void createScoreRecordDraft();
@@ -114,6 +117,7 @@ private:
 
     ClassDataManager* manager = nullptr;
     ClassTableModel* tableModel = nullptr;
+    StudentSearchModel* searchModel = nullptr;
     ::StudentTablePage* studentTablePage = nullptr;
     RecordListPage* recordListPage = nullptr;
     TemplateListPage* templateListPage = nullptr;

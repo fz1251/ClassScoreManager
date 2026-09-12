@@ -1,6 +1,7 @@
 #include "StudentTableSidebar.h"
 #include "exexpander.h"
 #include "fluentui3styleproperties.h"
+#include <QAbstractItemModel>
 #include <QCheckBox>
 #include <QFont>
 #include <QVariant>
@@ -8,6 +9,7 @@
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QLineEdit>
+#include <QListView>
 #include <QPushButton>
 #include <QResizeEvent>
 #include <QScrollArea>
@@ -91,19 +93,40 @@ StudentTableSidebar::StudentTableSidebar(QWidget *parent)
     tableOptionsExpander->addContentWidget(tableOptionsBlock);
     contentLayout->addWidget(tableOptionsExpander);
 
-    // 学生操作折叠块：添加学生与删除学生，默认展开
+    // 学生操作折叠块：添加/删除学生按钮与按姓名搜索学生的结果列表，默认展开
     auto *studentActionsExpander = new ExExpander(contentWidget);
     studentActionsExpander->setHeader(tr("学生操作"));
     studentActionsExpander->setExpandDirection(ExExpander::Down);
 
     auto *studentActionsBlock = new QWidget;
-    auto *studentActionsLayout = new QHBoxLayout(studentActionsBlock);
+    auto *studentActionsLayout = new QVBoxLayout(studentActionsBlock);
     studentActionsLayout->setContentsMargins(0, 0, 0, 0);
     studentActionsLayout->setSpacing(6);
+
+    auto *studentButtonLayout = new QHBoxLayout;
+    studentButtonLayout->setContentsMargins(0, 0, 0, 0);
+    studentButtonLayout->setSpacing(6);
     addStudentButton = new QPushButton(tr("添加学生"), studentActionsBlock);
     deleteStudentButton = new QPushButton(tr("删除学生"), studentActionsBlock);
-    studentActionsLayout->addWidget(addStudentButton);
-    studentActionsLayout->addWidget(deleteStudentButton);
+    studentButtonLayout->addWidget(addStudentButton);
+    studentButtonLayout->addWidget(deleteStudentButton);
+    studentActionsLayout->addLayout(studentButtonLayout);
+
+    // 搜索框：输入即时过滤，匹配结果由 StudentSearchModel 提供
+    studentSearchEdit = new QLineEdit(studentActionsBlock);
+    studentSearchEdit->setPlaceholderText(tr("输入姓名搜索学生"));
+    studentSearchEdit->setClearButtonEnabled(true);
+    studentActionsLayout->addWidget(studentSearchEdit);
+
+    // 结果列表：高度随结果数变化，无结果时整块隐藏
+    studentSearchView = new QListView(studentActionsBlock);
+    studentSearchView->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    studentSearchView->setVisible(false);
+    studentActionsLayout->addWidget(studentSearchView);
+
+    studentSearchHintLabel = new QLabel(tr("未找到匹配的学生"), studentActionsBlock);
+    studentSearchHintLabel->setVisible(false);
+    studentActionsLayout->addWidget(studentSearchHintLabel);
 
     studentActionsExpander->addContentWidget(studentActionsBlock);
     studentActionsExpander->setExpanded(true);
@@ -274,6 +297,11 @@ StudentTableSidebar::StudentTableSidebar(QWidget *parent)
             this, &StudentTableSidebar::addStudentsRequested);
     connect(deleteStudentButton, &QPushButton::clicked,
             this, &StudentTableSidebar::deleteStudentRequested);
+    connect(studentSearchEdit, &QLineEdit::textChanged,
+            this, &StudentTableSidebar::studentSearchTextChanged);
+    connect(studentSearchView, &QListView::clicked, this, [this](const QModelIndex &index) {
+        emit studentSearchResultActivated(index.row());
+    });
 
     connect(recordViewButton, &QPushButton::clicked,
             this, &StudentTableSidebar::recordViewRequested);
@@ -393,6 +421,23 @@ void StudentTableSidebar::updateTemplatePreviewTitle()
         templatePreviewTitle, Qt::ElideRight, qMax(0, templatePreviewLabel->width())));
 }
 
+void StudentTableSidebar::updateStudentSearchPanel()
+{
+    const QAbstractItemModel *model = studentSearchView->model();
+    const int resultCount = model ? model->rowCount() : 0;
+    const bool searching = !studentSearchEdit->text().trimmed().isEmpty();
+    studentSearchView->setVisible(resultCount > 0);
+    studentSearchHintLabel->setVisible(searching && resultCount == 0);
+    if(resultCount > 0)
+    {
+        // 列表高度跟随结果数，超过5项后由列表内部滚动
+        constexpr int maximumVisibleRows = 5;
+        const int rowHeight = studentSearchView->sizeHintForRow(0);
+        studentSearchView->setFixedHeight(rowHeight * qMin(resultCount, maximumVisibleRows)
+                                          + 2 * studentSearchView->frameWidth());
+    }
+}
+
 void StudentTableSidebar::setTemplateNameDraft(const QString &name)
 {
     templateNameEdit->setText(name);
@@ -409,6 +454,14 @@ void StudentTableSidebar::setStudentActionsEnabled(bool enabled)
 {
     addStudentButton->setEnabled(enabled);
     deleteStudentButton->setEnabled(enabled);
+}
+
+void StudentTableSidebar::setStudentSearchModel(QAbstractItemModel *model)
+{
+    studentSearchView->setModel(model);
+    connect(model, &QAbstractItemModel::modelReset,
+            this, &StudentTableSidebar::updateStudentSearchPanel);
+    updateStudentSearchPanel();
 }
 
 QString StudentTableSidebar::recordNameText() const

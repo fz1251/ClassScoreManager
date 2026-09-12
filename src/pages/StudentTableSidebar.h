@@ -4,8 +4,10 @@
 #include <QWidget>
 
 class ExExpander;
+class QAbstractItemModel;
 class QLabel;
 class QLineEdit;
+class QListView;
 class QPushButton;
 class QResizeEvent;
 
@@ -26,6 +28,7 @@ public:
     void setTemplateNameDraft(const QString &name);
     void setRecordEditingInProgress(bool isEditing);
     void setStudentActionsEnabled(bool enabled);
+    void setStudentSearchModel(QAbstractItemModel *model);
     QString recordNameText() const;
     void setRecordNameText(const QString &text);
     void focusRecordNameEdit();
@@ -37,6 +40,8 @@ signals:
     void groupEditChanged(bool enabled);
     void addStudentsRequested();
     void deleteStudentRequested();
+    void studentSearchTextChanged(const QString &text);
+    void studentSearchResultActivated(int resultRow);
     void recordViewRequested();
     void recordPreviousRequested();
     void recordNextRequested();
@@ -58,6 +63,7 @@ protected:
 private:
     void updateRecordPreviewTitle();
     void updateTemplatePreviewTitle();
+    void updateStudentSearchPanel();
 
     // 界面元素指针：构造函数中统一创建，供其他成员函数访问
     QLabel *fileNameLabel = nullptr;
@@ -66,6 +72,9 @@ private:
     QLabel *templateCountLabel = nullptr;
     QPushButton *addStudentButton = nullptr;
     QPushButton *deleteStudentButton = nullptr;
+    QLineEdit *studentSearchEdit = nullptr;
+    QListView *studentSearchView = nullptr;
+    QLabel *studentSearchHintLabel = nullptr;
     ExExpander *recordExpander = nullptr;
     QLabel *recordPreviewLabel = nullptr;
     QLabel *recordPositionLabel = nullptr;

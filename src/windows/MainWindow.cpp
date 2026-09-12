@@ -6,6 +6,7 @@
 #include "../delegates/TemplateSpinBoxDelegate.h"
 #include "../models/ClassTableModel.h"
 #include "../models/RecordListModel.h"
+#include "../models/StudentSearchModel.h"
 #include "../models/TemplateListModel.h"
 #include "../pages/RecordListPage.h"
 #include "../pages/StudentTablePage.h"
@@ -92,6 +93,10 @@ MainWindow::MainWindow(QWidget *parent)
     recordListPage->setListModel(recordModel);
     templateListPage->setListModel(templateModel);
 
+    // 学生搜索模型：侧栏展示匹配结果，MainWindow 负责把结果行换算成表格行
+    searchModel = new StudentSearchModel(manager, this);
+    studentTablePage->sidebar()->setStudentSearchModel(searchModel);
+
     // 表格单元格委托
     tableView->setItemDelegateForColumn(ClassTableModel::CurrentRecord, new ScoreExprDelegate(this));
     tableView->setItemDelegateForColumn(ClassTableModel::GroupNumber, new GroupSpinBoxDelegate(this));
@@ -127,6 +132,21 @@ MainWindow::MainWindow(QWidget *parent)
             this, &MainWindow::addStudentsDialog);
     connect(studentTablePage->sidebar(), &StudentTableSidebar::deleteStudentRequested,
             this, &MainWindow::deleteStudentDialog);
+
+    // 侧栏学生搜索：输入即时过滤，点击结果选中对应学生；学生集合与显示顺序变化后重新匹配
+    connect(studentTablePage->sidebar(), &StudentTableSidebar::studentSearchTextChanged,
+            searchModel, &StudentSearchModel::setFilter);
+    connect(studentTablePage->sidebar(), &StudentTableSidebar::studentSearchResultActivated,
+            this, &MainWindow::selectStudentFromSearch);
+    connect(tableModel, &QAbstractItemModel::modelReset, searchModel, &StudentSearchModel::refresh);
+    connect(tableModel, &QAbstractItemModel::rowsInserted, searchModel, &StudentSearchModel::refresh);
+    connect(tableModel, &QAbstractItemModel::rowsRemoved, searchModel, &StudentSearchModel::refresh);
+    connect(tableModel, &QAbstractItemModel::rowsMoved, searchModel, &StudentSearchModel::refresh);
+    connect(tableModel, &QAbstractItemModel::dataChanged, this,
+            [this](const QModelIndex &topLeft, const QModelIndex &, const QVector<int> &) {
+        if(topLeft.column() == ClassTableModel::StudentName)
+            searchModel->refresh();
+    });
 
     // 侧栏积分记录块：新建、保存、应用模板
     connect(studentTablePage->sidebar(), &StudentTableSidebar::newScoreRecordRequested,
@@ -194,6 +214,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     connect(navigationTabBar, &QTabBar::currentChanged, this, [this](int index) {
         stackedWidget->setCurrentIndex(index + StudentTablePage);
+        syncListPageSelection();
     });
 
     connect(manager, &ClassDataManager::recordsChanged, this, &MainWindow::updateFilePreview);
@@ -298,8 +319,12 @@ void MainWindow::addStudentsDialog()
 
 void MainWindow::deleteStudentDialog()
 {
+    // 表格当前选中行的行号即学生列表中的显示序号，作为对话框的初始选中项
+    const QTableView *tableView = studentTablePage->tableView();
+    const QList<QModelIndex> selectedRows = tableView->selectionModel()->selectedRows();
+    const int currentStudent = selectedRows.isEmpty() ? -1 : selectedRows.first().row();
     const int index = ItemSelectionDialog::selectIndex(this, tr("选择要删除的学生"),
-                                                       manager->getStudentList());
+                                                       manager->getStudentList(), currentStudent);
     if(index != -1)
         removeStudent(index);
 }
@@ -328,8 +353,11 @@ void MainWindow::applyTemplateDialog()
     for(const ScoreTemplate& item : templates)
         templateNames.append(item.description);
 
+    // 初始选中当前正在查看的模板，没有查看中的模板时选最后一条
+    const bool hasPreview = templatePreviewIndex >= 0 && templatePreviewIndex < templateNames.size();
+    const int currentTemplate = hasPreview ? templatePreviewIndex : templateNames.size() - 1;
     const int index = ItemSelectionDialog::selectIndex(this, tr("选择要使用的积分模板"),
-                                                       templateNames, templateNames.size() - 1);
+                                                       templateNames, currentTemplate);
     if(index != -1)
         activateTemplate(index);
 }
@@ -442,6 +470,23 @@ void MainWindow::updateTemplatePreviewPanel()
             manager->getTemplates().at(templatePreviewIndex).description);
 }
 
+void MainWindow::syncListPageSelection()
+{
+    // 切到列表页时选中当前正在查看的那一条，便于直接接着操作
+    const auto selectRow = [](QListView *view, int row) {
+        if(!view->model() || row < 0 || row >= view->model()->rowCount())
+            return;
+        const QModelIndex index = view->model()->index(row, 0);
+        view->setCurrentIndex(index);
+        view->scrollTo(index, QAbstractItemView::PositionAtCenter);
+    };
+    const int pageIndex = stackedWidget->currentIndex();
+    if(pageIndex == ScoreRecordPage)
+        selectRow(recordListPage->listView(), recordPreviewIndex);
+    else if(pageIndex == ScoreTemplatePage)
+        selectRow(templateListPage->listView(), templatePreviewIndex);
+}
+
 /*文件操作*/
 void MainWindow::openFile(const QString &filePath)
 {
@@ -516,6 +561,20 @@ void MainWindow::removeStudent(int displayIndex)
 {
     tableModel->removeStudent(displayIndex);
     updateFilePreview();
+}
+
+void MainWindow::selectStudentFromSearch(int resultRow)
+{
+    const int studentIndex = searchModel->studentIndexAt(resultRow);
+    if(studentIndex < 0)
+        return;
+    const int displayRow = tableModel->displayRowForStudent(studentIndex);
+    if(displayRow < 0)
+        return;
+    QTableView *tableView = studentTablePage->tableView();
+    tableView->selectRow(displayRow);
+    tableView->scrollTo(tableModel->index(displayRow, ClassTableModel::StudentName),
+                        QAbstractItemView::PositionAtCenter);
 }
 
 /*积分记录操作*/

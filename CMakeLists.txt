@@ -53,6 +53,7 @@ set(APP_SOURCES
     src/main.cpp
     src/models/ClassTableModel.cpp
     src/models/RecordListModel.cpp
+    src/models/StudentSearchModel.cpp
     src/models/TemplateListModel.cpp
     src/pages/RecordListPage.cpp
     src/pages/StudentTablePage.cpp
@@ -78,6 +79,7 @@ set(APP_HEADERS
     src/delegates/TemplateSpinBoxDelegate.h
     src/models/ClassTableModel.h
     src/models/RecordListModel.h
+    src/models/StudentSearchModel.h
     src/models/TemplateListModel.h
     src/pages/RecordListPage.h
     src/pages/StudentTablePage.h

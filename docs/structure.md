@@ -19,13 +19,14 @@ src/
 │   ├── ClassDataManager.h/.cpp # 唯一数据源：学生/模板/记录/草稿/排序设置/文件读写
 │   └── ScoreSumReport.h/.cpp   # 按排序设置生成积分求和 HTML 报告
 ├── models/                     # Qt Model/View 模型
-│   ├── ClassTableModel.h/.cpp  # 学生表格：列显隐、编辑开关、查看索引、拖拽排序
-│   ├── RecordListModel.h/.cpp  # 积分记录列表模型：recordsChanged 后重置
-│   └── TemplateListModel.h/.cpp# 积分模板列表模型：templatesChanged 后重置
+│   ├── ClassTableModel.h/.cpp   # 学生表格：列显隐、编辑开关、查看索引、拖拽排序
+│   ├── RecordListModel.h/.cpp   # 积分记录列表模型：recordsChanged 后重置
+│   ├── StudentSearchModel.h/.cpp# 学生搜索列表模型：按姓名匹配，结果按表格显示顺序排列
+│   └── TemplateListModel.h/.cpp # 积分模板列表模型：templatesChanged 后重置
 ├── pages/                      # 堆叠窗口页面（只建 UI、发信号，不含业务）
 │   ├── WelcomePage.h/.cpp      # 欢迎页：打开/新建两个入口卡片，使用 resources/icons 矢量图标
 │   ├── StudentTablePage.h/.cpp # 班级表格页：左表格 + 右侧 StudentTableSidebar
-│   ├── StudentTableSidebar.h/.cpp # 侧栏：5 个 ExExpander；记录/模板块默认展开，支持查看/退出查看与上下项导航
+│   ├── StudentTableSidebar.h/.cpp # 侧栏：5 个 ExExpander；学生块内提供姓名搜索与结果跳转，记录/模板块支持查看与上下项导航
 │   ├── RecordListPage.h/.cpp   # 记录列表页：顶部工具行 + 多选列表
 │   └── TemplateListPage.h/.cpp # 模板列表页：顶部工具行 + 多选列表
 ├── delegates/                  # 表格单元格委托
@@ -51,6 +52,7 @@ flowchart TD
     MainWindow[MainWindow 窗口层协调器]
     Manager[ClassDataManager 数据源]
     TableModel[ClassTableModel 学生表格模型]
+    SearchModel[StudentSearchModel 学生搜索模型]
     RecordModel[RecordListModel 记录列表模型]
     TemplateModel[TemplateListModel 模板列表模型]
     StudentPage[StudentTablePage]
@@ -64,6 +66,7 @@ flowchart TD
 
     MainWindow -->|持有并读写| Manager
     MainWindow -->|持有并设置| TableModel
+    MainWindow -->|持有| SearchModel
     MainWindow -->|持有| StudentPage
     MainWindow -->|持有| RecordPage
     MainWindow -->|持有| TemplatePage
@@ -74,9 +77,12 @@ flowchart TD
     StudentPage --> TableView
     StudentPage --> Sidebar
     TableModel -->|读取| Manager
+    SearchModel -->|读取| Manager
     RecordModel -->|读取| Manager
     TemplateModel -->|读取| Manager
     TableView -->|setModel| TableModel
+    Sidebar -->|setModel| SearchModel
+    TableModel -->|行序变化后重新匹配| SearchModel
     RecordPage -->|setListModel| RecordModel
     TemplatePage -->|setListModel| TemplateModel
 
@@ -142,6 +148,7 @@ flowchart LR
     Show --> SidebarSet[侧栏 setRecordPreview / setTemplatePreview]
     Hide --> SidebarSet
     SidebarSet --> Pos[更新查看标题与 x/x]
+    Enter[切到记录/模板列表页] --> Sync[选中当前正在查看的那一行]
 ```
 
 ### 4.4 新建 / 改名积分模板
@@ -174,6 +181,17 @@ flowchart LR
     Sum --> Settings[ClassDataManager::setPreviousSettings 记住配置]
 ```
 
+### 4.6 搜索学生并跳转表格选区
+
+```mermaid
+flowchart LR
+    Input[侧栏搜索框输入] --> Model[StudentSearchModel::setFilter 按姓名匹配]
+    Model --> List[侧栏结果列表]
+    Click[点击结果项] --> Map[MainWindow::selectStudentFromSearch 换算学生索引与表格行]
+    Map --> Select[表格选中该行并滚动到可见位置]
+    Change[学生增删 / 拖动排序 / 改名] --> Model
+```
+
 ## 5. 状态归属
 
 | 状态 | 归属 |
@@ -181,4 +199,5 @@ flowchart LR
 | 学生、模板、记录、记录草稿、排序设置、脏标记 | `ClassDataManager` |
 | 当前文件名、记录/模板查看索引、页面会话状态 | `MainWindow` |
 | 表格列显隐、行排序映射、编辑开关、查看列渲染状态 | `ClassTableModel` |
+| 学生搜索关键字与匹配结果 | `StudentSearchModel` |
 | 按钮可用性、折叠块展开状态、列表选中状态 | 各页面 / `StudentTableSidebar` |

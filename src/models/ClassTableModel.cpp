@@ -143,52 +143,50 @@ bool ClassTableModel::setData(const QModelIndex &index, const QVariant &value, i
         switch(index.column())
         {
         case StudentName:
-        {
             manager->studentAt(rowToIndex[index.row()]).name = value.toString();
-            return true;
-        }
+            break;
         case GroupNumber:
         {
             bool ok;
             const int val = value.toInt(&ok);
-            if(ok && val >= 0)
-            {
-                manager->studentAt(rowToIndex[index.row()]).groupNumber = val;
-                return true;
-            }
-            else
-            {
+            if(!ok || val < 0)
                 return false;
-            }
+            manager->studentAt(rowToIndex[index.row()]).groupNumber = val;
+            break;
         }
         case CurrentRecord:
         {
             bool ok;
             const int val = value.toInt(&ok);
-            if(ok)
-                manager->getTempRecord()[rowToIndex[index.row()]] = val;
-            return ok;
+            if(!ok)
+                return false;
+            manager->getTempRecord()[rowToIndex[index.row()]] = val;
+            break;
         }
         case ScoreTemplatePreview:
         {
             bool ok;
             const int val = value.toInt(&ok);
-            if(ok)
-                manager->templateAt(previewTemplateIndex).values[rowToIndex[index.row()]] = val;
-            return ok;
+            if(!ok)
+                return false;
+            manager->templateAt(previewTemplateIndex).values[rowToIndex[index.row()]] = val;
+            break;
         }
         default:
             return false;
         }
+        emit dataChanged(index, index);
+        return true;
     }
     else if(role == Qt::CheckStateRole)
     {
-        int checked = value.toInt();
+        const int checked = value.toInt();
         int& groupNum = manager->studentAt(rowToIndex[index.row()]).groupNumber;
         if(checked)
             groupNum = 0;
         else
             groupNum = StudentInfo::NoGroup;
+        emit dataChanged(index, index);
         return true;
     }
     return false;
@@ -324,6 +322,11 @@ void ClassTableModel::removeStudent(int displayIndex)
     */
 
     endRemoveRows();
+}
+
+int ClassTableModel::displayRowForStudent(int studentIndex) const
+{
+    return rowToIndex.indexOf(studentIndex);
 }
 
 // 积分记录编辑相关函数
