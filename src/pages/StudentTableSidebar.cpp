@@ -18,7 +18,7 @@
 StudentTableSidebar::StudentTableSidebar(QWidget *parent)
     : QWidget(parent)
 {
-    setMinimumWidth(230);
+    setMinimumWidth(250);
 
     // 侧栏根布局：滚动区域承载全部折叠块，避免全部展开时挤压表格
     auto *rootLayout = new QVBoxLayout(this);
@@ -313,8 +313,10 @@ StudentTableSidebar::StudentTableSidebar(QWidget *parent)
 void StudentTableSidebar::setFileInfo(const QString &fileName, bool dirty, int studentCount,
                                       int recordCount, int templateCount)
 {
-    fileNameLabel->setText(dirty ? tr("文件名：%1（有未保存的修改）").arg(fileName)
-                                 : tr("文件名：%1").arg(fileName));
+    QString displayName = fileName.isEmpty() ? tr("未打开") : fileName;
+    if(dirty)
+        displayName += tr("（未保存）");
+    fileNameLabel->setText(tr("文件名：%1").arg(displayName));
     studentCountLabel->setText(tr("学生数量：%1").arg(studentCount));
     recordCountLabel->setText(tr("积分记录：%1").arg(recordCount));
     templateCountLabel->setText(tr("积分模板：%1").arg(templateCount));

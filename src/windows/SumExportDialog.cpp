@@ -1,4 +1,5 @@
 #include "SumExportDialog.h"
+#include "../widgets/OkCancelBox.h"
 #include <QButtonGroup>
 #include <QCheckBox>
 #include <QHBoxLayout>
@@ -75,17 +76,10 @@ SumExportDialog::SumExportDialog(QWidget *parent, SortSettings settings)
     rootLayout->addWidget(groupOrderRow);
 
     // 确定与取消按钮
-    auto *dialogButtonLayout = new QHBoxLayout;
-    dialogButtonLayout->addStretch();
-    auto *confirmButton = new QPushButton(tr("确定"), this);
-    auto *cancelButton = new QPushButton(tr("取消"), this);
-    confirmButton->setDefault(true);
-    dialogButtonLayout->addWidget(confirmButton);
-    dialogButtonLayout->addWidget(cancelButton);
-    rootLayout->addLayout(dialogButtonLayout);
-
-    connect(confirmButton, &QPushButton::clicked, this, &QDialog::accept);
-    connect(cancelButton, &QPushButton::clicked, this, &QDialog::reject);
+    auto *buttonBox = new OkCancelBox(this);
+    connect(buttonBox, &OkCancelBox::confirmed, this, &QDialog::accept);
+    connect(buttonBox, &OkCancelBox::cancelled, this, &QDialog::reject);
+    rootLayout->addWidget(buttonBox);
 
     // 互斥按钮组
     auto makeExclusive = [this](QPushButton *firstButton, QPushButton *secondButton) {

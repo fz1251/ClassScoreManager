@@ -2,7 +2,7 @@
 
 #include <QCloseEvent>
 #include <QMainWindow>
-#include <QMessageBox>
+#include "excontentdialog.h"
 #include <QString>
 #include <QStringList>
 #include <QVector>
@@ -52,7 +52,7 @@ private:
     void createNewFile();
     void openFile(const QString& filePath);
     void newFile();
-    void saveFile();
+    bool saveFile();
     void closeFileWithConfirm();
     void closeFile();
 
@@ -99,9 +99,8 @@ private:
     void showAboutQt();
 
     /*通用确认*/
-    QMessageBox::ButtonRole confirmUnsavedChanges();
-    bool confirmClearOperation(const QString& description);
-    bool confirmDeleteOperation(const QString& description);
+    bool confirmUnsavedChanges();
+    bool confirmDestructiveOperation(const QString& action, const QString& description);
 
     // 界面元素指针：构造函数中统一创建，供其他成员函数访问
     QStackedWidget* stackedWidget = nullptr;

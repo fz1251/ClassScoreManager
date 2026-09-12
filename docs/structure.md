@@ -35,11 +35,12 @@ src/
 ├── widgets/                    # 自绘/复用控件
 │   ├── HomeActionCard.h/.cpp   # 欢迎页操作卡片
 │   ├── LineSpacedLabel.h/.cpp  # 可调节行距标签
+│   ├── OkCancelBox.h/.cpp      # 对话框底部的确定/取消按钮组
 │   └── ShineLabel.h/.cpp       # 发光标题标签
 └── windows/                    # 主窗口与对话框（全部纯代码）
     ├── MainWindow.h/.cpp       # 窗口层协调器：文件/关于菜单，页面、侧栏与模型的信号连接
-    ├── SumExportDialog.h/.cpp  # 积分导出对话框：只保留排序配置，确定/取消
-    ├── ItemSelectionDialog.h/.cpp # 下拉选择对话框：删除学生、应用模板、选择查看记录/模板
+    ├── SumExportDialog.h/.cpp  # 积分导出对话框：排序配置 + OkCancelBox
+    ├── ItemSelectionDialog.h/.cpp # 列表选择入口：静态方法返回选中索引，基于 ExContentDialog
     └── AboutInfoDialog.h/.cpp  # 关于对话框
 ```
 
@@ -67,7 +68,7 @@ flowchart TD
     MainWindow -->|持有| RecordPage
     MainWindow -->|持有| TemplatePage
     MainWindow -->|创建并读取配置| SumExport
-    MainWindow -->|创建| ItemSelect
+    MainWindow -->|调用| ItemSelect
     MainWindow -->|生成 HTML| ScoreReport
 
     StudentPage --> TableView

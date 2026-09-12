@@ -172,6 +172,11 @@ bool ClassDataManager::isRecordUnsaved() const
     return m_isRecordEditing;
 }
 
+bool ClassDataManager::isEmptyNewFile() const
+{
+    return m_isNewFile && students.isEmpty() && records.isEmpty() && templates.isEmpty();
+}
+
 void ClassDataManager::setPreviousSettings(SortSettings curSettings)
 {
     settings=curSettings;

@@ -30,6 +30,7 @@ public:
     bool isNewFile() const;
     bool isDirty() const;
     bool isRecordUnsaved() const;
+    bool isEmptyNewFile() const;
     //信息获取接口(读写&只读)
     void setPreviousSettings(SortSettings curSettings);
     StudentInfo&       studentAt (int index);

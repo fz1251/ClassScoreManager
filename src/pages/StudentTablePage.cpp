@@ -15,10 +15,12 @@ StudentTablePage::StudentTablePage(QWidget *parent)
     auto *splitter = new QSplitter(this);
     splitter->setStretchFactor(0, 1);
     splitter->setStretchFactor(1, 0);
+    splitter->setChildrenCollapsible(false);
     rootLayout->addWidget(splitter);
 
     // 学生表格：支持内部拖动排序与整行选择
     m_tableView = new QTableView(splitter);
+    m_tableView->setMinimumWidth(320);
     m_tableView->setAcceptDrops(true);
     m_tableView->setDragEnabled(true);
     m_tableView->setDragDropOverwriteMode(false);

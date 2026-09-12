@@ -73,8 +73,9 @@
   - `src/pages/TemplateListPage`
 - `StudentTablePage` 右侧为 `StudentTableSidebar`，用 ExWidgets 的 `ExExpander` 组织文件信息、表格选项、学生操作、积分记录、积分模板五个折叠块；文件信息块标注未保存状态，积分记录块与积分模板块默认展开，均提供查看/退出查看与上下项图标导航；学生操作块包含添加学生与删除学生按钮，积分记录块还包含新建/应用模板、名称输入与保存（新建直接开草稿，保存时校验并填写名称），积分模板块还包含新建模板与改名编辑。
 - `RecordListPage`、`TemplateListPage` 支持多选，顶部有新建、导出/删除选中、清空工具按钮。
-- `src/windows` 的 `AboutInfoDialog`、`ItemSelectionDialog`、`MainWindow`、`SumExportDialog` 均为纯代码实现。
+- `src/windows` 的 `MainWindow`、`SumExportDialog`、`AboutInfoDialog` 均为纯代码实现；`ItemSelectionDialog` 是列表选择的静态入口，内部弹 ExContentDialog。
 - 学生添加与批量导入合并为同一个多行输入入口。
+- 确认框与列表选择框统一使用 ExWidgets 的 `ExContentDialog`；配置型对话框（如 `SumExportDialog`）用 `QDialog` + `OkCancelBox`。
 
 ## 7. 第三方库
 

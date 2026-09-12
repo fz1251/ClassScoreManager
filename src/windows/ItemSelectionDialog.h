@@ -1,21 +1,16 @@
 #pragma once
 
-#include <QDialog>
+#include <QCoreApplication>
 #include <QString>
 #include <QStringList>
 
-class QComboBox;
+class QWidget;
 
-class ItemSelectionDialog : public QDialog
+// 列表选择对话框：标题即操作描述，内容区只有一个下拉框；返回选中项的索引，取消返回 -1
+class ItemSelectionDialog
 {
-    Q_OBJECT
+    Q_DECLARE_TR_FUNCTIONS(ItemSelectionDialog)
 
 public:
-    explicit ItemSelectionDialog(QWidget *parent, const QString &title, const QString &label,
-                                 const QStringList &items, int current = 0);
-    int selectedIndex() const;
-
-private:
-    // 界面元素指针：构造函数中统一创建，供其他成员函数访问
-    QComboBox *selectionComboBox = nullptr;
+    static int selectIndex(QWidget *parent, const QString &title, const QStringList &items, int current = 0);
 };

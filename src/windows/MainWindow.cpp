@@ -30,6 +30,7 @@
 #include <QListView>
 #include <QMenu>
 #include <QMenuBar>
+#include <QMessageBox>
 #include <QPushButton>
 #include <QSizePolicy>
 #include <QStackedWidget>
@@ -44,6 +45,7 @@ MainWindow::MainWindow(QWidget *parent)
     , tableModel(new ClassTableModel(manager, this))
 {
     resize(800, 600);
+    setMinimumSize(800, 600);
     setWindowTitle(tr("班级积分管理系统"));
 
     // 中央区域：导航栏在左，四个页面由堆叠窗口承载
@@ -241,13 +243,10 @@ void MainWindow::createMenus()
 
 void MainWindow::closeEvent(QCloseEvent *event)
 {
-    if(manager->hasData()&&manager->isDirty())
+    if(!confirmUnsavedChanges())
     {
-        if(confirmUnsavedChanges()==QMessageBox::RejectRole)
-        {
-            event->ignore();
-            return ;
-        }
+        event->ignore();
+        return ;
     }
     event->accept();
 }
@@ -264,17 +263,15 @@ void MainWindow::openFileDialog()
 
 void MainWindow::createNewFile()
 {
-    currentFileName = tr("新建班级（未保存）");
+    currentFileName = tr("新建班级");
     newFile();
     onFileLoaded();
 }
 
 void MainWindow::closeFileWithConfirm()
 {
-    if(manager->hasData() && manager->isDirty())
-        if(confirmUnsavedChanges() == QMessageBox::RejectRole)
-            return;
-    closeFile();
+    if(confirmUnsavedChanges())
+        closeFile();
 }
 
 /*学生操作入口*/
@@ -301,14 +298,10 @@ void MainWindow::addStudentsDialog()
 
 void MainWindow::deleteStudentDialog()
 {
-    ItemSelectionDialog dialog(this, tr("删除学生对话框"), tr("选择您要删除的学生"),
-                               manager->getStudentList());
-    if(dialog.exec() == QDialog::Accepted)
-    {
-        int index = dialog.selectedIndex();
-        if(index != -1)
-            removeStudent(index);
-    }
+    const int index = ItemSelectionDialog::selectIndex(this, tr("选择要删除的学生"),
+                                                       manager->getStudentList());
+    if(index != -1)
+        removeStudent(index);
 }
 
 /*积分记录操作入口*/
@@ -335,14 +328,10 @@ void MainWindow::applyTemplateDialog()
     for(const ScoreTemplate& item : templates)
         templateNames.append(item.description);
 
-    ItemSelectionDialog dialog(this, tr("选择积分模板对话框"), tr("选择您要使用的积分模板"),
-                               templateNames, templateNames.size() - 1);
-    if(dialog.exec() == QDialog::Accepted)
-    {
-        int index = dialog.selectedIndex();
-        if(index != -1)
-            activateTemplate(index);
-    }
+    const int index = ItemSelectionDialog::selectIndex(this, tr("选择要使用的积分模板"),
+                                                       templateNames, templateNames.size() - 1);
+    if(index != -1)
+        activateTemplate(index);
 }
 
 /*关于*/
@@ -474,29 +463,29 @@ void MainWindow::newFile()
     resetTable();
 }
 
-void MainWindow::saveFile()
+bool MainWindow::saveFile()
 {
     if(manager->isRecordUnsaved())
     {
-        QMessageBox msgBox(QMessageBox::Question,tr("询问"),tr("当前有未完成编辑的积分记录，要保存并关闭它吗？"));
-        QPushButton* saveRecordBtn=msgBox.addButton(tr("保存并关闭记录"),QMessageBox::AcceptRole);
-        QPushButton* saveOthersBtn=msgBox.addButton(tr("不关闭记录，保存其他"),QMessageBox::DestructiveRole);
-        QPushButton* cancelBtn    =msgBox.addButton(tr("取消操作"),QMessageBox::RejectRole);
-        msgBox.setDefaultButton(saveRecordBtn);
-        msgBox.setEscapeButton(cancelBtn);
-        msgBox.exec();
-        if(msgBox.clickedButton()==saveRecordBtn)
-        {
-            if(!saveScoreRecord())
-                return;
-        }
-        Q_UNUSED(saveOthersBtn);
+        ExContentDialog dialog(this);
+        dialog.setTitle(tr("询问"));
+        dialog.setContent(tr("当前有未完成编辑的积分记录，要保存并关闭它吗？"));
+        dialog.setPrimaryButtonText(tr("保存并关闭"));
+        dialog.setSecondaryButtonText(tr("只保存文件"));
+        dialog.setCloseButtonText(tr("取消"));
+        dialog.setDefaultButton(ExContentDialog::PrimaryBtn);
+
+        const ExContentDialog::ContentDialogResult result = dialog.showDialog();
+        if(result == ExContentDialog::None)
+            return false;
+        if(result == ExContentDialog::Primary && !saveScoreRecord())
+            return false;
     }
     if(manager->isNewFile())
     {
         QString fileName=QFileDialog::getSaveFileName(this,tr("保存班级信息文件"),QDir::currentPath(),tr("班级信息文件(*.cls)"));
         if(fileName.isEmpty())
-            return ;
+            return false;
         manager->saveNewFile(fileName);
         currentFileName = QFileInfo(fileName).fileName();
         updateFilePreview();
@@ -505,6 +494,7 @@ void MainWindow::saveFile()
     {
         manager->saveFile();
     }
+    return true;
 }
 
 void MainWindow::closeFile()
@@ -613,10 +603,10 @@ void MainWindow::selectRecordToView()
     for(int i = 0; i < records.size(); ++i)
         recordNames.append(manager->getRecordDisplayName(i));
 
-    ItemSelectionDialog dialog(this, tr("选择积分记录对话框"), tr("选择您要查看的积分记录"),
-                               recordNames, recordPreviewIndex);
-    if(dialog.exec() == QDialog::Accepted && dialog.selectedIndex() != -1)
-        showRecord(dialog.selectedIndex());
+    const int index = ItemSelectionDialog::selectIndex(this, tr("选择要查看的积分记录"),
+                                                       recordNames, recordPreviewIndex);
+    if(index != -1)
+        showRecord(index);
 }
 
 void MainWindow::showRecord(int index)
@@ -657,7 +647,7 @@ void MainWindow::deleteSelectedRecords()
     for(const QModelIndex &selectedRow : selectedRows)
         indices.append(selectedRow.row());
 
-    if(!confirmDeleteOperation(tr("选中的%1条积分记录").arg(indices.size())))
+    if(!confirmDestructiveOperation(tr("删除"), tr("选中的%1条积分记录").arg(indices.size())))
         return;
 
     if(recordPreviewIndex >= 0)
@@ -685,7 +675,7 @@ void MainWindow::deleteSelectedRecords()
 
 void MainWindow::clearRecordsWithConfirm()
 {
-    if(confirmClearOperation(tr("积分记录(共%1条)").arg(manager->getRecords().size())))
+    if(confirmDestructiveOperation(tr("清空"), tr("全部%1条积分记录").arg(manager->getRecords().size())))
         clearRecords();
 }
 
@@ -734,10 +724,10 @@ void MainWindow::selectTemplateToView()
     for(int i = 0; i < templates.size(); ++i)
         templateNames.append(manager->getTemplateDisplayName(i));
 
-    ItemSelectionDialog dialog(this, tr("选择积分模板对话框"), tr("选择您要查看的积分模板"),
-                               templateNames, templatePreviewIndex);
-    if(dialog.exec() == QDialog::Accepted && dialog.selectedIndex() != -1)
-        showTemplate(dialog.selectedIndex());
+    const int index = ItemSelectionDialog::selectIndex(this, tr("选择要查看的积分模板"),
+                                                       templateNames, templatePreviewIndex);
+    if(index != -1)
+        showTemplate(index);
 }
 
 void MainWindow::showTemplate(int index)
@@ -806,7 +796,7 @@ void MainWindow::deleteSelectedTemplates()
     for(const QModelIndex &selectedRow : selectedRows)
         indices.append(selectedRow.row());
 
-    if(!confirmDeleteOperation(tr("选中的%1个积分模板").arg(indices.size())))
+    if(!confirmDestructiveOperation(tr("删除"), tr("选中的%1个积分模板").arg(indices.size())))
         return;
 
     if(templatePreviewIndex >= 0)
@@ -834,7 +824,7 @@ void MainWindow::deleteSelectedTemplates()
 
 void MainWindow::clearTemplatesWithConfirm()
 {
-    if(confirmClearOperation(tr("积分模板(共%1个)").arg(manager->getTemplates().size())))
+    if(confirmDestructiveOperation(tr("清空"), tr("全部%1个积分模板").arg(manager->getTemplates().size())))
         clearTemplates();
 }
 
@@ -846,55 +836,40 @@ void MainWindow::clearTemplates()
     updateTemplatePreviewPanel();
 }
 
-/*通用确认*/
-QMessageBox::ButtonRole MainWindow::confirmUnsavedChanges()
+/*通用确认：返回是否可以继续后续操作*/
+bool MainWindow::confirmUnsavedChanges()
 {
-    QMessageBox msgBox(QMessageBox::Question,tr("询问"),tr("要保存更改吗？"));
-    QPushButton* saveBtn    =msgBox.addButton(tr("保存(&Y)"),QMessageBox::AcceptRole);
-    QPushButton* dontSaveBtn=msgBox.addButton(tr("不保存(&N)"),QMessageBox::DestructiveRole);
-    QPushButton* cancelBtn  =msgBox.addButton(tr("取消"),QMessageBox::RejectRole);
-    msgBox.setDefaultButton(saveBtn);
-    msgBox.setEscapeButton(cancelBtn);
-    msgBox.exec();
-    QPushButton* clickedBtn=static_cast<QPushButton*>(msgBox.clickedButton());
-    if(clickedBtn==saveBtn)
+    if(!manager->hasData() || !manager->isDirty() || manager->isEmptyNewFile())
+        return true;
+
+    ExContentDialog dialog(this);
+    dialog.setTitle(tr("询问"));
+    dialog.setContent(tr("要保存更改吗？"));
+    dialog.setPrimaryButtonText(tr("保存"));
+    dialog.setSecondaryButtonText(tr("不保存"));
+    dialog.setCloseButtonText(tr("取消"));
+    dialog.setDefaultButton(ExContentDialog::PrimaryBtn);
+
+    const ExContentDialog::ContentDialogResult result = dialog.showDialog();
+    if(result == ExContentDialog::None)
+        return false;
+    if(result == ExContentDialog::Primary)
     {
-        if(manager->isRecordUnsaved())
-            if(!saveScoreRecord())
-                return QMessageBox::RejectRole;
-        saveFile();
-        closeFile();
-        return QMessageBox::AcceptRole;
+        if(manager->isRecordUnsaved() && !saveScoreRecord())
+            return false;
+        if(!saveFile())
+            return false;
     }
-    else if(clickedBtn==dontSaveBtn)
-    {
-        closeFile();
-        return QMessageBox::DestructiveRole;
-    }
-    else
-    {
-        return QMessageBox::RejectRole;
-    }
+    return true;
 }
 
-bool MainWindow::confirmClearOperation(const QString &description)
+bool MainWindow::confirmDestructiveOperation(const QString &action, const QString &description)
 {
-    QMessageBox msgBox(QMessageBox::Warning,tr("警告"),tr("确定要清空%1吗？").arg(description));
-    QPushButton* confirmBtn=msgBox.addButton(tr("确定"), QMessageBox::AcceptRole);
-    QPushButton* cancelBtn=msgBox.addButton(tr("取消"), QMessageBox::RejectRole);
-    msgBox.setDefaultButton(cancelBtn);
-    msgBox.setEscapeButton(cancelBtn);
-    msgBox.exec();
-    return msgBox.clickedButton()==confirmBtn;
-}
-
-bool MainWindow::confirmDeleteOperation(const QString &description)
-{
-    QMessageBox msgBox(QMessageBox::Warning, tr("警告"), tr("确定要删除%1吗？").arg(description));
-    QPushButton* confirmBtn = msgBox.addButton(tr("确定"), QMessageBox::AcceptRole);
-    QPushButton* cancelBtn = msgBox.addButton(tr("取消"), QMessageBox::RejectRole);
-    msgBox.setDefaultButton(cancelBtn);
-    msgBox.setEscapeButton(cancelBtn);
-    msgBox.exec();
-    return msgBox.clickedButton()==confirmBtn;
+    ExContentDialog dialog(this);
+    dialog.setTitle(tr("警告"));
+    dialog.setContent(tr("确定要%1%2吗？\n此操作无法恢复。").arg(action, description));
+    dialog.setPrimaryButtonText(action);
+    dialog.setCloseButtonText(tr("取消"));
+    dialog.setDefaultButton(ExContentDialog::CloseBtn);
+    return dialog.showDialog() == ExContentDialog::Primary;
 }

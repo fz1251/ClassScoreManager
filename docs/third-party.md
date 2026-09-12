@@ -22,6 +22,7 @@
   - `fluentui3style/`：`FluentUI3Style` 全局 QStyle，随程序直接实例化使用。
   - `ExWidgets/`：`ExWidgets::ExWidgets` 扩展控件库。
   - `ExWidgets/frameless/`：`ExWidgets::Frameless` 无边框窗口组件（`FluentTitleBar` / `FluentWindowFrame`）。
+  - `ExWidgets/dialogs/`：`ExContentDialog`（WinUI3 风格模态对话框）、`ExMessageBox` 等对话框组件。
   - `3rd/`：携带的 QWindowKit 与 kissfft 依赖。
 
 ### 构建方式
@@ -58,6 +59,7 @@ FluentUIStyle 的 CMake 需要 `Qt5Svg`（或 Qt6 的 Svg 组件）。当前自�
   )
   ```
 - `AboutInfoDialog` 当前使用自己的手写 DWM 无边框标题栏实现；`ExWidgets::Frameless` 已构建并链接，但该对话框尚未改用它。
+- 对话框统一走 `ExContentDialog`：确认框用 `setContent` + 主副按钮，列表选择框用 `setContentWidget` 承载下拉框。头文件写作 `#include "excontentdialog.h"`。
 
 ### 构建产物位置
 
