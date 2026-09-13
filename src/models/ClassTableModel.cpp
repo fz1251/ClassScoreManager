@@ -88,17 +88,6 @@ QVariant ClassTableModel::data(const QModelIndex &index, int role) const
             return QVariant();
         }
     }
-    case Qt::CheckStateRole:
-        if(index.column() == GroupNumber)
-        {
-            int groupNum = students().at(rowToIndex[index.row()]).groupNumber;
-            if(groupNum == StudentInfo::NoGroup)
-                return Qt::Unchecked;
-            else
-                return Qt::Checked;
-        }
-        else
-            return QVariant();
     default:
         return QVariant();
     }
@@ -145,15 +134,6 @@ bool ClassTableModel::setData(const QModelIndex &index, const QVariant &value, i
         case StudentName:
             manager->studentAt(rowToIndex[index.row()]).name = value.toString();
             break;
-        case GroupNumber:
-        {
-            bool ok;
-            const int val = value.toInt(&ok);
-            if(!ok || val < 0)
-                return false;
-            manager->studentAt(rowToIndex[index.row()]).groupNumber = val;
-            break;
-        }
         case CurrentRecord:
         {
             bool ok;
@@ -178,17 +158,6 @@ bool ClassTableModel::setData(const QModelIndex &index, const QVariant &value, i
         emit dataChanged(index, index);
         return true;
     }
-    else if(role == Qt::CheckStateRole)
-    {
-        const int checked = value.toInt();
-        int& groupNum = manager->studentAt(rowToIndex[index.row()]).groupNumber;
-        if(checked)
-            groupNum = 0;
-        else
-            groupNum = StudentInfo::NoGroup;
-        emit dataChanged(index, index);
-        return true;
-    }
     return false;
 }
 
@@ -202,14 +171,6 @@ Qt::ItemFlags ClassTableModel::flags(const QModelIndex &index) const
     case StudentName:
         if(canEditStudent)
         {
-            baseFlag |= Qt::ItemIsEditable;
-        }
-        break;
-    case GroupNumber:
-        if(canEditGroup)
-        {
-        baseFlag |= Qt::ItemIsUserCheckable;
-        if(students().at(rowToIndex[index.row()]).groupNumber != StudentInfo::NoGroup)
             baseFlag |= Qt::ItemIsEditable;
         }
         break;
@@ -412,10 +373,29 @@ void ClassTableModel::setStudentEditable(bool editable)
     emit dataChanged(index(0,StudentName),index(rowCount()-1,StudentName),{Qt::EditRole});
 }
 
-void ClassTableModel::setGroupEditable(bool editable)
+bool ClassTableModel::assignGroupNumber(int row, qint32 groupNumber)
 {
-    canEditGroup = editable;
-    emit dataChanged(index(0,GroupNumber),index(rowCount()-1,GroupNumber),{Qt::EditRole});
+    if(row < 0 || row >= rowToIndex.size())
+        return false;
+    if(!manager->moveStudentToGroup(rowToIndex.at(row), groupNumber))
+        return false;
+    emit dataChanged(index(row, GroupNumber), index(row, GroupNumber), {Qt::DisplayRole});
+    emit groupAssignmentEdited();
+    return true;
+}
+
+qint32 ClassTableModel::groupNumberAt(int row) const
+{
+    if(row < 0 || row >= rowToIndex.size())
+        return StudentInfo::NoGroup;
+    return students().at(rowToIndex.at(row)).groupNumber;
+}
+
+void ClassTableModel::refreshGroupColumn()
+{
+    if(rowCount() == 0)
+        return;
+    emit dataChanged(index(0, GroupNumber), index(rowCount() - 1, GroupNumber), {Qt::DisplayRole});
 }
 
 bool ClassTableModel::isValidModelIndex(const QModelIndex &index) const

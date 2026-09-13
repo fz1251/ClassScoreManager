@@ -60,20 +60,27 @@
 - `src/main.cpp` 直接 `a.setStyle(new FluentUI3Style)`；样式库随项目构建，不再使用或部署 Qt 样式插件。
 - 需要 Fluent 属性头时写作 `#include "fluentui3styleproperties.h"`（不带 `FluentUI3Style/` 前缀）。
 - 全局视觉统一走 FluentUI3Style。
+- `QGroupBox` 的圆角细线边框与标题由样式库的 `PE_FrameGroupBox` / `SH_GroupBox_TextLabelColor` 绘制，需要这种边框时直接用标准 `QGroupBox`，不要自行绘制。
 - `AboutInfoDialog` 是整体独立定制的对话框，其局部 QSS 属该对话框自身的完整定制，与主界面样式不冲突。
 - `AboutInfoDialog` 当前保留手写 DWM/无边框标题栏逻辑；已链接 ExWidgets::Frameless 但尚未切换，迁移到 `FluentTitleBar`/`FluentWindowFrame` 是单独待办。
 
 ## 6. UI 现状
 
 - 纯代码 UI 编写规范见根目录 `CLAUDE.md` 2.8。
-- MainWindow 为纯代码构建，四个页面独立为类：
+- MainWindow 为纯代码构建，五个页面独立为类：
   - `src/pages/WelcomePage`
   - `src/pages/StudentTablePage`
+  - `src/pages/GroupBoardPage`
   - `src/pages/RecordListPage`
   - `src/pages/TemplateListPage`
+- `GroupBoardPage` 为小组管理页：左栏是未分组学生面板（`QGroupBox` 呈现标题与边框，内含单列卡片滚动区），右侧按组号升序排列小组容器；学生卡片可拖到小组容器并按插入位置落位，拖到左栏则取消分组，拖动期间目标容器高亮并显示虚线插入位，其余卡片带动画让位。
+- 小组只由成员决定：组里有学生才存在该小组，成员归零时容器自动移除；新小组通过把学生分到某个组号自然产生，没有独立的新建小组操作。
+- 小组号列的表格单元格只读，双击打开 `GroupNumberDialog` 修改；取消分组只能通过小组管理页拖到左栏完成。
+- 表格单元格的编辑触发为双击与 F2/回车，选中单元格后直接输入不会进入编辑。
 - `StudentTablePage` 右侧为 `StudentTableSidebar`，用 ExWidgets 的 `ExExpander` 组织文件信息、表格选项、学生操作、积分记录、积分模板五个折叠块；文件信息块标注未保存状态，积分记录块与积分模板块默认展开，均提供查看/退出查看与上下项图标导航；学生操作块包含添加学生与删除学生按钮，积分记录块还包含新建/应用模板、名称输入与保存（新建直接开草稿，保存时校验并填写名称），积分模板块还包含新建模板与改名编辑。
 - `RecordListPage`、`TemplateListPage` 支持多选，顶部有新建、导出/删除选中、清空工具按钮。
 - `src/windows` 的 `MainWindow`、`SumExportDialog`、`AboutInfoDialog` 均为纯代码实现；`ItemSelectionDialog` 是列表选择的静态入口，内部弹 ExContentDialog。
+- 侧栏"表格选项"块提供三个开关：拖动排序学生、学生姓名编辑、小组信息编辑，分别控制表格的拖拽排序、姓名就地编辑与小组号双击编辑。
 - 学生添加与批量导入合并为同一个多行输入入口。
 - 确认框与列表选择框统一使用 ExWidgets 的 `ExContentDialog`；配置型对话框（如 `SumExportDialog`）用 `QDialog` + `OkCancelBox`。
 

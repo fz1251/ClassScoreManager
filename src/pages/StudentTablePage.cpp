@@ -28,6 +28,8 @@ StudentTablePage::StudentTablePage(QWidget *parent)
     m_tableView->setDefaultDropAction(Qt::MoveAction);
     m_tableView->setSelectionMode(QAbstractItemView::SingleSelection);
     m_tableView->setSelectionBehavior(QAbstractItemView::SelectRows);
+    // 选中单元格后直接敲键盘不再进入编辑，避免误覆盖内容；双击或按 F2/回车才编辑
+    m_tableView->setEditTriggers(QAbstractItemView::DoubleClicked | QAbstractItemView::EditKeyPressed);
     splitter->addWidget(m_tableView);
 
     // 右侧边栏：文件信息、表格选项、学生操作、记录与模板折叠块

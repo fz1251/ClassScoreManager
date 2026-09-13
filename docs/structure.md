@@ -16,31 +16,38 @@ src/
 ├── main.cpp                    # 启动入口：DPI 设置、FluentUI3Style、字体、MainWindow
 ├── core/                       # 数据与业务核心
 │   ├── DataTypes.h             # 文件头、学生/模板/记录、排序设置及序列化
-│   ├── ClassDataManager.h/.cpp # 唯一数据源：学生/模板/记录/草稿/排序设置/文件读写
+│   ├── ClassDataManager.h/.cpp # 唯一数据源：学生与分组/模板/记录/草稿/排序设置/文件读写
 │   └── ScoreSumReport.h/.cpp   # 按排序设置生成积分求和 HTML 报告
 ├── models/                     # Qt Model/View 模型
-│   ├── ClassTableModel.h/.cpp   # 学生表格：列显隐、编辑开关、查看索引、拖拽排序
+│   ├── ClassTableModel.h/.cpp   # 学生表格：列显隐、姓名编辑开关、查看索引、拖拽排序、只读的小组号列
 │   ├── RecordListModel.h/.cpp   # 积分记录列表模型：recordsChanged 后重置
 │   ├── StudentSearchModel.h/.cpp# 学生搜索列表模型：按姓名匹配，结果按表格显示顺序排列
 │   └── TemplateListModel.h/.cpp # 积分模板列表模型：templatesChanged 后重置
 ├── pages/                      # 堆叠窗口页面（只建 UI、发信号，不含业务）
 │   ├── WelcomePage.h/.cpp      # 欢迎页：打开/新建两个入口卡片，使用 resources/icons 矢量图标
 │   ├── StudentTablePage.h/.cpp # 班级表格页：左表格 + 右侧 StudentTableSidebar
+│   ├── GroupBoardPage.h/.cpp   # 小组管理页：左未分组面板 + 右小组容器，拖放完成分组与组内排序
 │   ├── StudentTableSidebar.h/.cpp # 侧栏：5 个 ExExpander；学生块内提供姓名搜索与结果跳转，记录/模板块支持查看与上下项导航
 │   ├── RecordListPage.h/.cpp   # 记录列表页：顶部工具行 + 多选列表
 │   └── TemplateListPage.h/.cpp # 模板列表页：顶部工具行 + 多选列表
 ├── delegates/                  # 表格单元格委托
 │   ├── ScoreExprDelegate.h/.cpp# 积分表达式委托
-│   ├── GroupSpinBoxDelegate.h/.cpp # 小组号 SpinBox 委托
 │   └── TemplateSpinBoxDelegate.h/.cpp # 模板分值 SpinBox 委托
 ├── widgets/                    # 自绘/复用控件
+│   ├── CardHost.h              # 卡片容器统一接口：插入/移除卡片、刷新标题
+│   ├── CardStyle.h             # 小组管理页卡片的尺寸与配色工具
+│   ├── FlowLayout.h/.cpp       # 流式布局：换行、隐藏项补位、重排位移动画、单列模式
+│   ├── GroupCard.h/.cpp        # 小组容器：标题、落点高亮、插入占位槽
 │   ├── HomeActionCard.h/.cpp   # 欢迎页操作卡片
 │   ├── LineSpacedLabel.h/.cpp  # 可调节行距标签
 │   ├── OkCancelBox.h/.cpp      # 对话框底部的确定/取消按钮组
-│   └── ShineLabel.h/.cpp       # 发光标题标签
+│   ├── ShineLabel.h/.cpp       # 发光标题标签
+│   ├── StudentCard.h/.cpp      # 学生胶囊卡片：悬停动效、拖动、单击改组号
+│   └── UngroupedPanel.h/.cpp   # 未分组面板：单列卡片与取消分组蒙版
 └── windows/                    # 主窗口与对话框（全部纯代码）
     ├── MainWindow.h/.cpp       # 窗口层协调器：文件/关于菜单，页面、侧栏与模型的信号连接
     ├── SumExportDialog.h/.cpp  # 积分导出对话框：排序配置 + OkCancelBox
+    ├── GroupNumberDialog.h/.cpp # 设置小组号对话框：SpinBox + OkCancelBox
     ├── ItemSelectionDialog.h/.cpp # 列表选择入口：静态方法返回选中索引，基于 ExContentDialog
     └── AboutInfoDialog.h/.cpp  # 关于对话框
 ```
@@ -58,6 +65,12 @@ flowchart TD
     StudentPage[StudentTablePage]
     TableView[QTableView 学生表格]
     Sidebar[StudentTableSidebar 侧栏]
+    GroupPage[GroupBoardPage 小组管理页]
+    Ungrouped[UngroupedPanel 未分组面板]
+    GroupCard[GroupCard 小组容器]
+    FlowLayout[FlowLayout 流式布局]
+    StudentCard[StudentCard 学生卡片]
+    GroupNumber[GroupNumberDialog 设置小组号]
     RecordPage[RecordListPage]
     TemplatePage[TemplateListPage]
     SumExport[SumExportDialog]
@@ -68,6 +81,7 @@ flowchart TD
     MainWindow -->|持有并设置| TableModel
     MainWindow -->|持有| SearchModel
     MainWindow -->|持有| StudentPage
+    MainWindow -->|持有| GroupPage
     MainWindow -->|持有| RecordPage
     MainWindow -->|持有| TemplatePage
     MainWindow -->|创建并读取配置| SumExport
@@ -76,6 +90,14 @@ flowchart TD
 
     StudentPage --> TableView
     StudentPage --> Sidebar
+    GroupPage --> Ungrouped
+    GroupPage --> GroupCard
+    Ungrouped --> FlowLayout
+    GroupCard --> FlowLayout
+    FlowLayout --> StudentCard
+    MainWindow -->|双击小组号列| GroupNumber
+    GroupPage -->|单击学生卡片| GroupNumber
+    GroupPage -->|分组写入| Manager
     TableModel -->|读取| Manager
     SearchModel -->|读取| Manager
     RecordModel -->|读取| Manager
@@ -92,6 +114,8 @@ flowchart TD
     Manager -->|recordsChanged / templatesChanged / dirtyStateChanged| RecordModel
     Manager -->|recordsChanged / templatesChanged / dirtyStateChanged| TemplateModel
     Manager -->|templatesChanged / dirtyStateChanged / recordsChanged| MainWindow
+    Manager -->|studentsChanged| TableModel
+    TableModel -->|groupAssignmentEdited| GroupPage
     TableModel -->|show/hideColumnRequested| TableView
 ```
 
@@ -192,12 +216,43 @@ flowchart LR
     Change[学生增删 / 拖动排序 / 改名] --> Model
 ```
 
+### 4.7 拖放分组与组内排序
+
+```mermaid
+flowchart LR
+    Drag[拖动学生卡片] --> Drop{落点}
+    Drop -->|小组容器| Position[按插入位置落位]
+    Drop -->|左侧未分组面板| Cancel[取消该学生分组]
+    Position --> Move[ClassDataManager::moveStudentToGroup 更新组号与组内顺序]
+    Cancel --> Move
+    Move --> Same{分组与位置是否变化}
+    Same -->|没有变化| Keep[卡片放回原位，不置脏]
+    Same -->|有变化| Emit[发出 studentsChanged]
+    Emit --> Column[表格小组号列刷新]
+    Same -->|有变化| Animate[搬移卡片并播放让位动画]
+```
+
+### 4.8 在表格里设置学生小组号
+
+```mermaid
+flowchart LR
+    Double[双击小组号单元格] --> Switch{小组信息编辑开关}
+    Switch -->|关闭| Ignore[不响应]
+    Switch -->|开启| Dialog[GroupNumberDialog 输入组号]
+    Dialog -->|取消| Ignore
+    Dialog -->|确定| Assign[ClassTableModel::assignGroupNumber]
+    Assign --> Move[ClassDataManager::moveStudentToGroup]
+    Move --> Emit[发出 groupAssignmentEdited]
+    Emit --> Reload[小组管理页按数据重建]
+```
+
 ## 5. 状态归属
 
 | 状态 | 归属 |
 |---|---|
-| 学生、模板、记录、记录草稿、排序设置、脏标记 | `ClassDataManager` |
-| 当前文件名、记录/模板查看索引、页面会话状态 | `MainWindow` |
-| 表格列显隐、行排序映射、编辑开关、查看列渲染状态 | `ClassTableModel` |
+| 学生（含小组号与组内顺序）、模板、记录、记录草稿、排序设置、脏标记 | `ClassDataManager` |
+| 当前文件名、记录/模板查看索引、小组信息编辑开关、页面会话状态 | `MainWindow` |
+| 表格列显隐、行排序映射、姓名编辑开关、查看列渲染状态 | `ClassTableModel` |
+| 小组容器与学生卡片的归属、拖放落点与占位状态 | `GroupBoardPage` / `GroupCard` / `UngroupedPanel` |
 | 学生搜索关键字与匹配结果 | `StudentSearchModel` |
 | 按钮可用性、折叠块展开状态、列表选中状态 | 各页面 / `StudentTableSidebar` |

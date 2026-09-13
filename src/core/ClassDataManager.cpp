@@ -1,58 +1,12 @@
 #include "ClassDataManager.h"
+#include <algorithm>
+#include <qglobal.h>
 
 ClassDataManager::ClassDataManager(QObject *parent)
     : QObject(parent)
 {
 
 }
-
-#ifdef QT_DEBUG
-void ClassDataManager::debugPrint()
-{
-    qDebug() << "===== Class Data Manager Debug Information =====";
-
-    // 1. 文件路径
-    qDebug() << "[File Path]: " << filePath;
-    qDebug() << "-----------------------------------------------";
-
-    // 2. 学生信息列表
-    qDebug() << "[Student List] (" << students.size() << "students)";
-    for (int i = 0; i < students.size(); ++i)
-    {
-        const auto& s = students[i];
-        qDebug().nospace()
-                << "  #" << i
-                << " | Name: " << s.name
-                << " | Order: " << s.displayOrder
-                << " | Group: " << (s.groupNumber == StudentInfo::NoGroup ? "No" : QString::number(s.groupNumber));
-    }
-    qDebug() << "-----------------------------------------------";
-
-    // 3. 积分模板列表
-    qDebug() << "[Score Templates] (" << templates.size() << "templates)";
-    for (int i = 0; i < templates.size(); ++i)
-    {
-        const auto& t = templates[i];
-        qDebug() << "  Template #" << i;
-        qDebug() << "    Description: " << t.description;
-        qDebug() << "    Values: " << t.values;
-    }
-    qDebug() << "-----------------------------------------------";
-
-    // 4. 积分记录列表
-    qDebug() << "[Score Records] (" << records.size() << "records)";
-    for (int i = 0; i < records.size(); ++i)
-    {
-        const auto& r = records[i];
-        qDebug() << "  Record #" << i;
-        qDebug() << "    Time: " << r.saveTime.toString("yyyy-MM-dd hh:mm:ss");
-        qDebug() << "    Description: " << r.description;
-        qDebug() << "    Scores (" << r.scores.size() << "entries):";
-        qDebug() << "    " << r.scores;
-    }
-    qDebug() << "===== End of Debug Information =====";
-}
-#endif
 
 QString ClassDataManager::openFile(const QString& openFilePath)
 {
@@ -97,6 +51,8 @@ QString ClassDataManager::openFile(const QString& openFilePath)
     m_hasData = true;
     emit recordsChanged();
     emit templatesChanged();
+    emit studentsChanged();
+
     return QString();
 }
 
@@ -331,7 +287,7 @@ void ClassDataManager::importStudents(const QStringList &newNames)
     QVector<StudentInfo> newStudents;
     newStudents.reserve(newNames.size());
     for(int i = 0; i < newNames.size(); i++)
-        newStudents.append({newNames.at(i), beginId + i, StudentInfo::NoGroup});
+        newStudents.append({newNames.at(i), beginId + i, StudentInfo::NoGroup, StudentInfo::NoOrder});
     students.append(std::move(newStudents));
     QVector<qint32> zeros(newNames.size(), 0);
     for(auto& i : records)
@@ -346,10 +302,16 @@ void ClassDataManager::importStudents(const QStringList &newNames)
 void ClassDataManager::removeStudent(int index)
 {
     const int removedPlace = students.at(index).displayOrder;
+    const qint32 removedGroup = students.at(index).groupNumber;
+    const qint32 removedOrder = students.at(index).groupOrder;
     students.removeAt(index);
     for(auto& i : students)
         if(i.displayOrder > removedPlace)
             i.displayOrder--;
+    if(removedGroup != StudentInfo::NoGroup)
+        for(auto& i : students)
+            if(i.groupNumber == removedGroup && i.groupOrder > removedOrder)
+                i.groupOrder--;
     for(auto& i : records)
         i.scores.removeAt(index);
     for(auto& i : templates)
@@ -357,6 +319,74 @@ void ClassDataManager::removeStudent(int index)
     if(m_isRecordEditing)
         tempRecord.scores.removeAt(index);
     setDirty(true);
+}
+
+bool ClassDataManager::moveStudentToGroup(int studentIndex, qint32 groupNumber, int position)
+{
+    if(studentIndex < 0 || studentIndex >= students.size())
+        return false;
+    const qint32 oldGroup = students[studentIndex].groupNumber;
+    const qint32 oldOrder = students[studentIndex].groupOrder;
+
+    //分组和组内位置都没变时直接返回，避免原样放回也把文件置脏
+    if(groupNumber == oldGroup)
+    {
+        if(groupNumber == StudentInfo::NoGroup)
+            return false;
+        const QVector<int> current = groupStudentIndices(groupNumber);
+        QVector<int> reordered = current;
+        reordered.removeAll(studentIndex);
+        const int target = (position < 0 || position > reordered.size()) ? reordered.size() : position;
+        reordered.insert(target, studentIndex);
+        if(reordered == current)
+            return false;
+    }
+
+    //从原组摘除：排在其后的成员顺序前移
+    if(oldGroup != StudentInfo::NoGroup)
+        for(StudentInfo& student : students)
+            if(student.groupNumber == oldGroup && student.groupOrder > oldOrder)
+                student.groupOrder--;
+
+    students[studentIndex].groupNumber = groupNumber;
+    students[studentIndex].groupOrder = StudentInfo::NoOrder;
+
+    //目标组内按插入位置重排为连续的0..n-1
+    if(groupNumber != StudentInfo::NoGroup)
+    {
+        QVector<int> members = groupStudentIndices(groupNumber);
+        members.removeAll(studentIndex);
+        if(position < 0 || position > members.size())
+            position = members.size();
+        members.insert(position, studentIndex);
+        for(int i = 0; i < members.size(); i++)
+            students[members.at(i)].groupOrder = i;
+    }
+    setDirty(true);
+    emit studentsChanged();
+    return true;
+}
+
+QVector<qint32> ClassDataManager::groupNumbers() const
+{
+    QVector<qint32> numbers;
+    for(const StudentInfo& student : students)
+        if(student.groupNumber != StudentInfo::NoGroup && !numbers.contains(student.groupNumber))
+            numbers.append(student.groupNumber);
+    std::sort(numbers.begin(), numbers.end());
+    return numbers;
+}
+
+QVector<int> ClassDataManager::groupStudentIndices(qint32 groupNumber) const
+{
+    QVector<int> members;
+    for(int i = 0; i < students.size(); i++)
+        if(students.at(i).groupNumber == groupNumber)
+            members.append(i);
+    std::sort(members.begin(), members.end(), [this](int left, int right) {
+        return students.at(left).groupOrder < students.at(right).groupOrder;
+    });
+    return members;
 }
 
 void ClassDataManager::removeTemplate(int index)

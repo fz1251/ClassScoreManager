@@ -47,7 +47,6 @@ add_subdirectory(third_party/FluentUIStyle)
 set(APP_SOURCES
     src/core/ClassDataManager.cpp
     src/core/ScoreSumReport.cpp
-    src/delegates/GroupSpinBoxDelegate.cpp
     src/delegates/ScoreExprDelegate.cpp
     src/delegates/TemplateSpinBoxDelegate.cpp
     src/main.cpp
@@ -55,45 +54,58 @@ set(APP_SOURCES
     src/models/RecordListModel.cpp
     src/models/StudentSearchModel.cpp
     src/models/TemplateListModel.cpp
+    src/pages/GroupBoardPage.cpp
     src/pages/RecordListPage.cpp
     src/pages/StudentTablePage.cpp
     src/pages/TemplateListPage.cpp
     src/pages/StudentTableSidebar.cpp
     src/pages/WelcomePage.cpp
     src/windows/AboutInfoDialog.cpp
+    src/widgets/FlowLayout.cpp
+    src/widgets/GroupCard.cpp
+    src/windows/GroupNumberDialog.cpp
     src/widgets/HomeActionCard.cpp
     src/windows/ItemSelectionDialog.cpp
     src/widgets/LineSpacedLabel.cpp
     src/windows/MainWindow.cpp
     src/widgets/OkCancelBox.cpp
     src/widgets/ShineLabel.cpp
+    src/widgets/StudentCard.cpp
     src/windows/SumExportDialog.cpp
+    src/widgets/UngroupedPanel.cpp
 )
 
 set(APP_HEADERS
     src/core/ClassDataManager.h
     src/core/DataTypes.h
     src/core/ScoreSumReport.h
-    src/delegates/GroupSpinBoxDelegate.h
     src/delegates/ScoreExprDelegate.h
     src/delegates/TemplateSpinBoxDelegate.h
     src/models/ClassTableModel.h
     src/models/RecordListModel.h
     src/models/StudentSearchModel.h
     src/models/TemplateListModel.h
+    src/pages/GroupBoardPage.h
     src/pages/RecordListPage.h
     src/pages/StudentTablePage.h
     src/pages/StudentTableSidebar.h
     src/pages/TemplateListPage.h
     src/pages/WelcomePage.h
     src/windows/AboutInfoDialog.h
+    src/widgets/CardHost.h
+    src/widgets/CardStyle.h
+    src/widgets/FlowLayout.h
+    src/widgets/GroupCard.h
+    src/windows/GroupNumberDialog.h
     src/widgets/HomeActionCard.h
     src/windows/ItemSelectionDialog.h
     src/widgets/LineSpacedLabel.h
     src/windows/MainWindow.h
     src/widgets/OkCancelBox.h
     src/widgets/ShineLabel.h
+    src/widgets/StudentCard.h
     src/windows/SumExportDialog.h
+    src/widgets/UngroupedPanel.h
 )
 
 

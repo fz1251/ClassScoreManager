@@ -2,7 +2,6 @@
 
 #include "DataTypes.h"
 #include <QObject>
-#include <QDebug>
 #include <QFile>
 
 //班级信息管理和接口类
@@ -13,12 +12,10 @@ signals:
     void dirtyStateChanged(bool isDirty);
     void recordsChanged();
     void templatesChanged();
+    void studentsChanged();
 public:
     explicit ClassDataManager(QObject *parent = nullptr);
     virtual ~ClassDataManager() = default;
-#ifdef QT_DEBUG
-    void debugPrint();
-#endif
     //文件读写
     QString openFile(const QString& openFilePath);
     void newFile();
@@ -56,6 +53,11 @@ public:
     QVector<qint32>& getTempRecord();
     void importStudents(const QStringList& newNames);
     void removeStudent (int index);
+    //小组分配：position为-1表示追加到组末；groupNumber为NoGroup表示取消分组
+    //返回是否真的发生了改变，原样放回时返回false且不置脏
+    bool moveStudentToGroup(int studentIndex, qint32 groupNumber, int position = -1);
+    QVector<qint32> groupNumbers() const;
+    QVector<int> groupStudentIndices(qint32 groupNumber) const;
     void removeTemplate(int index);
     void removeRecord  (int index);
     void clearTemplates();

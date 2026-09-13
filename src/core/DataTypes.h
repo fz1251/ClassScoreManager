@@ -126,9 +126,11 @@ inline QDataStream& operator>>(QDataStream& in, SortSettings& data)
 struct StudentInfo
 {
     QString name;                       //学生姓名
-    qint32 displayOrder;                //显示学生信息列表时的顺序
+    qint32 displayOrder;                //显示学生信息列表时的顺序，取值[1,size]
     qint32 groupNumber;                 //学生的小组号
+    qint32 groupOrder;                  //小组内的顺序，取值[0,组内人数-1]
     static constexpr qint32 NoGroup=-1; //未指定小组时为-1
+    static constexpr qint32 NoOrder=-1; //未分组时无小组内顺序
 };
 
 // QDataStream 序列化支持
@@ -136,7 +138,8 @@ inline QDataStream &operator >>(QDataStream &in, StudentInfo &data)
 {
     in >> data.name
        >> data.displayOrder
-       >> data.groupNumber;
+       >> data.groupNumber
+       >> data.groupOrder;
     return in;
 }
 
@@ -144,7 +147,8 @@ inline QDataStream &operator <<(QDataStream &out, const StudentInfo &data)
 {
     out << data.name
         << data.displayOrder
-        << data.groupNumber;
+        << data.groupNumber
+        << data.groupOrder;
     return out;
 }
 

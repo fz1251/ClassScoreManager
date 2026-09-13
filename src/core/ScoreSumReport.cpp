@@ -11,7 +11,7 @@ using namespace ScoreSumReport;
 struct StudentSumData
 {
     QString name;
-    int number,score,rank;
+    int number,groupOrder,score,rank;
 };
 
 struct GroupSumData
@@ -20,64 +20,56 @@ struct GroupSumData
     int number,score,rank;
 };
 
-// 学生比较器
-bool studentNumberAsc(const StudentSumData& a, const StudentSumData& b) {
-    return a.number < b.number;
-}
-
-bool studentNumberDesc(const StudentSumData& a, const StudentSumData& b) {
-    return a.number > b.number;
-}
-
-bool studentSumAsc(const StudentSumData& a, const StudentSumData& b) {
-    if (a.score != b.score) return a.score < b.score;
-    return a.number < b.number;   // 总分相同时按学号升序
-}
-
-bool studentSumDesc(const StudentSumData& a, const StudentSumData& b) {
-    if (a.score != b.score) return a.score > b.score;
-    return a.number < b.number;
-}
-
-// 小组比较器
-bool groupNumberAsc(const GroupSumData& a, const GroupSumData& b) {
-    return a.number < b.number;
-}
-
-bool groupNumberDesc(const GroupSumData& a, const GroupSumData& b) {
-    return a.number > b.number;
-}
-
-bool groupSumAsc(const GroupSumData& a, const GroupSumData& b) {
-    if (a.score != b.score) return a.score < b.score;
-    return a.number < b.number;
-}
-
-bool groupSumDesc(const GroupSumData& a, const GroupSumData& b) {
-    if (a.score != b.score) return a.score > b.score;
-    return a.number < b.number;
-}
-
-auto getStudentComparator(const SortSpec& spec) {
-    if (spec.field == SortField::StudentNumber) {
-        return spec.order == SortOrder::Ascending ? studentNumberAsc : studentNumberDesc;
-    } else {
-        return spec.order == SortOrder::Ascending ? studentSumAsc : studentSumDesc;
-    }
-}
-
-auto getGroupComparator(const SortSpec& spec) {
-    if (spec.field == SortField::GroupNumber) {
-        return spec.order == SortOrder::Ascending ? groupNumberAsc : groupNumberDesc;
-    } else {
-        return spec.order == SortOrder::Ascending ? groupSumAsc : groupSumDesc;
-    }
-}
-
-void sortStudents(std::vector<StudentSumData>& students, SortSpec spec)
+// 次序依据：个人模式用学号，小组模式用小组中的编号
+int orderKey(const StudentSumData& student, bool byGroupOrder)
 {
-    // 排序以计算排名
-    std::sort(students.begin(),students.end(),studentSumDesc);
+    return byGroupOrder ? student.groupOrder : student.number;
+}
+
+// 学生比较器：先按排序字段，同值时统一按次序依据升序收尾
+auto getStudentComparator(const SortSpec& spec, bool byGroupOrder)
+{
+    return [spec, byGroupOrder](const StudentSumData& a, const StudentSumData& b)
+    {
+        if (spec.field == SortField::StudentNumber)
+        {
+            return spec.order == SortOrder::Ascending
+                       ? orderKey(a, byGroupOrder) < orderKey(b, byGroupOrder)
+                       : orderKey(a, byGroupOrder) > orderKey(b, byGroupOrder);
+        }
+        if (a.score != b.score)
+            return spec.order == SortOrder::Ascending ? a.score < b.score : a.score > b.score;
+        return orderKey(a, byGroupOrder) < orderKey(b, byGroupOrder);
+    };
+}
+
+// 小组比较器：先按排序字段，同值时统一按组号升序收尾
+auto getGroupComparator(const SortSpec& spec)
+{
+    return [spec](const GroupSumData& a, const GroupSumData& b)
+    {
+        if (spec.field == SortField::GroupNumber)
+        {
+            return spec.order == SortOrder::Ascending
+                       ? a.number < b.number
+                       : a.number > b.number;
+        }
+        if (a.score != b.score)
+            return spec.order == SortOrder::Ascending ? a.score < b.score : a.score > b.score;
+        return a.number < b.number;
+    };
+}
+
+void sortStudents(std::vector<StudentSumData>& students, SortSpec spec, bool byGroupOrder = false)
+{
+    // 排名按总分降序，同分时按次序依据定序
+    std::sort(students.begin(), students.end(),
+              [byGroupOrder](const StudentSumData& a, const StudentSumData& b)
+    {
+        if (a.score != b.score)
+            return a.score > b.score;
+        return orderKey(a, byGroupOrder) < orderKey(b, byGroupOrder);
+    });
     int curRank=1;
     for(auto& i:students)
     {
@@ -85,18 +77,24 @@ void sortStudents(std::vector<StudentSumData>& students, SortSpec spec)
         curRank++;
     }
     // 按照传入的排序规格进行排序
-    std::sort(students.begin(), students.end(), getStudentComparator(spec));
+    std::sort(students.begin(), students.end(), getStudentComparator(spec, byGroupOrder));
 }
 
 void sortGroups(std::vector<GroupSumData>& groups, SortSpec groupSpec, SortSpec stuSpec)
 {
-    // 对每个小组中的学生进行排序
+    // 组内学生按小组中的编号定次序
     for(auto& i:groups)
     {
-        sortStudents(i.members, stuSpec);
+        sortStudents(i.members, stuSpec, true);
     }
-    // 排序以计算排名
-    std::sort(groups.begin(),groups.end(),groupSumDesc);
+    // 排名按小组总分降序，同分时按组号定序
+    std::sort(groups.begin(), groups.end(),
+              [](const GroupSumData& a, const GroupSumData& b)
+    {
+        if (a.score != b.score)
+            return a.score > b.score;
+        return a.number < b.number;
+    });
     int curRank=1;
     for(auto& i:groups)
     {
@@ -128,7 +126,7 @@ QString generateHtmlString(QVector<SummaryData> dataList, SortSettings mode)
         for(const auto& i:dataList)
         {
             GroupSumData& curData=groupMap[i.groupNo];
-            curData.members.push_back(StudentSumData{i.name,i.studentNo,i.totalScore,0});
+            curData.members.push_back(StudentSumData{i.name,i.studentNo,i.groupOrder,i.totalScore,0});
             curData.number=i.groupNo;
             curData.score+=i.totalScore;
         }
@@ -146,7 +144,7 @@ QString generateHtmlString(QVector<SummaryData> dataList, SortSettings mode)
         std::vector<StudentSumData> studentList;
         studentList.reserve(dataList.size());
         for(const auto& i:dataList)
-            studentList.push_back({i.name,i.studentNo,i.totalScore,0});
+            studentList.push_back({i.name,i.studentNo,i.groupOrder,i.totalScore,0});
         sortStudents(studentList, mode.studentSpec);
         return student::generate(studentList, mode.showStudentNumberFlag);
     }

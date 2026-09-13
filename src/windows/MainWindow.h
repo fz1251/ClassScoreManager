@@ -8,10 +8,12 @@
 #include <QVector>
 
 class QAction;
+class QModelIndex;
 class QStackedWidget;
 class QTabBar;
 class ClassDataManager;
 class ClassTableModel;
+class GroupBoardPage;
 class RecordListPage;
 class StudentSearchModel;
 class StudentTablePage;
@@ -32,6 +34,7 @@ private:
     {
         WelcomePage,
         StudentTablePage,
+        GroupBoardPage,
         ScoreRecordPage,
         ScoreTemplatePage
     };
@@ -63,6 +66,7 @@ private:
     void deleteStudentDialog();
     void importStudents(const QStringList& newNames);
     void removeStudent(int displayIndex);
+    void editStudentGroup(const QModelIndex& index);
     void selectStudentFromSearch(int resultRow);
 
     /*积分记录操作*/
@@ -119,9 +123,11 @@ private:
     ClassTableModel* tableModel = nullptr;
     StudentSearchModel* searchModel = nullptr;
     ::StudentTablePage* studentTablePage = nullptr;
+    ::GroupBoardPage* groupBoardPage = nullptr;
     RecordListPage* recordListPage = nullptr;
     TemplateListPage* templateListPage = nullptr;
     QString currentFileName;
+    bool groupEditEnabled = true;
     int recordPreviewIndex = -1;
     int templatePreviewIndex = -1;
 };

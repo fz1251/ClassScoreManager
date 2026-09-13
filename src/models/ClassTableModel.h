@@ -52,12 +52,18 @@ public:
 
     // 刷新全表格函数
     void resetTable();
+    // 小组分配被本页修改后，按当前数据重绘小组号列
+    void refreshGroupColumn();
+
+    // 小组号列只读，双击单元格后由窗口层通过这里提交新的组号
+    bool assignGroupNumber(int row, qint32 groupNumber);
+    qint32 groupNumberAt(int row) const;
 public slots:
     void setStudentEditable(bool editable);
-    void setGroupEditable(bool editable);
 signals:
     void showColumnRequested(int column);
     void hideColumnRequested(int column);
+    void groupAssignmentEdited();
 private:
     static const inline QString moveRowDataType = "application/row_data";
     static const inline int INVALID_INDEX = -1;
@@ -81,7 +87,6 @@ private:
     ClassDataManager* manager;
     bool columnIsVisible[MaxColumnCount];
     bool canEditStudent = true;
-    bool canEditGroup   = true;
     QVector<int> rowToIndex; // rowIndex[0,size-1]=>students[0,size-1]
     int previewRecordIndex = INVALID_INDEX;
     int previewTemplateIndex = INVALID_INDEX;

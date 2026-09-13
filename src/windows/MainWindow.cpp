@@ -1,19 +1,20 @@
 #include "MainWindow.h"
 #include "../core/ClassDataManager.h"
 #include "../core/ScoreSumReport.h"
-#include "../delegates/GroupSpinBoxDelegate.h"
 #include "../delegates/ScoreExprDelegate.h"
 #include "../delegates/TemplateSpinBoxDelegate.h"
 #include "../models/ClassTableModel.h"
 #include "../models/RecordListModel.h"
 #include "../models/StudentSearchModel.h"
 #include "../models/TemplateListModel.h"
+#include "../pages/GroupBoardPage.h"
 #include "../pages/RecordListPage.h"
 #include "../pages/StudentTablePage.h"
 #include "../pages/StudentTableSidebar.h"
 #include "../pages/TemplateListPage.h"
 #include "../pages/WelcomePage.h"
 #include "AboutInfoDialog.h"
+#include "GroupNumberDialog.h"
 #include "ItemSelectionDialog.h"
 #include "SumExportDialog.h"
 #include "fluentui3styleproperties.h"
@@ -49,7 +50,7 @@ MainWindow::MainWindow(QWidget *parent)
     setMinimumSize(800, 600);
     setWindowTitle(tr("班级积分管理系统"));
 
-    // 中央区域：导航栏在左，四个页面由堆叠窗口承载
+    // 中央区域：导航栏在左，五个页面由堆叠窗口承载
     auto *centralWidget = new QWidget(this);
     auto *mainLayout = new QHBoxLayout(centralWidget);
     mainLayout->setSpacing(0);
@@ -60,14 +61,16 @@ MainWindow::MainWindow(QWidget *parent)
 
     auto *welcomePage = new ::WelcomePage(stackedWidget);
     studentTablePage = new ::StudentTablePage(stackedWidget);
+    groupBoardPage = new ::GroupBoardPage(manager, stackedWidget);
     recordListPage = new RecordListPage(stackedWidget);
     templateListPage = new TemplateListPage(stackedWidget);
     stackedWidget->addWidget(welcomePage);
     stackedWidget->addWidget(studentTablePage);
+    stackedWidget->addWidget(groupBoardPage);
     stackedWidget->addWidget(recordListPage);
     stackedWidget->addWidget(templateListPage);
 
-    // 导航栏：文件打开后显示，切换表格、积分记录、积分模板页
+    // 导航栏：文件打开后显示，切换班级信息、小组管理、积分记录、积分模板页
     navigationTabBar = new QTabBar(centralWidget);
     navigationTabBar->setShape(QTabBar::RoundedWest);
     navigationTabBar->setDrawBase(false);
@@ -75,6 +78,7 @@ MainWindow::MainWindow(QWidget *parent)
     navigationTabBar->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Preferred);
     navigationTabBar->setProperty(TabBarStyleProperty, TabBarStyle::Navigation);
     navigationTabBar->addTab(tr("班级信息"));
+    navigationTabBar->addTab(tr("小组管理"));
     navigationTabBar->addTab(tr("积分记录"));
     navigationTabBar->addTab(tr("积分模板"));
     mainLayout->insertWidget(0, navigationTabBar);
@@ -99,12 +103,20 @@ MainWindow::MainWindow(QWidget *parent)
 
     // 表格单元格委托
     tableView->setItemDelegateForColumn(ClassTableModel::CurrentRecord, new ScoreExprDelegate(this));
-    tableView->setItemDelegateForColumn(ClassTableModel::GroupNumber, new GroupSpinBoxDelegate(this));
     tableView->setItemDelegateForColumn(ClassTableModel::ScoreTemplatePreview, new TemplateSpinBoxDelegate(this));
+
+    // 小组号列不可原地编辑，双击弹出设置小组对话框，与小组管理页共用同一个入口
+    connect(tableView, &QTableView::doubleClicked, this, &MainWindow::editStudentGroup);
 
     // 表格模型与视图的列显隐联动
     connect(tableModel, &ClassTableModel::showColumnRequested, tableView, &QTableView::showColumn);
     connect(tableModel, &ClassTableModel::hideColumnRequested, tableView, &QTableView::hideColumn);
+
+    // 小组分配：小组管理页与表格页共用同一份数据，任一侧改动都刷新另一侧
+    connect(manager, &ClassDataManager::studentsChanged,
+            tableModel, &ClassTableModel::refreshGroupColumn);
+    connect(tableModel, &ClassTableModel::groupAssignmentEdited,
+            groupBoardPage, &::GroupBoardPage::reload);
 
     // 欢迎页卡片请求
     connect(welcomePage, &::WelcomePage::openFileRequested, this, &MainWindow::openFileDialog);
@@ -125,7 +137,7 @@ MainWindow::MainWindow(QWidget *parent)
     connect(studentTablePage->sidebar(), &StudentTableSidebar::nameEditChanged,
             tableModel, &ClassTableModel::setStudentEditable);
     connect(studentTablePage->sidebar(), &StudentTableSidebar::groupEditChanged,
-            tableModel, &ClassTableModel::setGroupEditable);
+            this, [this](bool enabled) { groupEditEnabled = enabled; });
 
     // 侧栏学生操作块：添加、删除学生
     connect(studentTablePage->sidebar(), &StudentTableSidebar::addStudentsRequested,
@@ -429,6 +441,7 @@ void MainWindow::resetTable()
     templatePreviewIndex = -1;
     studentTablePage->sidebar()->setRecordNameText(QString());
     tableModel->resetTable();
+    groupBoardPage->reload();
     updateRecordPreviewPanel();
     updateTemplatePreviewPanel();
 }
@@ -554,13 +567,28 @@ void MainWindow::closeFile()
 void MainWindow::importStudents(const QStringList &newNames)
 {
     tableModel->importStudents(newNames);
+    groupBoardPage->reload();
     updateFilePreview();
 }
 
 void MainWindow::removeStudent(int displayIndex)
 {
     tableModel->removeStudent(displayIndex);
+    groupBoardPage->reload();
     updateFilePreview();
+}
+
+void MainWindow::editStudentGroup(const QModelIndex& index)
+{
+    if(index.column() != ClassTableModel::GroupNumber || !groupEditEnabled)
+        return;
+    const QString studentName = tableModel->index(index.row(), ClassTableModel::StudentName)
+                                            .data().toString();
+    const qint32 currentGroup = tableModel->groupNumberAt(index.row());
+    GroupNumberDialog dialog(studentName, currentGroup == StudentInfo::NoGroup ? 0 : currentGroup, this);
+    if(dialog.exec() != QDialog::Accepted)
+        return;
+    tableModel->assignGroupNumber(index.row(), dialog.getGroupNumber());
 }
 
 void MainWindow::selectStudentFromSearch(int resultRow)
@@ -611,7 +639,7 @@ void MainWindow::exportScoreSum(const QVector<int> &recordIndices)
     QVector<ScoreSumReport::SummaryData> dataList;
     dataList.reserve(studentCount);
     for(const StudentInfo& stu : manager->getStudents())
-        dataList.append({stu.name, stu.displayOrder, 0, stu.groupNumber});
+        dataList.append({stu.name, stu.displayOrder, 0, stu.groupNumber, stu.groupOrder});
 
     for(int recordIndex : recordIndices)
         for(int i = 0; i < studentCount; i++)
