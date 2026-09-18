@@ -27,7 +27,10 @@ int main(int argc, char *argv[])
 #ifdef Q_OS_WIN
     // Qt 5 在高 DPI 环境下默认 font family 为空，属于 Windows 平台问题
     // 导致字体回退至 SimSun（宋体），需手动设置，以避免显示问题
-    defaultFont.setFamily("Microsoft YaHei UI");
+    // "Microsoft YaHei UI" 自 Windows 8 起提供，Windows 7 只有微软雅黑，按顺序回退
+    defaultFont.setFamilies({QStringLiteral("Microsoft YaHei UI"),
+                             QStringLiteral("Microsoft YaHei"),
+                             QStringLiteral("微软雅黑")});
 #endif
     // Qt5 默认 weight 为 50（Light），需与 Qt6 下 400（Normal）统一
     defaultFont.setWeight(QFont::Normal);

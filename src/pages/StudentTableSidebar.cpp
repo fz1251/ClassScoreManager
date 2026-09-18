@@ -1,5 +1,6 @@
 #include "StudentTableSidebar.h"
 #include "exexpander.h"
+#include "exfonticon.h"
 #include "fluentui3styleproperties.h"
 #include <QAbstractItemModel>
 #include <QCheckBox>
@@ -154,8 +155,8 @@ StudentTableSidebar::StudentTableSidebar(QWidget *parent)
     recordLayout->addLayout(recordViewLayout);
 
     // 上一项/下一项按钮使用 Segoe Fluent Icons 字体；该字体已由 FluentUI3Style 加载
-    constexpr char16_t chromeBackGlyph = 0xE830;
-    constexpr char16_t chromeBackMirroredGlyph = 0xEA47;
+    constexpr char16_t chromeBackGlyph = static_cast<char16_t>(SegoeIcon::ChromeBack);
+    constexpr char16_t chromeBackMirroredGlyph = static_cast<char16_t>(SegoeIcon::ChromeBackMirrored);
     const auto createNavIconButton = [](char16_t glyph, const QString &tooltip, QWidget *parent) {
         auto *button = new QPushButton(parent);
         QFont iconFont(QStringLiteral("Segoe Fluent Icons"));
@@ -268,9 +269,8 @@ StudentTableSidebar::StudentTableSidebar(QWidget *parent)
     auto *templateNameButtonLayout = new QHBoxLayout;
     templateNameButtonLayout->setContentsMargins(0, 0, 0, 0);
     templateNameButtonLayout->setSpacing(6);
-    // Segoe Fluent Icons 中的 Sync 与 RevToggleKey 字形码
-    constexpr char16_t syncGlyph = 0xE895;
-    constexpr char16_t revToggleKeyGlyph = 0xE845;
+    constexpr char16_t syncGlyph = static_cast<char16_t>(SegoeIcon::Sync);
+    constexpr char16_t revToggleKeyGlyph = static_cast<char16_t>(SegoeIcon::RevToggleKey);
     templateUpdateButton = createFluentTextButton(syncGlyph, tr("更新名称"), templateBlock);
     templateDiscardButton = createFluentTextButton(revToggleKeyGlyph, tr("放弃修改"), templateBlock);
     templateNameButtonLayout->addWidget(templateUpdateButton);

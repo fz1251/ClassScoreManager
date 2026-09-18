@@ -2,6 +2,7 @@
 
 #include "FlowLayout.h"
 #include "StudentCard.h"
+#include "exfonticon.h"
 
 #include <QDragEnterEvent>
 #include <QDragLeaveEvent>
@@ -23,7 +24,7 @@ constexpr qreal kFrameInset = 1.5;            //与样式库绘制GroupBox边框
 constexpr int kDefaultRoundingRadius = 4;     //样式库 secondLevelRoundingRadius 的默认值
 constexpr QColor kMaskColor(211, 47, 47);     //蒙版与虚线
 constexpr QColor kMaskTextColor(155, 28, 28); //深红图标与提示文字
-constexpr char16_t kDeleteGlyph = 0xE74D;     //Segoe Fluent Icons 的 Delete
+constexpr char16_t kDeleteGlyph = static_cast<char16_t>(SegoeIcon::Delete);
 constexpr int kMaskIconPixelSize = 48;
 constexpr int kMaskTextPointSize = 20;
 constexpr int kIconTextSpacing = 10;

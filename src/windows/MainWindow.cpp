@@ -618,6 +618,7 @@ bool MainWindow::saveScoreRecord()
     tableModel->saveScoreRecord();
     studentTablePage->sidebar()->setRecordNameText(QString());
     updateRecordEditingActions();
+    updateRecordPreviewPanel();
     return true;
 }
 
