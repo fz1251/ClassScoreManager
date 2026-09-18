@@ -24,6 +24,8 @@
   - `qt5-msvc2022-debug` → `build/vscode-qt5.15.19-debug`
   - `qt5-msvc2022-release` → `build/vscode-qt5.15.19-release`
   - 两个预设的 `CMAKE_PREFIX_PATH` 均指向当前 Qt，并开启 `CMAKE_EXPORT_COMPILE_COMMANDS=ON`。
+- 构建命令：`cmake --build --preset qt5-msvc2022-debug`（Release 同理）。
+  MSVC 的 `INCLUDE`/`LIB`/`PATH` 由预设的 `environment` 提供，直接 `cmake --build <构建目录>` 会因找不到标准库头而报 C1083。
 - 两个预设继承隐藏预设 `msvc2022-x64-base`：
   - 固定 `CMAKE_C_COMPILER` / `CMAKE_CXX_COMPILER` 为 `cl`。
   - 在 PATH/INCLUDE/LIB 中内置 VS2022 x64 工具链与 Windows SDK 路径。
@@ -48,12 +50,12 @@
 - `target_include_directories` 只包含 `generated` 目录；项目根目录 include 与 customwidget 相对头路径支持均不再需要。
 - rc.exe 的字符串中 `\` 是转义符，图标路径必须把反斜杠翻倍后再写入 RC 文件；MSVC 加 `/utf-8`。
 - FluentUIStyle 以子目录构建：
-  - `BUILD_LIBRARY ON`、`BUILD_PLUGIN OFF`、`BUILD_EXAMPLES OFF`、`EXWIDGETS_BUILD_FRAMELESS ON`。
+  - `BUILD_LIBRARY ON`、`BUILD_PLUGIN OFF`、`BUILD_EXAMPLES OFF`、`BUILD_FRAMELESS ON`。
   - 其依赖 Qt5Svg。
 - QWindowKit：
   - 必须预先 `add_subdirectory` 到浅目录 `${CMAKE_BINARY_DIR}/qwindowkit`，避免深路径生成的私有 forwarding header 相对路径过长。
   - `QWINDOWKIT_INSTALL ON` 才能通过 CMake export 校验。
-- 主程序链接：Qt Core/Gui/Widgets、FluentUI3Style、ExWidgets::ExWidgets、ExWidgets::Frameless、dwmapi。
+- 主程序链接：Qt Core/Gui/Widgets、FluentUI3Style、ExWidgets::ExWidgets、Frameless::Frameless、dwmapi。
 
 ## 5. 样式
 
@@ -62,7 +64,7 @@
 - 全局视觉统一走 FluentUI3Style。
 - `QGroupBox` 的圆角细线边框与标题由样式库的 `PE_FrameGroupBox` / `SH_GroupBox_TextLabelColor` 绘制，需要这种边框时直接用标准 `QGroupBox`，不要自行绘制。
 - `AboutInfoDialog` 是整体独立定制的对话框，其局部 QSS 属该对话框自身的完整定制，与主界面样式不冲突。
-- `AboutInfoDialog` 当前保留手写 DWM/无边框标题栏逻辑；已链接 ExWidgets::Frameless 但尚未切换，迁移到 `FluentTitleBar`/`FluentWindowFrame` 是单独待办。
+- `AboutInfoDialog` 当前保留手写 DWM/无边框标题栏逻辑；已链接 Frameless::Frameless 但尚未切换，迁移到 `FluentTitleBar`/`FluentWindowFrame` 是单独待办。
 
 ## 6. UI 现状
 

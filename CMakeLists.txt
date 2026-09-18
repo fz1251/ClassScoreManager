@@ -41,7 +41,7 @@ add_subdirectory(third_party/FluentUIStyle/3rd/qwindowkit "${CMAKE_BINARY_DIR}/q
 set(BUILD_LIBRARY ON CACHE BOOL "" FORCE)
 set(BUILD_PLUGIN OFF CACHE BOOL "" FORCE)
 set(BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
-set(EXWIDGETS_BUILD_FRAMELESS ON CACHE BOOL "" FORCE)
+set(BUILD_FRAMELESS ON CACHE BOOL "" FORCE)
 add_subdirectory(third_party/FluentUIStyle)
 
 set(APP_SOURCES
@@ -138,7 +138,7 @@ target_link_libraries(ClassScoreManager PRIVATE
     Qt::Widgets
     FluentUI3Style
     ExWidgets::ExWidgets
-    ExWidgets::Frameless
+    Frameless::Frameless
 )
 
 if(WIN32)

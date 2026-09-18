@@ -7,7 +7,7 @@
 | 库 | 位置 | 用途 | 构建方式 |
 | --- | --- | --- | --- |
 | FluentUIStyle | `third_party/FluentUIStyle`（git 子模块） | FluentUI3 全局样式、ExWidgets 扩展控件、Frameless 无边框组件 | 随主项目一起编译 |
-| QWindowKit | `third_party/FluentUIStyle/3rd/qwindowkit` | `ExWidgets::Frameless` 依赖的无边框/标题栏基础设施 | 随 FluentUIStyle 一起编译 |
+| QWindowKit | `third_party/FluentUIStyle/3rd/qwindowkit` | `Frameless` 依赖的无边框/标题栏基础设施 | 随 FluentUIStyle 一起编译 |
 | kissfft | `third_party/FluentUIStyle/3rd/kissfft` | ExWidgets 中频谱控件的 FFT 后端 | 编译为静态库 |
 | qmsetup | `third_party/FluentUIStyle/3rd/qwindowkit/qmsetup` | QWindowKit 的构建期辅助工具 | 主项目配置阶段自动构建并安装到构建目录 |
 
@@ -17,11 +17,11 @@
 
 - 子模块路径：`third_party/FluentUIStyle`
 - 上游仓库：https://github.com/XHY-ChuJian/FluentUIStyle.git
-- 当前固定提交：`7d25b77e085a53b0360ca653a2acc10af54e951f`
+- 当前固定提交：`b8a7ce5b36cbc022b86227590deaa033fcc55534`（tag `4.0` 之后的第 4 个提交）
 - 用途：
   - `fluentui3style/`：`FluentUI3Style` 全局 QStyle，随程序直接实例化使用。
   - `ExWidgets/`：`ExWidgets::ExWidgets` 扩展控件库。
-  - `ExWidgets/frameless/`：`ExWidgets::Frameless` 无边框窗口组件（`FluentTitleBar` / `FluentWindowFrame`）。
+  - `frameless/`：独立静态库 `Frameless`，提供无边框窗口组件（`FluentTitleBar` / `FluentWindowFrame`）。
   - `ExWidgets/dialogs/`：`ExContentDialog`（WinUI3 风格模态对话框）、`ExMessageBox` 等对话框组件。
   - `3rd/`：携带的 QWindowKit 与 kissfft 依赖。
 
@@ -34,7 +34,7 @@ FluentUIStyle 以源码子目录方式加入主项目构建，不构建、不部
 | `BUILD_LIBRARY` | ON | 构建 `FluentUI3Style` 样式库 |
 | `BUILD_PLUGIN` | OFF | 不构建样式插件 |
 | `BUILD_EXAMPLES` | OFF | 不构建示例程序 |
-| `EXWIDGETS_BUILD_FRAMELESS` | ON | 构建 QWindowKit 支撑的无边框组件 |
+| `BUILD_FRAMELESS` | ON | 构建 QWindowKit 支撑的无边框静态库 `Frameless` |
 
 FluentUIStyle 的 CMake 需要 `Qt5Svg`（或 Qt6 的 Svg 组件）。当前自编译 Qt 5.15.19 已包含 qtsvg。
 
@@ -55,10 +55,10 @@ FluentUIStyle 的 CMake 需要 `Qt5Svg`（或 Qt6 的 Svg 组件）。当前自�
   target_link_libraries(ClassScoreManager PRIVATE
       FluentUI3Style
       ExWidgets::ExWidgets
-      ExWidgets::Frameless
+      Frameless::Frameless
   )
   ```
-- `AboutInfoDialog` 当前使用自己的手写 DWM 无边框标题栏实现；`ExWidgets::Frameless` 已构建并链接，但该对话框尚未改用它。
+- `AboutInfoDialog` 当前使用自己的手写 DWM 无边框标题栏实现；`Frameless::Frameless` 已构建并链接，但该对话框尚未改用它。
 - 对话框统一走 `ExContentDialog`：确认框用 `setContent` + 主副按钮，列表选择框用 `setContentWidget` 承载下拉框。头文件写作 `#include "excontentdialog.h"`。
 
 ### 构建产物位置
@@ -67,15 +67,16 @@ FluentUIStyle 的 CMake 需要 `Qt5Svg`（或 Qt6 的 Svg 组件）。当前自�
 
 | 配置 | `build/.../bin` 中的相关文件 |
 | --- | --- |
-| Debug | `FluentUI3Styled.dll`、`ExWidgetsd.dll`、`ExWidgetsFramelessd.dll`、`QWKCored.dll`、`QWKWidgetsd.dll`、`ClassScoreManager.exe` |
-| Release | `FluentUI3Style.dll`、`ExWidgets.dll`、`ExWidgetsFrameless.dll`、`QWKCore.dll`、`QWKWidgets.dll`、`ClassScoreManager.exe` |
+| Debug | `FluentUI3Styled.dll`、`ExWidgetsd.dll`、`QWKCored.dll`、`QWKWidgetsd.dll`、`ClassScoreManager.exe` |
+| Release | `FluentUI3Style.dll`、`ExWidgets.dll`、`QWKCore.dll`、`QWKWidgets.dll`、`ClassScoreManager.exe` |
 
 Debug 配置下 FluentUIStyle 相关目标统一带 `d` 后缀。
+`Frameless` 是静态库，只输出到 `lib/`（Debug 为 `Framelessd.lib`），不再产出独立 DLL。
 
 ## 3. QWindowKit
 
 - 位置：`third_party/FluentUIStyle/3rd/qwindowkit`
-- 目标：`QWKCore`、`QWKWidgets`；`ExWidgets::Frameless` 公开链接 `QWindowKit::Widgets`。
+- 目标：`QWKCore`、`QWKWidgets`；`Frameless` 公开链接 `QWindowKit::Widgets`。
 - 构建选项由主项目在预添加时固定：
 
   | 选项 | 值 |
