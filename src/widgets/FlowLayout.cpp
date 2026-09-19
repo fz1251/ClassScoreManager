@@ -145,6 +145,7 @@ int FlowLayout::doLayout(const QRect& rect, bool moveItems) const
                 hint.setHeight(height);
         }
 
+        //单列模式下每行只放一个；其余情况放不下就换行（QRect::right() 含端点，+1 才是实际右边界）
         if(!lineIsEmpty && (m_singleColumn || x + hint.width() > effective.right() + 1))
         {
             x = effective.x();

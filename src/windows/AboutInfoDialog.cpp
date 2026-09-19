@@ -161,10 +161,11 @@ AboutInfoDialog::AboutInfoDialog(QWidget* parent)
     contentLabel->setFont(contentFont);
     contentLabel->setWordWrap(false);
     const QString contentText = tr("Made with C++\n"
-                                   "Powered by Qt 5.15.2\n"
+                                   "Powered by Qt %1\n"
                                    "Copyright© 2025-2026 mengfanzhen0501@163.com\n"
                                    "本程序以MIT协议开源\n"
-                                   "仓库链接: github.com/fz1251/ClassScoreManager");
+                                   "仓库链接: github.com/fz1251/ClassScoreManager")
+                                    .arg(QStringLiteral(QT_VERSION_STR));
     contentLabel->setText(contentText);
     contentLabel->setFixedWidth(contentLabel->sizeHint().width());
     textLayout->setAlignment(contentLabel, Qt::AlignLeft);
@@ -326,11 +327,7 @@ void AboutInfoDialog::paintEvent(QPaintEvent* event)
     QDialog::paintEvent(event);
 }
 
-#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
-bool AboutInfoDialog::nativeEvent(const QByteArray& eventType, void* message, qintptr* result)
-#else
 bool AboutInfoDialog::nativeEvent(const QByteArray& eventType, void* message, long* result)
-#endif
 {
 #ifdef Q_OS_WIN
     if(!m_isWin10or11)
@@ -355,11 +352,7 @@ bool AboutInfoDialog::nativeEvent(const QByteArray& eventType, void* message, lo
             const int yPos = GET_Y_LPARAM(msg->lParam);
 
             // 放行按钮区域以免被 HTCAPTION 覆盖
-#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
-            const QPoint clientPos = mapFromGlobal(QPointF(xPos, yPos) / windowHandle()->devicePixelRatio()).toPoint();
-#else
             const QPoint clientPos = mapFromGlobal((QPointF(xPos, yPos) / windowHandle()->devicePixelRatio()).toPoint());
-#endif
             QWidget* child = childAt(clientPos);
             if(child && qobject_cast<QPushButton*>(child))
                 return false;

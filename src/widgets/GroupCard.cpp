@@ -131,19 +131,6 @@ void GroupCard::removeCard(StudentCard* card)
     refreshHeader();
 }
 
-void GroupCard::clearCards()
-{
-    m_placeholder = nullptr;
-    while(m_cardLayout->count() > 0)
-    {
-        QLayoutItem* item = m_cardLayout->takeAt(0);
-        QWidget* widget = item->widget();
-        delete item;
-        delete widget;
-    }
-    refreshHeader();
-}
-
 void GroupCard::refreshHeader()
 {
     m_titleLabel->setText(tr("第 %1 组").arg(m_groupNumber));
@@ -258,7 +245,15 @@ void GroupCard::dropEvent(QDropEvent* event)
         return;
     }
     //占位槽留到卡片真正插入时再撤除，位置索引才对得上
-    const int insertIndex = m_placeholder ? m_cardLayout->indexOf(m_placeholder) : dropIndexAt(event->pos());
+    const int placeholderIndex = m_placeholder ? m_cardLayout->indexOf(m_placeholder) : dropIndexAt(event->pos());
+    //插入位置一律按“不含被拖卡片”的顺序算：拖动中的卡片只是隐藏，仍占着一个布局项
+    int insertIndex = placeholderIndex;
+    for(int i = 0; i < placeholderIndex; i++)
+    {
+        QWidget* item = m_cardLayout->itemAt(i)->widget();
+        if(item && item != m_placeholder && item->isHidden())
+            insertIndex--;
+    }
     startHighlightAnimation(false);
     event->acceptProposedAction();
     emit studentDropped(studentIndex, insertIndex);

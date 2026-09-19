@@ -173,6 +173,7 @@ void ShineLabel::updateTextPath()
         maxProjection = qMax(maxProjection, projection);
     }
 
+    //投影是沿渐变轴的长度，除以轴的 x 分量即换算回光带中心的 x 坐标
     const qreal halfBandWidth = m_bandWidth / 2.0;
     m_sweepStartX = (minProjection - halfBandWidth) / gradientAxis.x();
     m_sweepEndX = (maxProjection + halfBandWidth) / gradientAxis.x();

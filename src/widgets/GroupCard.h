@@ -27,7 +27,6 @@ public:
     void insertCard(StudentCard* card, int index) override;
     void removeCard(StudentCard* card) override;
     void refreshHeader() override;
-    void clearCards();
 
 signals:
     void studentDropped(int studentIndex, int insertIndex);

@@ -11,6 +11,7 @@
 
 SumExportDialog::SumExportDialog(QWidget* parent, SortSettings settings)
     : QDialog(parent)
+    , m_settings(settings)
 {
     setWindowTitle(tr("积分求和统计导出"));
 
@@ -140,7 +141,8 @@ SumExportDialog::SumExportDialog(QWidget* parent, SortSettings settings)
 
 SortSettings SumExportDialog::getCurrentConfig() const
 {
-    SortSettings settings;
+    //以打开时的配置为基底，只覆盖当前模式下能编辑到的字段，另一种模式的配置原样保留
+    SortSettings settings = m_settings;
     settings.showStudentNumberFlag = showStudentNumberBox->isChecked();
     if(groupModeButton->isChecked())
     {

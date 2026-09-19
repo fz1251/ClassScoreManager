@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <qglobal.h>
+#include <utility>
 
 ClassDataManager::ClassDataManager(QObject* parent)
     : QObject(parent)
@@ -11,26 +12,38 @@ ClassDataManager::ClassDataManager(QObject* parent)
 QString ClassDataManager::openFile(const QString& openFilePath)
 {
     clearRecordDraft();
-    filePath = openFilePath;
-    QFile file(filePath);
+    QFile file(openFilePath);
     if(!file.open(QIODevice::ReadOnly))
-        return QObject::tr("无法打开名为%1的文件").arg(filePath);
+        return QObject::tr("无法打开名为%1的文件").arg(openFilePath);
     QDataStream stream(&file);
     stream.setVersion(QDataStream::Qt_5_15);
-    stream >> header;
-    if(header.fileHeader != CorrectFileHeader)
+
+    //先解析到局部变量，全部校验通过后再提交，避免解析失败留下半份数据与错误的文件路径
+    HeaderData newHeader;
+    SortSettings newSettings;
+    QVector<StudentInfo> newStudents;
+    QVector<ScoreTemplate> newTemplates;
+    QVector<ScoreRecord> newRecords;
+    stream >> newHeader;
+    if(newHeader.fileHeader != CorrectFileHeader)
         return QObject::tr("错误的文件头，文件格式不正确或已损坏");
-    stream >> settings;
-    stream >> students;
-    if(header.studentCount != students.size())
-        return QObject::tr("学生信息不正确，应为%1条，实际为%2条").arg(header.studentCount).arg(students.size());
-    stream >> templates;
-    if(header.templateCount != templates.size())
-        return QObject::tr("积分模板信息不正确，应为%1条，实际为%2条").arg(header.templateCount).arg(templates.size());
-    stream >> records;
-    if(header.recordCount != records.size())
-        return QObject::tr("积分记录信息不正确，应为%1条，实际为%2条").arg(header.recordCount).arg(records.size());
+    stream >> newSettings;
+    stream >> newStudents;
+    if(newHeader.studentCount != newStudents.size())
+        return QObject::tr("学生信息不正确，应为%1条，实际为%2条").arg(newHeader.studentCount).arg(newStudents.size());
+    stream >> newTemplates;
+    if(newHeader.templateCount != newTemplates.size())
+        return QObject::tr("积分模板信息不正确，应为%1条，实际为%2条").arg(newHeader.templateCount).arg(newTemplates.size());
+    stream >> newRecords;
+    if(newHeader.recordCount != newRecords.size())
+        return QObject::tr("积分记录信息不正确，应为%1条，实际为%2条").arg(newHeader.recordCount).arg(newRecords.size());
     file.close();
+
+    filePath = openFilePath;
+    settings = newSettings;
+    students = std::move(newStudents);
+    templates = std::move(newTemplates);
+    records = std::move(newRecords);
     m_hasData = true;
     emit recordsChanged();
     emit templatesChanged();
@@ -44,24 +57,26 @@ void ClassDataManager::newFile()
     clearRecordDraft();
     m_hasData = true;
     m_isNewFile = true;
-    m_isDirty = true;
+    setDirty(true);
     emit recordsChanged();
     emit templatesChanged();
 }
 
-void ClassDataManager::saveNewFile(const QString& saveFilePath)
+bool ClassDataManager::saveNewFile(const QString& saveFilePath)
 {
     filePath = saveFilePath;
-    saveFile();
+    if(!saveFile())
+        return false;
 
     m_isNewFile = false;
+    return true;
 }
 
-void ClassDataManager::saveFile()
+bool ClassDataManager::saveFile()
 {
     QFile file(filePath);
     if(!file.open(QIODevice::WriteOnly | QIODevice::Truncate))
-        return;
+        return false;
     QDataStream stream(&file);
     stream.setVersion(QDataStream::Qt_5_15);
     stream << HeaderData{CorrectFileHeader, students.size(), templates.size(), records.size()};
@@ -70,9 +85,12 @@ void ClassDataManager::saveFile()
     stream << templates;
     stream << records;
     file.close();
+    if(file.error() != QFile::NoError || stream.status() != QDataStream::Ok)
+        return false;
 
     if(!this->isRecordUnsaved())
         setDirty(false);
+    return true;
 }
 
 void ClassDataManager::closeFile()
@@ -118,6 +136,9 @@ bool ClassDataManager::isEmptyNewFile() const
 
 void ClassDataManager::setPreviousSettings(SortSettings curSettings)
 {
+    //配置没有变化时不置脏，避免只是导出一次就把文件标成未保存
+    if(settings == curSettings)
+        return;
     settings = curSettings;
     setDirty(true);
 }
@@ -231,6 +252,7 @@ void ClassDataManager::newRecord(const QString& recordName)
 void ClassDataManager::saveRecord()
 {
     tempRecord.saveTime = QDateTime::currentDateTime();
+    //启用的模板只在保存时并入正式记录，表格的“积分(当前)”列显示的是不含模板的草稿值
     if(activatedTemplateIndex >= 0 && activatedTemplateIndex < templates.size())
         for(int i = 0; i < tempRecord.scores.size(); i++)
             tempRecord.scores[i] += templates.at(activatedTemplateIndex).values[i];

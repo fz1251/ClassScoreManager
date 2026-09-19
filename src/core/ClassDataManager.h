@@ -21,8 +21,8 @@ public:
     //文件读写
     QString openFile(const QString& openFilePath);
     void newFile();
-    void saveNewFile(const QString& saveFilePath);
-    void saveFile();
+    bool saveNewFile(const QString& saveFilePath);
+    bool saveFile();
     void closeFile();
     //文件状态
     bool hasData() const;
@@ -76,7 +76,6 @@ private:
     bool m_isRecordEditing = false;
     int activatedTemplateIndex = -1;
     QString filePath;
-    HeaderData header;
     SortSettings settings;
     QVector<StudentInfo> students;
     QVector<ScoreTemplate> templates;

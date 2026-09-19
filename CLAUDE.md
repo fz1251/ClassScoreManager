@@ -83,7 +83,7 @@
 
 ## 3. 项目关键事实与文档索引
 
-- 项目：ClassScoreManager，班级积分管理系统；技术栈 C++17 + Qt Widgets（禁用 QML），CMake + Ninja；代码保持 Qt5/Qt6 条件编译兼容。
+- 项目：ClassScoreManager，班级积分管理系统；技术栈 C++17 + Qt Widgets（禁用 QML），CMake + Ninja；代码只按 Qt 5.15.19 编译，不保留 Qt6 条件编译分支。
 - 当前 Qt 套件：Qt 5.15.19（qtbase + qtsvg），MSVC 2022 x64，prefix `D:/Projects/Qt5.15.19/msvc2022_64`。
 - 构建：只使用预设 `qt5-msvc2022-debug` / `qt5-msvc2022-release`；产物在对应 `build/` 的 `bin/` 与 `lib/`。
   - 若编译命令中出现 Strawberry Perl 的 `c++.exe` / `gcc.exe`，说明 build 目录被错误环境污染，删除该 build 目录后用预设重新配置。

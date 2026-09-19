@@ -14,6 +14,7 @@
 #include <QScrollBar>
 #include <QSplitter>
 #include <QTimer>
+#include <algorithm>
 
 namespace
 {
@@ -83,6 +84,7 @@ void GroupBoardPage::reload()
 {
     m_cards.clear();
     m_ungroupedPanel->clearCards();
+    //组内卡片的父对象已在 insertCard 时被布局认领为小组卡片，删容器会连带删掉卡片
     for(GroupCard* groupCard : m_groupCards)
         delete groupCard;
     m_groupCards.clear();
@@ -102,9 +104,18 @@ void GroupBoardPage::reload()
         for(int studentIndex : m_manager->groupStudentIndices(groupNumber))
             groupCard->insertCard(m_cards.value(studentIndex), -1);
     }
+    //未分组卡片按显示顺序排列，与表格行序保持一致（students 向量顺序在表格拖动排序后不再等于显示顺序）
+    QVector<int> ungrouped;
     for(int i = 0; i < students.size(); i++)
         if(students.at(i).groupNumber == StudentInfo::NoGroup)
-            m_ungroupedPanel->insertCard(m_cards.value(i), -1);
+            ungrouped.append(i);
+    std::sort(ungrouped.begin(), ungrouped.end(),
+              [&students](int left, int right)
+              {
+                  return students.at(left).displayOrder < students.at(right).displayOrder;
+              });
+    for(int studentIndex : ungrouped)
+        m_ungroupedPanel->insertCard(m_cards.value(studentIndex), -1);
 }
 
 StudentCard* GroupBoardPage::createCard(int studentIndex)

@@ -51,6 +51,11 @@ struct SortSpec
     // 二级排序约定：学生按学号升序，小组按组号升序（无需存储）
 };
 
+inline bool operator==(const SortSpec& left, const SortSpec& right)
+{
+    return left.field == right.field && left.order == right.order;
+}
+
 // QDataStream 序列化支持
 inline QDataStream& operator<<(QDataStream& out, const SortSpec& spec)
 {
@@ -92,6 +97,12 @@ struct SortSettings
     SortSpec groupSpec;         // 小组列表排序规则
     SortSpec groupStuSpec;      // 小组内学生排序规则
 };
+
+inline bool operator==(const SortSettings& left, const SortSettings& right)
+{
+    return left.showStudentNumberFlag == right.showStudentNumberFlag && left.useGroupModeFlag == right.useGroupModeFlag &&
+           left.studentSpec == right.studentSpec && left.groupSpec == right.groupSpec && left.groupStuSpec == right.groupStuSpec;
+}
 
 // QDataStream 序列化支持
 inline QDataStream& operator<<(QDataStream& out, const SortSettings& data)

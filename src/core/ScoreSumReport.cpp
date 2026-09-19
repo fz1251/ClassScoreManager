@@ -21,10 +21,12 @@ struct GroupSumData
     int number, score, rank;
 };
 
-// 次序依据：个人模式用学号，小组模式用小组中的编号
+// 次序依据：个人模式用学号；小组模式用组内编号，未分组学生没有组内编号，退回学号
 int orderKey(const StudentSumData& student, bool byGroupOrder)
 {
-    return byGroupOrder ? student.groupOrder : student.number;
+    if(byGroupOrder && student.groupOrder >= 0)
+        return student.groupOrder;
+    return student.number;
 }
 
 // 学生比较器：先按排序字段，同值时统一按次序依据升序收尾
@@ -273,7 +275,7 @@ QString generate(std::vector<StudentSumData> dataList, bool showStudentNumber)
     QString bodyContent;
     for(const auto& i : dataList)
     {
-        bodyContent += HTMLStudentItem.arg(i.name)
+        bodyContent += HTMLStudentItem.arg(i.name.toHtmlEscaped())
                            .arg(i.score)
                            .arg(getSumTextClass(i.score))
                            .arg(showStudentNumber ? HTMLStudentNumber.arg(i.number) : "");
@@ -498,7 +500,7 @@ QString generate(std::vector<GroupSumData> dataList, bool showStudentNumber)
     {
         for(const auto& j : i.members)
         {
-            groupContent += HTMLStudentItem.arg(j.name)
+            groupContent += HTMLStudentItem.arg(j.name.toHtmlEscaped())
                                 .arg(j.score)
                                 .arg(getSumTextClass(j.score))
                                 .arg(showStudentNumber ? HTMLStudentNumber.arg(j.number) : "");

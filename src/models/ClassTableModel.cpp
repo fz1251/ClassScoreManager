@@ -5,15 +5,14 @@ ClassTableModel::ClassTableModel(ClassDataManager* dataManager, QObject* parent)
     , manager(dataManager)
 {
     Q_ASSERT(dataManager);
-    // 模板集合变化会影响当前模板列与模板预览列的取值
+    // 模板集合变化会影响当前模板列与模板预览列的取值，两列都要重绘
     connect(manager, &ClassDataManager::templatesChanged, this,
             [this]()
             {
                 if(rowCount() == 0)
                     return;
-                const QModelIndex topLeft = index(0, CurrentTemplate);
-                const QModelIndex bottomRight = index(rowCount() - 1, CurrentTemplate);
-                emit dataChanged(topLeft, bottomRight, {Qt::DisplayRole, Qt::ForegroundRole});
+                for(int column : {CurrentTemplate, ScoreTemplatePreview})
+                    emit dataChanged(index(0, column), index(rowCount() - 1, column), {Qt::DisplayRole, Qt::ForegroundRole});
             });
 }
 
@@ -54,7 +53,7 @@ QVariant ClassTableModel::data(const QModelIndex& index, int role) const
                         return groupNum;
                 }
                 case CurrentRecord:
-                    return manager->getTempRecord().at(rowToIndex[index.row()]);
+                    return manager->getTempRecord().value(rowToIndex[index.row()], 0);
                 case CurrentTemplate:
                     if(isValidIndex(manager->getActivatedTemplateIndex()))
                         return templates().at(manager->getActivatedTemplateIndex()).values.at(rowToIndex[index.row()]);
@@ -75,7 +74,6 @@ QVariant ClassTableModel::data(const QModelIndex& index, int role) const
             switch(index.column())
             {
                 case CurrentRecord:
-                    // return getScoreColor(manager->getTempRecord().at(rowToIndex[index.row()]));
                     return getScoreColor(manager->getTempRecord().value(rowToIndex[index.row()], 0));
                 case CurrentTemplate:
                     if(isValidIndex(manager->getActivatedTemplateIndex()))
@@ -158,6 +156,12 @@ bool ClassTableModel::setData(const QModelIndex& index, const QVariant& value, i
                 return false;
         }
         emit dataChanged(index, index);
+        //正在查看的模板同时也是启用中的模板时，“积分模板(当前)”列要跟着刷新
+        if(index.column() == ScoreTemplatePreview && previewTemplateIndex == manager->getActivatedTemplateIndex())
+        {
+            const QModelIndex currentIndex = this->index(index.row(), CurrentTemplate);
+            emit dataChanged(currentIndex, currentIndex, {Qt::DisplayRole, Qt::ForegroundRole});
+        }
         return true;
     }
     return false;
@@ -225,6 +229,7 @@ bool ClassTableModel::dropMimeData(const QMimeData* data, Qt::DropAction action,
     QDataStream stream(&encodedData, QIODevice::ReadOnly);
     int sourceRow;
     stream >> sourceRow;
+    //行序只由 displayOrder 与 rowToIndex 表达，students 向量本身不动，records/templates 的分数向量因此不会错位
     beginMoveRows(parent, sourceRow, sourceRow, parent, row);
     if(row > sourceRow)
     {
@@ -268,17 +273,6 @@ void ClassTableModel::removeStudent(int displayIndex)
     rowToIndex.resize(students().size());
     for(int i = 0; i < students().size(); i++)
         rowToIndex[students().at(i).displayOrder - 1] = i;
-    /* 原增量更新实现过于复杂，故弃用
-    // 将显示顺序在其后面的学生displayOrder向前移一个
-    // 要得到相同学生的索引，比原来更靠前一行
-    for(int i = displayIndex; i < rowToIndex.size() - 1; i++)
-        rowToIndex[i] = rowToIndex[i + 1];
-    rowToIndex.removeLast();
-    // 真实索引在其后面的学生索引向前移一个
-    for(int& i : rowToIndex)
-        if(i > realIndex)
-            i--;
-    */
 
     endRemoveRows();
 }
@@ -398,7 +392,7 @@ void ClassTableModel::refreshGroupColumn()
 
 bool ClassTableModel::isValidModelIndex(const QModelIndex& index) const
 {
-    return index.isValid() && columnIsVisible[index.column()] && index.row() >= 0 && index.row() <= students().size();
+    return index.isValid() && columnIsVisible[index.column()] && index.row() >= 0 && index.row() < students().size();
 }
 
 bool ClassTableModel::isValidIndex(int index) const

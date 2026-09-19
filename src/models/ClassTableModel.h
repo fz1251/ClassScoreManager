@@ -96,7 +96,7 @@ private:
     static QBrush getScoreColor(int scoreValue);
 
     ClassDataManager* manager;
-    bool columnIsVisible[MaxColumnCount];
+    bool columnIsVisible[MaxColumnCount] = {};
     bool canEditStudent = true;
     QVector<int> rowToIndex; // rowIndex[0,size-1]=>students[0,size-1]
     int previewRecordIndex = INVALID_INDEX;

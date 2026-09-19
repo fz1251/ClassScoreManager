@@ -21,6 +21,9 @@ public:
 private:
     void setGroupModeVisibility(bool visible);
 
+    // 打开对话框时的排序配置，作为当前模式下未被编辑的那部分配置的基底
+    SortSettings m_settings;
+
     // 界面元素指针：构造函数中统一创建，供其他成员函数访问
     QPushButton* studentModeButton = nullptr;
     QPushButton* groupModeButton = nullptr;

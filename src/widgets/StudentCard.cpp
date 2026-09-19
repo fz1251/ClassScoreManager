@@ -227,7 +227,8 @@ void StudentCard::startDrag()
     drag->setPixmap(snapshot);
     drag->setHotSpot(QPoint(snapshot.width() / 2, snapshot.height() / 2));
 
-    //拿起卡片：同容器内其余卡片自动补位
+    //拿起卡片：只隐藏不退出布局，隐藏项不参与排位，同容器内其余卡片自动补位
+    //因此落点索引要按“不含隐藏项”的顺序换算（见 GroupCard::dropEvent）
     hide();
     emit dragStarted();
     drag->exec(Qt::MoveAction);

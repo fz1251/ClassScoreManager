@@ -7,7 +7,7 @@
 - 项目：ClassScoreManager，班级积分管理系统，面向班级日常积分管理。
 - 技术栈：C++17 + Qt Widgets（纯 Widgets，禁用 QML）。
 - 构建：CMake + Ninja，开发环境为 VS Code（CMake Tools + clangd）。
-- 代码同时保留 Qt5/Qt6 条件编译兼容。
+- 代码只按当前 Qt 5.15.19 编译，不保留 Qt6 条件编译分支。
 
 ## 2. Qt 套件
 

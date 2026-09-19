@@ -1,5 +1,6 @@
 #include "ScoreExprDelegate.h"
 
+#include <QMessageBox>
 #include <QRegularExpression>
 #include <QRegularExpressionValidator>
 
@@ -45,8 +46,8 @@ QWidget* ScoreExprDelegate::createEditor(QWidget* parent, const QStyleOptionView
     lineEdit->setAutoFillBackground(true);
     // 让控件不绘制边框
     lineEdit->setFrame(false);
-    // 设置正则表达式验证器
-    lineEdit->setValidator(new QRegularExpressionValidator(QRegularExpression(scoreRegExpStr), parent));
+    // 设置正则表达式验证器，父对象取行编辑本身，随编辑器一起销毁
+    lineEdit->setValidator(new QRegularExpressionValidator(QRegularExpression(scoreRegExpStr), lineEdit));
     return lineEdit;
 }
 
@@ -59,10 +60,14 @@ void ScoreExprDelegate::setModelData(QWidget* editor, QAbstractItemModel* model,
 {
     QString scoreExpr = static_cast<QLineEdit*>(editor)->text();
     QRegularExpression scoreRegExp(scoreRegExpStr);
-    if(scoreRegExp.match(scoreExpr).hasMatch())
+    if(!scoreRegExp.match(scoreExpr).hasMatch())
+        return;
+    ScoreParseResult res = parseScoreExpression(scoreExpr);
+    if(!res.isSuccess)
     {
-        ScoreParseResult res = parseScoreExpression(scoreExpr);
-        if(res.isSuccess)
-            model->setData(index, res.value);
+        //表达式合法但结果超出 int 范围，保留原值并提示
+        QMessageBox::warning(editor->window(), tr("警告"), tr("积分超出可表示的范围，本次输入未生效"));
+        return;
     }
+    model->setData(index, res.value);
 }

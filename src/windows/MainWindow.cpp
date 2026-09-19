@@ -154,6 +154,8 @@ MainWindow::MainWindow(QWidget* parent)
     connect(tableModel, &QAbstractItemModel::rowsInserted, searchModel, &StudentSearchModel::refresh);
     connect(tableModel, &QAbstractItemModel::rowsRemoved, searchModel, &StudentSearchModel::refresh);
     connect(tableModel, &QAbstractItemModel::rowsMoved, searchModel, &StudentSearchModel::refresh);
+    // 表格行序变化后，小组管理页的未分组面板顺序也要跟着变
+    connect(tableModel, &QAbstractItemModel::rowsMoved, groupBoardPage, &::GroupBoardPage::reload);
     connect(tableModel, &QAbstractItemModel::dataChanged, this,
             [this](const QModelIndex& topLeft, const QModelIndex&, const QVector<int>&)
             {
@@ -195,7 +197,6 @@ MainWindow::MainWindow(QWidget* parent)
                 stackedWidget->setCurrentIndex(StudentTablePage);
             });
 
-    // 导航栏切换页面
     // 记录列表页工具按钮
     connect(recordListPage, &RecordListPage::createRequested, this, &MainWindow::newScoreRecordFromList);
     connect(recordListPage, &RecordListPage::deleteSelectedRequested, this, &MainWindow::deleteSelectedRecords);
@@ -208,6 +209,7 @@ MainWindow::MainWindow(QWidget* parent)
     connect(templateListPage, &TemplateListPage::deleteSelectedRequested, this, &MainWindow::deleteSelectedTemplates);
     connect(templateListPage, &TemplateListPage::clearRequested, this, &MainWindow::clearTemplatesWithConfirm);
 
+    // 导航栏切换页面
     connect(navigationTabBar, &QTabBar::currentChanged, this,
             [this](int index)
             {
@@ -344,6 +346,11 @@ void MainWindow::newScoreRecordFromList()
 void MainWindow::applyTemplateDialog()
 {
     const auto& templates = manager->getTemplates();
+    if(templates.isEmpty())
+    {
+        QMessageBox::information(this, tr("提示"), tr("当前还没有可用的积分模板"));
+        return;
+    }
     QStringList templateNames;
     templateNames.reserve(templates.size());
     for(const ScoreTemplate& item : templates)
@@ -490,8 +497,9 @@ void MainWindow::openFile(const QString& filePath)
         return;
     }
     currentFileName = QFileInfo(filePath).fileName();
-    onFileLoaded();
+    //先重建表格的行映射再切页面，否则页面切换过程中的取数可能用到旧映射
     resetTable();
+    onFileLoaded();
 }
 
 void MainWindow::newFile()
@@ -518,18 +526,27 @@ bool MainWindow::saveFile()
         if(result == ExContentDialog::Primary && !saveScoreRecord())
             return false;
     }
+    bool saved = false;
     if(manager->isNewFile())
     {
-        QString fileName = QFileDialog::getSaveFileName(this, tr("保存班级信息文件"), QDir::currentPath(), tr("班级信息文件(*.cls)"));
+        const QString fileName = QFileDialog::getSaveFileName(this, tr("保存班级信息文件"), QDir::currentPath(), tr("班级信息文件(*.cls)"));
         if(fileName.isEmpty())
             return false;
-        manager->saveNewFile(fileName);
-        currentFileName = QFileInfo(fileName).fileName();
-        updateFilePreview();
+        saved = manager->saveNewFile(fileName);
+        if(saved)
+        {
+            currentFileName = QFileInfo(fileName).fileName();
+            updateFilePreview();
+        }
     }
     else
     {
-        manager->saveFile();
+        saved = manager->saveFile();
+    }
+    if(!saved)
+    {
+        QMessageBox::warning(this, tr("警告"), tr("无法写入文件，请检查路径是否可写"));
+        return false;
     }
     return true;
 }
@@ -634,12 +651,15 @@ void MainWindow::exportScoreSum(const QVector<int>& recordIndices)
     }
     SortSettings curMode = dialog.getCurrentConfig();
     QTextStream stream(&file);
-#if QT_VERSION_MAJOR == 5
-    // Qt5 下需显式指定UTF-8编码
+    // 显式指定 UTF-8 编码，避免中文按本地代码页写出
     stream.setCodec("UTF-8");
-#endif
     stream << ScoreSumReport::generateHtmlString(dataList, curMode);
     file.close();
+    if(file.error() != QFile::NoError || stream.status() != QTextStream::Ok)
+    {
+        QMessageBox::warning(this, tr("警告"), tr("无法写入文件，请检查磁盘空间与路径"));
+        return;
+    }
     manager->setPreviousSettings(curMode);
 }
 

@@ -175,6 +175,7 @@ void HomeActionCard::ensureShadowCache()
         QPainterPath ringPath;
         ringPath.addRoundedRect(baseRect.adjusted(-i, -i, i, i), kCardRadius + i, kCardRadius + i);
         const qreal fade = qreal(i) / kShadowRingCount;
+        //平方衰减让最外圈比线性更快变淡，避免出现生硬的圆形边界
         ringColor.setAlphaF(kShadowRingPeakAlpha * (1.0 - fade) * (1.0 - fade));
         painter.setPen(ringColor);
         painter.drawPath(ringPath);

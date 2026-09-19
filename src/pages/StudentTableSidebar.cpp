@@ -224,7 +224,7 @@ StudentTableSidebar::StudentTableSidebar(QWidget* parent)
     recordExpander->setExpanded(true);
     contentLayout->addWidget(recordExpander);
 
-    // 积分模板折叠块：当前查看的模板、导航、名称编辑与更新/放弃，默认收起
+    // 积分模板折叠块：当前查看的模板、导航、名称编辑与更新/放弃，默认展开
     templateExpander = new ExExpander(contentWidget);
     templateExpander->setHeader(tr("积分模板"));
     templateExpander->setExpandDirection(ExExpander::Down);

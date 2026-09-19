@@ -61,6 +61,8 @@ void RecordListPage::setListModel(QAbstractItemModel* model)
 {
     m_listView->setModel(model);
     connect(m_listView->selectionModel(), &QItemSelectionModel::selectionChanged, this, &RecordListPage::updateToolButtonStates);
+    //列表模型每次变化都是整体重置，重置后选中可能被静默清空，这里按模型自身的变化刷新
+    connect(model, &QAbstractItemModel::modelReset, this, &RecordListPage::updateToolButtonStates);
     updateToolButtonStates();
 }
 
@@ -71,7 +73,10 @@ void RecordListPage::setNewRecordEnabled(bool enabled)
 
 void RecordListPage::updateToolButtonStates()
 {
+    const QAbstractItemModel* model = m_listView->model();
+    const bool hasRows = model && model->rowCount() > 0;
     const bool hasSelection = !selectedRows().isEmpty();
     exportButton->setEnabled(hasSelection);
     deleteButton->setEnabled(hasSelection);
+    clearButton->setEnabled(hasRows);
 }

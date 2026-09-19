@@ -105,6 +105,7 @@ flowchart TD
     TableView -->|setModel| TableModel
     Sidebar -->|setModel| SearchModel
     TableModel -->|行序变化后重新匹配| SearchModel
+    TableModel -->|行序变化后重建卡片| GroupPage
     RecordPage -->|setListModel| RecordModel
     TemplatePage -->|setListModel| TemplateModel
 
