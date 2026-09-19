@@ -7,7 +7,7 @@ class WelcomePage : public QWidget
     Q_OBJECT
 
 public:
-    explicit WelcomePage(QWidget *parent = nullptr);
+    explicit WelcomePage(QWidget* parent = nullptr);
 
 signals:
     void openFileRequested();

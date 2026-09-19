@@ -36,6 +36,9 @@
   - 使用 Qt Creator 自带版本（VS Code 中由 `clangd.path` 指定）。
   - 读取 debug 的 `compile_commands.json`。
   - 系统头目录由根目录 `.clangd` 补充。
+- clang-format：
+  - 配置在根目录 `.clang-format`，使用 Qt Creator 自带版本（`C:\Qt\Tools\QtCreator\bin\clang\bin\clang-format.exe`）。
+  - 只格式化 `src/` 下的 C++ 源文件，`third_party/` 子模块与构建目录不参与。
 - 构建信息：
   - 每次构建都会运行 `cmake/generate_build_info.cmake`。
   - 生成 `${CMAKE_BINARY_DIR}/generated/app_build_info.h`，仅在日期变化时重写。

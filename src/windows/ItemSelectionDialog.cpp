@@ -1,11 +1,12 @@
 #include "ItemSelectionDialog.h"
+
 #include "excontentdialog.h"
+
 #include <QComboBox>
 
-int ItemSelectionDialog::selectIndex(QWidget *parent, const QString &title, const QStringList &items,
-                                     int current)
+int ItemSelectionDialog::selectIndex(QWidget* parent, const QString& title, const QStringList& items, int current)
 {
-    auto *selectionComboBox = new QComboBox;
+    auto* selectionComboBox = new QComboBox;
     selectionComboBox->addItems(items);
     if(current >= 0 && current < selectionComboBox->count())
         selectionComboBox->setCurrentIndex(current);

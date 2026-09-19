@@ -1,4 +1,5 @@
 #include "RecordListPage.h"
+
 #include <QAbstractItemModel>
 #include <QAbstractItemView>
 #include <QHBoxLayout>
@@ -7,17 +8,17 @@
 #include <QPushButton>
 #include <QVBoxLayout>
 
-RecordListPage::RecordListPage(QWidget *parent)
+RecordListPage::RecordListPage(QWidget* parent)
     : QWidget(parent)
 {
     // 页面根布局：顶部工具按钮行，下方列表
-    auto *rootLayout = new QVBoxLayout(this);
+    auto* rootLayout = new QVBoxLayout(this);
     rootLayout->setContentsMargins(0, 0, 0, 0);
     rootLayout->setSpacing(0);
 
     // 顶部工具行：新建、导出、删除选中、清空
-    auto *toolbarWidget = new QWidget(this);
-    auto *toolbarLayout = new QHBoxLayout(toolbarWidget);
+    auto* toolbarWidget = new QWidget(this);
+    auto* toolbarLayout = new QHBoxLayout(toolbarWidget);
     toolbarLayout->setContentsMargins(8, 4, 8, 4);
     toolbarLayout->setSpacing(6);
 
@@ -44,7 +45,7 @@ RecordListPage::RecordListPage(QWidget *parent)
     connect(clearButton, &QPushButton::clicked, this, &RecordListPage::clearRequested);
 }
 
-QListView *RecordListPage::listView() const
+QListView* RecordListPage::listView() const
 {
     return m_listView;
 }
@@ -56,11 +57,10 @@ QList<QModelIndex> RecordListPage::selectedRows() const
     return m_listView->selectionModel()->selectedRows();
 }
 
-void RecordListPage::setListModel(QAbstractItemModel *model)
+void RecordListPage::setListModel(QAbstractItemModel* model)
 {
     m_listView->setModel(model);
-    connect(m_listView->selectionModel(), &QItemSelectionModel::selectionChanged,
-            this, &RecordListPage::updateToolButtonStates);
+    connect(m_listView->selectionModel(), &QItemSelectionModel::selectionChanged, this, &RecordListPage::updateToolButtonStates);
     updateToolButtonStates();
 }
 

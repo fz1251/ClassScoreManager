@@ -184,8 +184,7 @@ void FlowLayout::moveItemTo(QLayoutItem* item, const QRect& target) const
 
     //已经朝同一目标移动的动画继续跑，重排不必让它从头再来
     const QPointer<QPropertyAnimation> running = m_animations.value(widget);
-    if(running && running->state() == QAbstractAnimation::Running
-       && running->endValue().toRect() == target)
+    if(running && running->state() == QAbstractAnimation::Running && running->endValue().toRect() == target)
         return;
 
     stopAnimationFor(widget);

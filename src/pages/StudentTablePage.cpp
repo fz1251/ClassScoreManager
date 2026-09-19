@@ -1,18 +1,20 @@
 #include "StudentTablePage.h"
+
 #include "StudentTableSidebar.h"
+
 #include <QAbstractItemView>
 #include <QSplitter>
 #include <QTableView>
 #include <QVBoxLayout>
 
-StudentTablePage::StudentTablePage(QWidget *parent)
+StudentTablePage::StudentTablePage(QWidget* parent)
     : QWidget(parent)
 {
     // 页面根布局：表格与右侧边栏左右分栏
-    auto *rootLayout = new QVBoxLayout(this);
+    auto* rootLayout = new QVBoxLayout(this);
     rootLayout->setContentsMargins(0, 0, 0, 0);
 
-    auto *splitter = new QSplitter(this);
+    auto* splitter = new QSplitter(this);
     splitter->setStretchFactor(0, 1);
     splitter->setStretchFactor(1, 0);
     splitter->setChildrenCollapsible(false);
@@ -37,12 +39,12 @@ StudentTablePage::StudentTablePage(QWidget *parent)
     splitter->addWidget(m_sidebar);
 }
 
-QTableView *StudentTablePage::tableView() const
+QTableView* StudentTablePage::tableView() const
 {
     return m_tableView;
 }
 
-StudentTableSidebar *StudentTablePage::sidebar() const
+StudentTableSidebar* StudentTablePage::sidebar() const
 {
     return m_sidebar;
 }

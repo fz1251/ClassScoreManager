@@ -4,11 +4,11 @@
 #include "StudentCard.h"
 #include "exfonticon.h"
 
+#include <QApplication>
 #include <QDragEnterEvent>
 #include <QDragLeaveEvent>
 #include <QDragMoveEvent>
 #include <QDropEvent>
-#include <QApplication>
 #include <QFontMetrics>
 #include <QPainter>
 #include <QScrollArea>
@@ -18,7 +18,7 @@
 
 namespace
 {
-constexpr int kPanelMinWidth = 200;   //刚好放得下最宽的胶囊、边距与滚动条
+constexpr int kPanelMinWidth = 200; //刚好放得下最宽的胶囊、边距与滚动条
 constexpr int kMaskDurationMs = 140;
 constexpr qreal kFrameInset = 1.5;            //与样式库绘制GroupBox边框时的内缩一致
 constexpr int kDefaultRoundingRadius = 4;     //样式库 secondLevelRoundingRadius 的默认值
@@ -94,11 +94,9 @@ protected:
 
         painter.setPen(contentColor);
         painter.setFont(iconFont);
-        painter.drawText(QRectF(frame.left(), top, frame.width(), iconHeight),
-                         Qt::AlignCenter, QString(QChar(kDeleteGlyph)));
+        painter.drawText(QRectF(frame.left(), top, frame.width(), iconHeight), Qt::AlignCenter, QString(QChar(kDeleteGlyph)));
         painter.setFont(textFont);
-        painter.drawText(QRectF(frame.left(), top + iconHeight + kIconTextSpacing, frame.width(), textHeight),
-                         Qt::AlignCenter, m_text);
+        painter.drawText(QRectF(frame.left(), top + iconHeight + kIconTextSpacing, frame.width(), textHeight), Qt::AlignCenter, m_text);
     }
 
 private:
@@ -116,8 +114,7 @@ private:
         option.subControls = QStyle::SC_GroupBoxFrame;
         option.lineWidth = groupBox->style()->pixelMetric(QStyle::PM_DefaultFrameWidth, nullptr, groupBox);
         option.midLineWidth = 0;
-        const QRect frame = groupBox->style()->subControlRect(QStyle::CC_GroupBox, &option,
-                                                              QStyle::SC_GroupBoxFrame, groupBox);
+        const QRect frame = groupBox->style()->subControlRect(QStyle::CC_GroupBox, &option, QStyle::SC_GroupBoxFrame, groupBox);
         return QRectF(frame).marginsRemoved(QMarginsF(kFrameInset, kFrameInset, kFrameInset, kFrameInset));
     }
 
@@ -153,9 +150,11 @@ UngroupedPanel::UngroupedPanel(QWidget* parent)
     m_maskAnimation = new QVariantAnimation(this);
     m_maskAnimation->setDuration(kMaskDurationMs);
     m_maskAnimation->setEasingCurve(QEasingCurve::OutCubic);
-    connect(m_maskAnimation, &QVariantAnimation::valueChanged, this, [this](const QVariant& value) {
-        updateMaskProgress(value.toReal());
-    });
+    connect(m_maskAnimation, &QVariantAnimation::valueChanged, this,
+            [this](const QVariant& value)
+            {
+                updateMaskProgress(value.toReal());
+            });
 
     refreshHeader();
 }

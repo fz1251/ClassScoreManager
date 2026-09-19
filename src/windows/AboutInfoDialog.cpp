@@ -1,28 +1,30 @@
 #include "AboutInfoDialog.h"
+
 #include "../widgets/LineSpacedLabel.h"
 #include "app_build_info.h"
-#include <QWindow>
-#include <QPushButton>
-#include <QButtonGroup>
-#include <QPainter>
-#include <QSize>
 
-#include <QPropertyAnimation>
+#include <QButtonGroup>
 #include <QEasingCurve>
 #include <QGraphicsOpacityEffect>
 #include <QOperatingSystemVersion>
+#include <QPainter>
+#include <QPropertyAnimation>
+#include <QPushButton>
+#include <QSize>
+#include <QWindow>
 
 #ifdef Q_OS_WIN
+#include <dwmapi.h>
 #include <windows.h>
 #include <windowsx.h>
-#include <dwmapi.h>
 #ifdef _MSC_VER
 #pragma comment(lib, "user32.lib")
 #endif
 #endif
 
 #ifdef Q_OS_WIN
-namespace {
+namespace
+{
 const QString closeButtonStyle = QStringLiteral(R"(
 #closeButton {
     border: none;
@@ -94,8 +96,8 @@ const QString modeButtonStyle = QStringLiteral(R"(
 // □ 尝试 {-1,-1,-1,-1} 替代 {65536,0,0,0}，对比材料渲染差异
 // □ 若材料失效，尝试临时去掉 WA_TranslucentBackground，验证是否因 WS_EX_LAYERED 被 DWM 拒绝
 // □ Win11 22H2+ 的 MicaAlt 是否与 Mica 有可见差异
-AboutInfoDialog::AboutInfoDialog(QWidget *parent) :
-    QDialog(parent)
+AboutInfoDialog::AboutInfoDialog(QWidget* parent)
+    : QDialog(parent)
 {
 #ifdef Q_OS_WIN
     const QOperatingSystemVersion osVer = QOperatingSystemVersion::current();
@@ -158,12 +160,11 @@ AboutInfoDialog::AboutInfoDialog(QWidget *parent) :
     contentFont.setPointSize(12);
     contentLabel->setFont(contentFont);
     contentLabel->setWordWrap(false);
-    const QString contentText = tr(
-        "Made with C++\n"
-        "Powered by Qt 5.15.2\n"
-        "Copyright© 2025-2026 mengfanzhen0501@163.com\n"
-        "本程序以MIT协议开源\n"
-        "仓库链接: github.com/fz1251/ClassScoreManager");
+    const QString contentText = tr("Made with C++\n"
+                                   "Powered by Qt 5.15.2\n"
+                                   "Copyright© 2025-2026 mengfanzhen0501@163.com\n"
+                                   "本程序以MIT协议开源\n"
+                                   "仓库链接: github.com/fz1251/ClassScoreManager");
     contentLabel->setText(contentText);
     contentLabel->setFixedWidth(contentLabel->sizeHint().width());
     textLayout->setAlignment(contentLabel, Qt::AlignLeft);
@@ -256,29 +257,29 @@ AboutInfoDialog::AboutInfoDialog(QWidget *parent) :
     }
 }
 
-void AboutInfoDialog::keyPressEvent(QKeyEvent *event)
+void AboutInfoDialog::keyPressEvent(QKeyEvent* event)
 {
     static int m_curKeyIndex = 0;
     if(m_effectsEnabled)
-        return ;
+        return;
     int key = event->key();
     switch(key)
     {
-    case Qt::Key_Up:
-        windowBounce(0, -30);
-        break;
-    case Qt::Key_Down:
-        windowBounce(0, 30);
-        break;
-    case Qt::Key_Left:
-        windowBounce(-30, 0);
-        break;
-    case Qt::Key_Right:
-        windowBounce(30, 0);
-        break;
-    default:
-        QDialog::keyPressEvent(event);
-        break;
+        case Qt::Key_Up:
+            windowBounce(0, -30);
+            break;
+        case Qt::Key_Down:
+            windowBounce(0, 30);
+            break;
+        case Qt::Key_Left:
+            windowBounce(-30, 0);
+            break;
+        case Qt::Key_Right:
+            windowBounce(30, 0);
+            break;
+        default:
+            QDialog::keyPressEvent(event);
+            break;
     }
     if(m_keySequence.at(m_curKeyIndex) == key)
     {
@@ -298,60 +299,56 @@ void AboutInfoDialog::keyPressEvent(QKeyEvent *event)
     event->accept();
 }
 
-bool AboutInfoDialog::eventFilter(QObject *watched, QEvent *event)
+bool AboutInfoDialog::eventFilter(QObject* watched, QEvent* event)
 {
-    if (watched->objectName() == "closeButton")
+    if(watched->objectName() == "closeButton")
     {
-        QPushButton *btn = qobject_cast<QPushButton*>(watched);
-        if (event->type() == QEvent::Enter)
+        QPushButton* btn = qobject_cast<QPushButton*>(watched);
+        if(event->type() == QEvent::Enter)
             btn->setIcon(m_closeIconHover);
-        else if (event->type() == QEvent::Leave)
+        else if(event->type() == QEvent::Leave)
             btn->setIcon(m_closeIconNormal);
     }
     return QDialog::eventFilter(watched, event);
 }
 
-void AboutInfoDialog::paintEvent(QPaintEvent *event)
+void AboutInfoDialog::paintEvent(QPaintEvent* event)
 {
     if(m_translucentBackground)
     {
         // 防止 WS_EX_LAYERED + 全透明导致点击穿透到下层窗口
         QPainter painter(this);
         if(m_effectsEnabled)
-        {
             painter.fillRect(rect(), QColor(255, 255, 255, 1));
-        }
         else
-        {
             painter.fillRect(rect(), Qt::white);
-        }
     }
     QDialog::paintEvent(event);
 }
 
 #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
-bool AboutInfoDialog::nativeEvent(const QByteArray &eventType, void *message, qintptr *result)
+bool AboutInfoDialog::nativeEvent(const QByteArray& eventType, void* message, qintptr* result)
 #else
-bool AboutInfoDialog::nativeEvent(const QByteArray &eventType, void *message, long *result)
+bool AboutInfoDialog::nativeEvent(const QByteArray& eventType, void* message, long* result)
 #endif
 {
 #ifdef Q_OS_WIN
-    if (!m_isWin10or11)
+    if(!m_isWin10or11)
         return false;
 
-    if (eventType == "windows_generic_MSG")
+    if(eventType == "windows_generic_MSG")
     {
-        MSG *msg = static_cast<MSG *>(message);
-        if (msg->message == WM_NCCALCSIZE)
+        MSG* msg = static_cast<MSG*>(message);
+        if(msg->message == WM_NCCALCSIZE)
         {
-            if (msg->wParam == TRUE)
+            if(msg->wParam == TRUE)
             {
                 // 整窗声明为客户区，WS_CAPTION 标题栏不渲染，但其 DWM 坐标系对齐仍生效
                 *result = 0;
                 return true;
             }
         }
-        else if (msg->message == WM_NCHITTEST)
+        else if(msg->message == WM_NCHITTEST)
         {
             // GET_X/Y_LPARAM 正确处理多显示器负坐标，不可用 LOWORD/HIWORD 替代
             const int xPos = GET_X_LPARAM(msg->lParam);
@@ -363,8 +360,8 @@ bool AboutInfoDialog::nativeEvent(const QByteArray &eventType, void *message, lo
 #else
             const QPoint clientPos = mapFromGlobal((QPointF(xPos, yPos) / windowHandle()->devicePixelRatio()).toPoint());
 #endif
-            QWidget *child = childAt(clientPos);
-            if (child && qobject_cast<QPushButton *>(child))
+            QWidget* child = childAt(clientPos);
+            if(child && qobject_cast<QPushButton*>(child))
                 return false;
 
             // 边缘检测用 Win32 屏幕坐标（Qt 无法感知 WS_THICKFRAME 边框区域）
@@ -376,19 +373,51 @@ bool AboutInfoDialog::nativeEvent(const QByteArray &eventType, void *message, lo
             const int ww = wr.right - wr.left;
             const int wh = wr.bottom - wr.top;
 
-            const bool onLeft   = rx <= hitMargin;
-            const bool onRight  = rx >= ww - hitMargin;
-            const bool onTop    = ry <= hitMargin;
+            const bool onLeft = rx <= hitMargin;
+            const bool onRight = rx >= ww - hitMargin;
+            const bool onTop = ry <= hitMargin;
             const bool onBottom = ry >= wh - hitMargin;
 
-            if (onTop && onLeft)     { *result = HTTOPLEFT;     return true; }
-            if (onTop && onRight)    { *result = HTTOPRIGHT;    return true; }
-            if (onBottom && onLeft)  { *result = HTBOTTOMLEFT;  return true; }
-            if (onBottom && onRight) { *result = HTBOTTOMRIGHT; return true; }
-            if (onTop)               { *result = HTTOP;         return true; }
-            if (onBottom)            { *result = HTBOTTOM;      return true; }
-            if (onLeft)              { *result = HTLEFT;        return true; }
-            if (onRight)             { *result = HTRIGHT;       return true; }
+            if(onTop && onLeft)
+            {
+                *result = HTTOPLEFT;
+                return true;
+            }
+            if(onTop && onRight)
+            {
+                *result = HTTOPRIGHT;
+                return true;
+            }
+            if(onBottom && onLeft)
+            {
+                *result = HTBOTTOMLEFT;
+                return true;
+            }
+            if(onBottom && onRight)
+            {
+                *result = HTBOTTOMRIGHT;
+                return true;
+            }
+            if(onTop)
+            {
+                *result = HTTOP;
+                return true;
+            }
+            if(onBottom)
+            {
+                *result = HTBOTTOM;
+                return true;
+            }
+            if(onLeft)
+            {
+                *result = HTLEFT;
+                return true;
+            }
+            if(onRight)
+            {
+                *result = HTRIGHT;
+                return true;
+            }
 
             *result = HTCAPTION; // 剩余区域均可拖动
             return true;
@@ -440,15 +469,16 @@ enum DWM_SYSTEMBACKDROP_TYPE
 const DWORD DWMWA_SYSTEMBACKDROP_TYPE = 38;
 const DWORD DWMWA_MICA_EFFECT = 1029;
 
-typedef HRESULT (WINAPI *pDwmSetWindowAttribute)(HWND, DWORD, LPCVOID, DWORD);
+typedef HRESULT(WINAPI* pDwmSetWindowAttribute)(HWND, DWORD, LPCVOID, DWORD);
 #endif
 
 void AboutInfoDialog::enableEffects()
 {
     repaint(); // 重绘窗口，使背景更新，显示透明
-    auto animateWidgetFadeOut = [this](QWidget * widget, int duration_ms = 2000)
+    auto animateWidgetFadeOut = [this](QWidget* widget, int duration_ms = 2000)
     {
-        if (!widget) return;
+        if(!widget)
+            return;
 
         QGraphicsOpacityEffect* effect = new QGraphicsOpacityEffect(widget);
         widget->setGraphicsEffect(effect);
@@ -463,10 +493,11 @@ void AboutInfoDialog::enableEffects()
         static bool firstEntered = true;
         if(firstEntered)
         {
-            connect(animation, &QAbstractAnimation::finished, this, [this]()
-            {
-                outerLayout->addStretch();
-            });
+            connect(animation, &QAbstractAnimation::finished, this,
+                    [this]()
+                    {
+                        outerLayout->addStretch();
+                    });
             firstEntered = false;
         }
     };
@@ -487,15 +518,13 @@ void AboutInfoDialog::enableBackgroundBlurEffect()
         auto dwmSetAttr = [hwnd](DWORD attr, LPCVOID data, DWORD size)
         {
             static pDwmSetWindowAttribute fn = nullptr;
-            if (!fn)
+            if(!fn)
             {
                 HMODULE hMod = GetModuleHandleW(L"dwmapi.dll");
-                if (hMod)
-                    fn = reinterpret_cast<pDwmSetWindowAttribute>(
-                         reinterpret_cast<void*>(
-                        GetProcAddress(hMod, "DwmSetWindowAttribute")));
+                if(hMod)
+                    fn = reinterpret_cast<pDwmSetWindowAttribute>(reinterpret_cast<void*>(GetProcAddress(hMod, "DwmSetWindowAttribute")));
             }
-            if (fn)
+            if(fn)
                 fn(hwnd, attr, data, size);
         };
 
@@ -504,18 +533,17 @@ void AboutInfoDialog::enableBackgroundBlurEffect()
         {
             HWND hwnd = reinterpret_cast<HWND>(winId());
             static pSetWindowCompositionAttribute fn = nullptr;
-            if (!fn)
+            if(!fn)
             {
                 HMODULE hMod = GetModuleHandleW(L"user32.dll");
-                if (hMod)
+                if(hMod)
                     fn = reinterpret_cast<pSetWindowCompositionAttribute>(
-                         reinterpret_cast<void*>(
-                        GetProcAddress(hMod, "SetWindowCompositionAttribute")));
+                        reinterpret_cast<void*>(GetProcAddress(hMod, "SetWindowCompositionAttribute")));
             }
-            if (fn)
+            if(fn)
             {
-                AccentPolicy policy = { effectState, 2, 0x01FFFFFF, 0 };
-                WindowCompositionAttributeData data = { 19, &policy, sizeof(policy) };
+                AccentPolicy policy = {effectState, 2, 0x01FFFFFF, 0};
+                WindowCompositionAttributeData data = {19, &policy, sizeof(policy)};
                 fn(hwnd, &data);
             }
         };
@@ -575,55 +603,59 @@ void AboutInfoDialog::enableBackgroundBlurEffect()
             acrylicButton->setChecked(true);
 
             // Acrylic — 通过 DWMWA_SYSTEMBACKDROP_TYPE
-            connect(acrylicButton, &QPushButton::clicked, this, [extendMargins, dwmSetAttr](bool checked)
-            {
-                if(checked)
-                {
-                    extendMargins();
-                    const DWM_SYSTEMBACKDROP_TYPE type = DWMSBT_TRANSIENTWINDOW;
-                    dwmSetAttr(DWMWA_SYSTEMBACKDROP_TYPE, &type, sizeof(type));
-                }
-            });
+            connect(acrylicButton, &QPushButton::clicked, this,
+                    [extendMargins, dwmSetAttr](bool checked)
+                    {
+                        if(checked)
+                        {
+                            extendMargins();
+                            const DWM_SYSTEMBACKDROP_TYPE type = DWMSBT_TRANSIENTWINDOW;
+                            dwmSetAttr(DWMWA_SYSTEMBACKDROP_TYPE, &type, sizeof(type));
+                        }
+                    });
 
             // Mica — 22H2 用 DWMWA_SYSTEMBACKDROP_TYPE，旧版用 DWMWA_MICA_EFFECT
-            connect(micaButton, &QPushButton::clicked, this, [this, extendMargins, dwmSetAttr](bool checked)
-            {
-                if(checked)
-                {
-                    extendMargins();
-                    if(m_gtWin11_22H2)
+            connect(micaButton, &QPushButton::clicked, this,
+                    [this, extendMargins, dwmSetAttr](bool checked)
                     {
-                        const DWM_SYSTEMBACKDROP_TYPE type = DWMSBT_MAINWINDOW;
-                        dwmSetAttr(DWMWA_SYSTEMBACKDROP_TYPE, &type, sizeof(type));
-                    }
-                    else
-                    {
-                        const BOOL enable = TRUE;
-                        dwmSetAttr(DWMWA_MICA_EFFECT, &enable, sizeof(enable));
-                    }
-                }
-            });
+                        if(checked)
+                        {
+                            extendMargins();
+                            if(m_gtWin11_22H2)
+                            {
+                                const DWM_SYSTEMBACKDROP_TYPE type = DWMSBT_MAINWINDOW;
+                                dwmSetAttr(DWMWA_SYSTEMBACKDROP_TYPE, &type, sizeof(type));
+                            }
+                            else
+                            {
+                                const BOOL enable = TRUE;
+                                dwmSetAttr(DWMWA_MICA_EFFECT, &enable, sizeof(enable));
+                            }
+                        }
+                    });
 
             // MicaAlt — 22H2+ 通过 DWMWA_SYSTEMBACKDROP_TYPE
             if(micaAltButton)
             {
-                connect(micaAltButton, &QPushButton::clicked, this, [extendMargins, dwmSetAttr](bool checked)
-                {
-                    if(checked)
-                    {
-                        extendMargins();
-                        const DWM_SYSTEMBACKDROP_TYPE type = DWMSBT_TABBEDWINDOW;
-                        dwmSetAttr(DWMWA_SYSTEMBACKDROP_TYPE, &type, sizeof(type));
-                    }
-                });
+                connect(micaAltButton, &QPushButton::clicked, this,
+                        [extendMargins, dwmSetAttr](bool checked)
+                        {
+                            if(checked)
+                            {
+                                extendMargins();
+                                const DWM_SYSTEMBACKDROP_TYPE type = DWMSBT_TABBEDWINDOW;
+                                dwmSetAttr(DWMWA_SYSTEMBACKDROP_TYPE, &type, sizeof(type));
+                            }
+                        });
             }
 
             // Blur — 沿用 SetWindowCompositionAttribute
-            connect(blurButton, &QPushButton::clicked, this, [setWindowComposition](bool checked)
-            {
-                if(checked)
-                    setWindowComposition(ACCENT_ENABLE_BLURBEHIND);
-            });
+            connect(blurButton, &QPushButton::clicked, this,
+                    [setWindowComposition](bool checked)
+                    {
+                        if(checked)
+                            setWindowComposition(ACCENT_ENABLE_BLURBEHIND);
+                    });
 
             // 默认选中 Acrylic
             extendMargins();
@@ -635,18 +667,18 @@ void AboutInfoDialog::enableBackgroundBlurEffect()
             // Win10：仅 Blur，不创建切换按钮
             setWindowComposition(ACCENT_ENABLE_BLURBEHIND);
         }
-        return ;
+        return;
     }
     else if(m_isWin7)
     {
         HWND hwnd = reinterpret_cast<HWND>(winId());
         BOOL dwmEnabled = FALSE;
-        if (SUCCEEDED(DwmIsCompositionEnabled(&dwmEnabled)) && dwmEnabled)
+        if(SUCCEEDED(DwmIsCompositionEnabled(&dwmEnabled)) && dwmEnabled)
         {
-            MARGINS margins = { -1, -1, -1, -1 };
+            MARGINS margins = {-1, -1, -1, -1};
             DwmExtendFrameIntoClientArea(hwnd, &margins);
         }
-        return ;
+        return;
     }
 #endif
     // 不符合要求的Windows和其它系统什么也不做
@@ -656,7 +688,7 @@ void AboutInfoDialog::windowBounce(int dx, int dy, int duration_ms)
 {
     QPoint startPos = pos();
     QPoint endPos(startPos.x() + dx, startPos.y() + dy);
-    QPropertyAnimation *animation = new QPropertyAnimation(this, "pos");
+    QPropertyAnimation* animation = new QPropertyAnimation(this, "pos");
     animation->setDuration(duration_ms);
     animation->setStartValue(startPos);
     animation->setKeyValueAt(0.5, endPos);

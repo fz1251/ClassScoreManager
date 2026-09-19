@@ -1,12 +1,12 @@
 #pragma once
 
 #include <QDialog>
-#include <QIcon>
-#include <QPaintEvent>
-#include <QKeyEvent>
-#include <QTimer>
 #include <QHBoxLayout>
+#include <QIcon>
+#include <QKeyEvent>
 #include <QLabel>
+#include <QPaintEvent>
+#include <QTimer>
 #include <QVBoxLayout>
 
 class LineSpacedLabel;
@@ -16,16 +16,16 @@ class AboutInfoDialog : public QDialog
     Q_OBJECT
 
 public:
-    explicit AboutInfoDialog(QWidget *parent = nullptr);
+    explicit AboutInfoDialog(QWidget* parent = nullptr);
 
 protected:
-    void keyPressEvent(QKeyEvent *event) override;
-    void paintEvent(QPaintEvent *event) override;
-    bool eventFilter(QObject *watched, QEvent *event) override;
+    void keyPressEvent(QKeyEvent* event) override;
+    void paintEvent(QPaintEvent* event) override;
+    bool eventFilter(QObject* watched, QEvent* event) override;
 #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
-    bool nativeEvent(const QByteArray &eventType, void *message, qintptr *result) override;
+    bool nativeEvent(const QByteArray& eventType, void* message, qintptr* result) override;
 #else
-    bool nativeEvent(const QByteArray &eventType, void *message, long *result) override;
+    bool nativeEvent(const QByteArray& eventType, void* message, long* result) override;
 #endif
 
 private slots:
@@ -46,11 +46,8 @@ private:
     QIcon m_closeIconNormal;
     QIcon m_closeIconHover;
     // 启用特效的按键序列
-    static const inline QVector<int> m_keySequence =
-    {
-        Qt::Key_Up, Qt::Key_Up, Qt::Key_Down, Qt::Key_Down,
-        Qt::Key_Left, Qt::Key_Left, Qt::Key_Right, Qt::Key_Right
-    };
+    static const inline QVector<int> m_keySequence = {Qt::Key_Up,   Qt::Key_Up,   Qt::Key_Down,  Qt::Key_Down,
+                                                      Qt::Key_Left, Qt::Key_Left, Qt::Key_Right, Qt::Key_Right};
     // 是否已启用特效标识
     bool m_effectsEnabled = false;
     // 是否已启用背景透明标识
@@ -63,4 +60,3 @@ private:
     // 8 = SM_CXFRAME 或 SM_CYFRAME(4) + SM_CXPADDEDBORDER(4)，用作 WM_NCHITTEST 边缘检测的缩放边界厚度
     static const inline int BLUR_RADIUS = 8;
 };
-

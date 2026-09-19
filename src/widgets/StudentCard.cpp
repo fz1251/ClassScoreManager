@@ -33,18 +33,22 @@ StudentCard::StudentCard(int studentIndex, const QString& name, QWidget* parent)
     m_hoverAnimation = new QVariantAnimation(this);
     m_hoverAnimation->setDuration(kHoverDurationMs);
     m_hoverAnimation->setEasingCurve(QEasingCurve::OutCubic);
-    connect(m_hoverAnimation, &QVariantAnimation::valueChanged, this, [this](const QVariant& value) {
-        m_hoverProgress = value.toReal();
-        update();
-    });
+    connect(m_hoverAnimation, &QVariantAnimation::valueChanged, this,
+            [this](const QVariant& value)
+            {
+                m_hoverProgress = value.toReal();
+                update();
+            });
 
     m_enterAnimation = new QVariantAnimation(this);
     m_enterAnimation->setDuration(kEnterDurationMs);
     m_enterAnimation->setEasingCurve(QEasingCurve::OutCubic);
-    connect(m_enterAnimation, &QVariantAnimation::valueChanged, this, [this](const QVariant& value) {
-        m_enterProgress = value.toReal();
-        update();
-    });
+    connect(m_enterAnimation, &QVariantAnimation::valueChanged, this,
+            [this](const QVariant& value)
+            {
+                m_enterProgress = value.toReal();
+                update();
+            });
 }
 
 int StudentCard::studentIndex() const
@@ -89,8 +93,7 @@ QSize StudentCard::sizeHint() const
 QSize StudentCard::capsuleSize() const
 {
     const QFontMetrics metrics(font());
-    const int width = qBound(CardStyle::studentCardMinWidth,
-                             metrics.horizontalAdvance(m_name) + 2 * CardStyle::studentCardTextPadding,
+    const int width = qBound(CardStyle::studentCardMinWidth, metrics.horizontalAdvance(m_name) + 2 * CardStyle::studentCardTextPadding,
                              CardStyle::studentCardMaxWidth);
     return QSize(width, CardStyle::studentCardHeight);
 }
@@ -98,8 +101,7 @@ QSize StudentCard::capsuleSize() const
 QRect StudentCard::capsuleRect() const
 {
     const QSize capsule = capsuleSize();
-    return QRect((width() - capsule.width()) / 2, (height() - capsule.height()) / 2,
-                 capsule.width(), capsule.height());
+    return QRect((width() - capsule.width()) / 2, (height() - capsule.height()) / 2, capsule.width(), capsule.height());
 }
 
 bool StudentCard::event(QEvent* event)
@@ -135,8 +137,7 @@ void StudentCard::drawCapsule(QPainter& painter, qreal scale, qreal opacity, qre
     const QColor base = palette().button().color();
     painter.setBrush(CardStyle::mix(base, base.lighter(112), hoverProgress));
     painter.setPen(QPen(CardStyle::mix(QColor(0, 0, 0, 40), QColor(0, 0, 0, 90), hoverProgress), 1.0));
-    painter.drawRoundedRect(capsule.adjusted(0.5, 0.5, -0.5, -0.5),
-                            CardStyle::studentCardRadius, CardStyle::studentCardRadius);
+    painter.drawRoundedRect(capsule.adjusted(0.5, 0.5, -0.5, -0.5), CardStyle::studentCardRadius, CardStyle::studentCardRadius);
 
     const QFontMetrics metrics(font());
     const int textWidth = capsule.width() - 2 * CardStyle::studentCardTextPadding;

@@ -1,0 +1,49 @@
+# ClassScoreManager 代码格式化配置（clang-format 21）
+---
+Language: Cpp
+Standard: c++17
+BasedOnStyle: LLVM
+
+# 缩进与列宽：4 空格，无制表符；列宽按等宽字体半角字符计（1 个汉字 = 2）
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+ColumnLimit: 140
+ContinuationIndentWidth: 4
+AccessModifierOffset: -4
+NamespaceIndentation: None
+
+# 大括号：控制语句、函数、类、命名空间一律另起一行
+BreakBeforeBraces: Allman
+
+# 控制语句括号前不留空格：if(…)、for(…)、while(…)、switch(…)
+SpaceBeforeParens: Never
+SpaceBeforeAssignmentOperators: true
+
+# 指针与引用贴类型：QWidget* parent、QString& name
+DerivePointerAlignment: false
+PointerAlignment: Left
+ReferenceAlignment: Left
+
+# 构造函数初始化列表：冒号另起一行，逗号与冒号对齐
+BreakConstructorInitializers: BeforeComma
+
+# 其它既有写法
+IndentCaseLabels: true
+# 单语句 body 一律去掉大括号（悬垂 else 等危险形态 clang-format 会自动保留大括号）
+RemoveBracesLLVM: true
+AllowShortFunctionsOnASingleLine: None
+AllowShortLambdasOnASingleLine: None
+FixNamespaceComments: false
+ReflowComments: false
+LineEnding: LF
+
+# #include：主头文件单独一组置顶，本地头文件在前、系统与 Qt 头文件在后
+IncludeBlocks: Regroup
+SortIncludes: CaseSensitive
+IncludeCategories:
+  - Regex: '^"'
+    Priority: 1
+  - Regex: '^<'
+    Priority: 2
+...

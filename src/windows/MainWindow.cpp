@@ -1,4 +1,5 @@
 #include "MainWindow.h"
+
 #include "../core/ClassDataManager.h"
 #include "../core/ScoreSumReport.h"
 #include "../delegates/ScoreExprDelegate.h"
@@ -18,9 +19,9 @@
 #include "ItemSelectionDialog.h"
 #include "SumExportDialog.h"
 #include "fluentui3styleproperties.h"
+
 #include <QAbstractItemView>
 #include <QAction>
-#include <algorithm>
 #include <QDateTime>
 #include <QDir>
 #include <QFile>
@@ -40,8 +41,9 @@
 #include <QTabBar>
 #include <QTableView>
 #include <QTextStream>
+#include <algorithm>
 
-MainWindow::MainWindow(QWidget *parent)
+MainWindow::MainWindow(QWidget* parent)
     : QMainWindow(parent)
     , manager(new ClassDataManager(this))
     , tableModel(new ClassTableModel(manager, this))
@@ -51,15 +53,15 @@ MainWindow::MainWindow(QWidget *parent)
     setWindowTitle(tr("班级积分管理系统"));
 
     // 中央区域：导航栏在左，五个页面由堆叠窗口承载
-    auto *centralWidget = new QWidget(this);
-    auto *mainLayout = new QHBoxLayout(centralWidget);
+    auto* centralWidget = new QWidget(this);
+    auto* mainLayout = new QHBoxLayout(centralWidget);
     mainLayout->setSpacing(0);
     mainLayout->setContentsMargins(0, 0, 0, 0);
 
     stackedWidget = new QStackedWidget(centralWidget);
     mainLayout->addWidget(stackedWidget);
 
-    auto *welcomePage = new ::WelcomePage(stackedWidget);
+    auto* welcomePage = new ::WelcomePage(stackedWidget);
     studentTablePage = new ::StudentTablePage(stackedWidget);
     groupBoardPage = new ::GroupBoardPage(manager, stackedWidget);
     recordListPage = new RecordListPage(stackedWidget);
@@ -90,9 +92,9 @@ MainWindow::MainWindow(QWidget *parent)
     createMenus();
 
     // 列表模型只由视图持有，MainWindow 后续不直接访问
-    auto *recordModel = new RecordListModel(manager, this);
-    auto *templateModel = new TemplateListModel(manager, this);
-    auto *tableView = studentTablePage->tableView();
+    auto* recordModel = new RecordListModel(manager, this);
+    auto* templateModel = new TemplateListModel(manager, this);
+    auto* tableView = studentTablePage->tableView();
     tableView->setModel(tableModel);
     recordListPage->setListModel(recordModel);
     templateListPage->setListModel(templateModel);
@@ -113,121 +115,105 @@ MainWindow::MainWindow(QWidget *parent)
     connect(tableModel, &ClassTableModel::hideColumnRequested, tableView, &QTableView::hideColumn);
 
     // 小组分配：小组管理页与表格页共用同一份数据，任一侧改动都刷新另一侧
-    connect(manager, &ClassDataManager::studentsChanged,
-            tableModel, &ClassTableModel::refreshGroupColumn);
-    connect(tableModel, &ClassTableModel::groupAssignmentEdited,
-            groupBoardPage, &::GroupBoardPage::reload);
+    connect(manager, &ClassDataManager::studentsChanged, tableModel, &ClassTableModel::refreshGroupColumn);
+    connect(tableModel, &ClassTableModel::groupAssignmentEdited, groupBoardPage, &::GroupBoardPage::reload);
 
     // 欢迎页卡片请求
     connect(welcomePage, &::WelcomePage::openFileRequested, this, &MainWindow::openFileDialog);
     connect(welcomePage, &::WelcomePage::newFileRequested, this, &MainWindow::createNewFile);
 
     // 学生表页开关面板
-    connect(studentTablePage->sidebar(), &StudentTableSidebar::dragSortChanged, this, [tableView](bool enabled) {
-        if (enabled)
-        {
-            tableView->setDragDropMode(QAbstractItemView::InternalMove);
-            tableView->setDefaultDropAction(Qt::MoveAction);
-        }
-        else
-        {
-            tableView->setDragDropMode(QAbstractItemView::NoDragDrop);
-        }
-    });
-    connect(studentTablePage->sidebar(), &StudentTableSidebar::nameEditChanged,
-            tableModel, &ClassTableModel::setStudentEditable);
-    connect(studentTablePage->sidebar(), &StudentTableSidebar::groupEditChanged,
-            this, [this](bool enabled) { groupEditEnabled = enabled; });
+    connect(studentTablePage->sidebar(), &StudentTableSidebar::dragSortChanged, this,
+            [tableView](bool enabled)
+            {
+                if(enabled)
+                {
+                    tableView->setDragDropMode(QAbstractItemView::InternalMove);
+                    tableView->setDefaultDropAction(Qt::MoveAction);
+                }
+                else
+                {
+                    tableView->setDragDropMode(QAbstractItemView::NoDragDrop);
+                }
+            });
+    connect(studentTablePage->sidebar(), &StudentTableSidebar::nameEditChanged, tableModel, &ClassTableModel::setStudentEditable);
+    connect(studentTablePage->sidebar(), &StudentTableSidebar::groupEditChanged, this,
+            [this](bool enabled)
+            {
+                groupEditEnabled = enabled;
+            });
 
     // 侧栏学生操作块：添加、删除学生
-    connect(studentTablePage->sidebar(), &StudentTableSidebar::addStudentsRequested,
-            this, &MainWindow::addStudentsDialog);
-    connect(studentTablePage->sidebar(), &StudentTableSidebar::deleteStudentRequested,
-            this, &MainWindow::deleteStudentDialog);
+    connect(studentTablePage->sidebar(), &StudentTableSidebar::addStudentsRequested, this, &MainWindow::addStudentsDialog);
+    connect(studentTablePage->sidebar(), &StudentTableSidebar::deleteStudentRequested, this, &MainWindow::deleteStudentDialog);
 
     // 侧栏学生搜索：输入即时过滤，点击结果选中对应学生；学生集合与显示顺序变化后重新匹配
-    connect(studentTablePage->sidebar(), &StudentTableSidebar::studentSearchTextChanged,
-            searchModel, &StudentSearchModel::setFilter);
-    connect(studentTablePage->sidebar(), &StudentTableSidebar::studentSearchResultActivated,
-            this, &MainWindow::selectStudentFromSearch);
+    connect(studentTablePage->sidebar(), &StudentTableSidebar::studentSearchTextChanged, searchModel, &StudentSearchModel::setFilter);
+    connect(studentTablePage->sidebar(), &StudentTableSidebar::studentSearchResultActivated, this, &MainWindow::selectStudentFromSearch);
     connect(tableModel, &QAbstractItemModel::modelReset, searchModel, &StudentSearchModel::refresh);
     connect(tableModel, &QAbstractItemModel::rowsInserted, searchModel, &StudentSearchModel::refresh);
     connect(tableModel, &QAbstractItemModel::rowsRemoved, searchModel, &StudentSearchModel::refresh);
     connect(tableModel, &QAbstractItemModel::rowsMoved, searchModel, &StudentSearchModel::refresh);
     connect(tableModel, &QAbstractItemModel::dataChanged, this,
-            [this](const QModelIndex &topLeft, const QModelIndex &, const QVector<int> &) {
-        if(topLeft.column() == ClassTableModel::StudentName)
-            searchModel->refresh();
-    });
+            [this](const QModelIndex& topLeft, const QModelIndex&, const QVector<int>&)
+            {
+                if(topLeft.column() == ClassTableModel::StudentName)
+                    searchModel->refresh();
+            });
 
     // 侧栏积分记录块：新建、保存、应用模板
-    connect(studentTablePage->sidebar(), &StudentTableSidebar::newScoreRecordRequested,
-            this, &MainWindow::createScoreRecordDraft);
-    connect(studentTablePage->sidebar(), &StudentTableSidebar::saveScoreRecordRequested,
-            this, &MainWindow::saveScoreRecord);
-    connect(studentTablePage->sidebar(), &StudentTableSidebar::applyTemplateRequested,
-            this, &MainWindow::applyTemplateDialog);
+    connect(studentTablePage->sidebar(), &StudentTableSidebar::newScoreRecordRequested, this, &MainWindow::createScoreRecordDraft);
+    connect(studentTablePage->sidebar(), &StudentTableSidebar::saveScoreRecordRequested, this, &MainWindow::saveScoreRecord);
+    connect(studentTablePage->sidebar(), &StudentTableSidebar::applyTemplateRequested, this, &MainWindow::applyTemplateDialog);
 
     // 侧栏记录与模板预览块
-    connect(studentTablePage->sidebar(), &StudentTableSidebar::recordViewRequested,
-            this, &MainWindow::selectRecordToView);
-    connect(studentTablePage->sidebar(), &StudentTableSidebar::recordPreviousRequested,
-            this, &MainWindow::showPreviousRecord);
-    connect(studentTablePage->sidebar(), &StudentTableSidebar::recordNextRequested,
-            this, &MainWindow::showNextRecord);
-    connect(studentTablePage->sidebar(), &StudentTableSidebar::recordPreviewCloseRequested,
-            this, &MainWindow::hideRecord);
-    connect(studentTablePage->sidebar(), &StudentTableSidebar::newTemplateRequested,
-            this, &MainWindow::newTemplateFromSidebar);
-    connect(studentTablePage->sidebar(), &StudentTableSidebar::templateViewRequested,
-            this, &MainWindow::selectTemplateToView);
-    connect(studentTablePage->sidebar(), &StudentTableSidebar::templatePreviousRequested,
-            this, &MainWindow::showPreviousTemplate);
-    connect(studentTablePage->sidebar(), &StudentTableSidebar::templateNextRequested,
-            this, &MainWindow::showNextTemplate);
-    connect(studentTablePage->sidebar(), &StudentTableSidebar::templatePreviewCloseRequested,
-            this, &MainWindow::hideTemplate);
-    connect(studentTablePage->sidebar(), &StudentTableSidebar::templateNameUpdateRequested,
-            this, &MainWindow::updateTemplateName);
-    connect(studentTablePage->sidebar(), &StudentTableSidebar::templateNameEditCancelled,
-            this, &MainWindow::discardTemplateNameEdit);
+    connect(studentTablePage->sidebar(), &StudentTableSidebar::recordViewRequested, this, &MainWindow::selectRecordToView);
+    connect(studentTablePage->sidebar(), &StudentTableSidebar::recordPreviousRequested, this, &MainWindow::showPreviousRecord);
+    connect(studentTablePage->sidebar(), &StudentTableSidebar::recordNextRequested, this, &MainWindow::showNextRecord);
+    connect(studentTablePage->sidebar(), &StudentTableSidebar::recordPreviewCloseRequested, this, &MainWindow::hideRecord);
+    connect(studentTablePage->sidebar(), &StudentTableSidebar::newTemplateRequested, this, &MainWindow::newTemplateFromSidebar);
+    connect(studentTablePage->sidebar(), &StudentTableSidebar::templateViewRequested, this, &MainWindow::selectTemplateToView);
+    connect(studentTablePage->sidebar(), &StudentTableSidebar::templatePreviousRequested, this, &MainWindow::showPreviousTemplate);
+    connect(studentTablePage->sidebar(), &StudentTableSidebar::templateNextRequested, this, &MainWindow::showNextTemplate);
+    connect(studentTablePage->sidebar(), &StudentTableSidebar::templatePreviewCloseRequested, this, &MainWindow::hideTemplate);
+    connect(studentTablePage->sidebar(), &StudentTableSidebar::templateNameUpdateRequested, this, &MainWindow::updateTemplateName);
+    connect(studentTablePage->sidebar(), &StudentTableSidebar::templateNameEditCancelled, this, &MainWindow::discardTemplateNameEdit);
 
     // 双击列表项：预览对应记录/模板并切回表格页
-    connect(recordListPage->listView(), &QListView::doubleClicked, this, [this](const QModelIndex &index) {
-        showRecord(index.row());
-        navigationTabBar->setCurrentIndex(0);
-        stackedWidget->setCurrentIndex(StudentTablePage);
-    });
-    connect(templateListPage->listView(), &QListView::doubleClicked, this, [this](const QModelIndex &index) {
-        showTemplate(index.row());
-        navigationTabBar->setCurrentIndex(0);
-        stackedWidget->setCurrentIndex(StudentTablePage);
-    });
+    connect(recordListPage->listView(), &QListView::doubleClicked, this,
+            [this](const QModelIndex& index)
+            {
+                showRecord(index.row());
+                navigationTabBar->setCurrentIndex(0);
+                stackedWidget->setCurrentIndex(StudentTablePage);
+            });
+    connect(templateListPage->listView(), &QListView::doubleClicked, this,
+            [this](const QModelIndex& index)
+            {
+                showTemplate(index.row());
+                navigationTabBar->setCurrentIndex(0);
+                stackedWidget->setCurrentIndex(StudentTablePage);
+            });
 
     // 导航栏切换页面
     // 记录列表页工具按钮
-    connect(recordListPage, &RecordListPage::createRequested,
-            this, &MainWindow::newScoreRecordFromList);
-    connect(recordListPage, &RecordListPage::deleteSelectedRequested,
-            this, &MainWindow::deleteSelectedRecords);
-    connect(recordListPage, &RecordListPage::clearRequested,
-            this, &MainWindow::clearRecordsWithConfirm);
+    connect(recordListPage, &RecordListPage::createRequested, this, &MainWindow::newScoreRecordFromList);
+    connect(recordListPage, &RecordListPage::deleteSelectedRequested, this, &MainWindow::deleteSelectedRecords);
+    connect(recordListPage, &RecordListPage::clearRequested, this, &MainWindow::clearRecordsWithConfirm);
 
     // 模板列表页工具按钮
-    connect(recordListPage, &RecordListPage::exportRequested,
-            this, &MainWindow::exportSelectedRecords);
+    connect(recordListPage, &RecordListPage::exportRequested, this, &MainWindow::exportSelectedRecords);
 
-    connect(templateListPage, &TemplateListPage::createRequested,
-            this, &MainWindow::newTemplateFromList);
-    connect(templateListPage, &TemplateListPage::deleteSelectedRequested,
-            this, &MainWindow::deleteSelectedTemplates);
-    connect(templateListPage, &TemplateListPage::clearRequested,
-            this, &MainWindow::clearTemplatesWithConfirm);
+    connect(templateListPage, &TemplateListPage::createRequested, this, &MainWindow::newTemplateFromList);
+    connect(templateListPage, &TemplateListPage::deleteSelectedRequested, this, &MainWindow::deleteSelectedTemplates);
+    connect(templateListPage, &TemplateListPage::clearRequested, this, &MainWindow::clearTemplatesWithConfirm);
 
-    connect(navigationTabBar, &QTabBar::currentChanged, this, [this](int index) {
-        stackedWidget->setCurrentIndex(index + StudentTablePage);
-        syncListPageSelection();
-    });
+    connect(navigationTabBar, &QTabBar::currentChanged, this,
+            [this](int index)
+            {
+                stackedWidget->setCurrentIndex(index + StudentTablePage);
+                syncListPageSelection();
+            });
 
     connect(manager, &ClassDataManager::recordsChanged, this, &MainWindow::updateFilePreview);
     connect(manager, &ClassDataManager::templatesChanged, this, &MainWindow::updateFilePreview);
@@ -261,25 +247,25 @@ void MainWindow::createActions()
 
 void MainWindow::createMenus()
 {
-    QMenuBar *menubar = menuBar();
+    QMenuBar* menubar = menuBar();
 
-    QMenu *menu_File = menubar->addMenu(tr("文件"));
+    QMenu* menu_File = menubar->addMenu(tr("文件"));
     menu_File->addAction(action_OpenFile);
     menu_File->addAction(action_NewFile);
     menu_File->addAction(action_SaveFile);
     menu_File->addAction(action_CloseFile);
 
-    QMenu *menu_About = menubar->addMenu(tr("关于"));
+    QMenu* menu_About = menubar->addMenu(tr("关于"));
     menu_About->addAction(action_AboutApp);
     menu_About->addAction(action_AboutQt);
 }
 
-void MainWindow::closeEvent(QCloseEvent *event)
+void MainWindow::closeEvent(QCloseEvent* event)
 {
     if(!confirmUnsavedChanges())
     {
         event->ignore();
-        return ;
+        return;
     }
     event->accept();
 }
@@ -287,8 +273,7 @@ void MainWindow::closeEvent(QCloseEvent *event)
 /*文件操作入口*/
 void MainWindow::openFileDialog()
 {
-    QString fileName = QFileDialog::getOpenFileName(this, tr("打开班级信息文件"),
-                                                    QDir::currentPath(), tr("班级信息文件(*.cls)"));
+    QString fileName = QFileDialog::getOpenFileName(this, tr("打开班级信息文件"), QDir::currentPath(), tr("班级信息文件(*.cls)"));
     if(fileName.isEmpty())
         return;
     openFile(fileName);
@@ -311,14 +296,14 @@ void MainWindow::closeFileWithConfirm()
 void MainWindow::addStudentsDialog()
 {
     bool ok = false;
-    const QString inputText = QInputDialog::getMultiLineText(
-        this, tr("添加学生对话框"), tr("输入学生姓名，可用换行分隔多个学生"), QString(), &ok);
+    const QString inputText =
+        QInputDialog::getMultiLineText(this, tr("添加学生对话框"), tr("输入学生姓名，可用换行分隔多个学生"), QString(), &ok);
     if(!ok)
         return;
 
     QStringList newNames;
     const QStringList rawList = inputText.split('\n', Qt::SkipEmptyParts);
-    for(const QString &rawName : rawList)
+    for(const QString& rawName : rawList)
     {
         const QString studentName = rawName.simplified();
         if(!studentName.isEmpty())
@@ -332,11 +317,10 @@ void MainWindow::addStudentsDialog()
 void MainWindow::deleteStudentDialog()
 {
     // 表格当前选中行的行号即学生列表中的显示序号，作为对话框的初始选中项
-    const QTableView *tableView = studentTablePage->tableView();
+    const QTableView* tableView = studentTablePage->tableView();
     const QList<QModelIndex> selectedRows = tableView->selectionModel()->selectedRows();
     const int currentStudent = selectedRows.isEmpty() ? -1 : selectedRows.first().row();
-    const int index = ItemSelectionDialog::selectIndex(this, tr("选择要删除的学生"),
-                                                       manager->getStudentList(), currentStudent);
+    const int index = ItemSelectionDialog::selectIndex(this, tr("选择要删除的学生"), manager->getStudentList(), currentStudent);
     if(index != -1)
         removeStudent(index);
 }
@@ -368,8 +352,7 @@ void MainWindow::applyTemplateDialog()
     // 初始选中当前正在查看的模板，没有查看中的模板时选最后一条
     const bool hasPreview = templatePreviewIndex >= 0 && templatePreviewIndex < templateNames.size();
     const int currentTemplate = hasPreview ? templatePreviewIndex : templateNames.size() - 1;
-    const int index = ItemSelectionDialog::selectIndex(this, tr("选择要使用的积分模板"),
-                                                       templateNames, currentTemplate);
+    const int index = ItemSelectionDialog::selectIndex(this, tr("选择要使用的积分模板"), templateNames, currentTemplate);
     if(index != -1)
         activateTemplate(index);
 }
@@ -423,9 +406,8 @@ void MainWindow::onFileClosed()
 
 void MainWindow::updateFilePreview()
 {
-    studentTablePage->sidebar()->setFileInfo(
-        currentFileName, manager->isDirty(), manager->getStudents().size(),
-        manager->getRecords().size(), manager->getTemplates().size());
+    studentTablePage->sidebar()->setFileInfo(currentFileName, manager->isDirty(), manager->getStudents().size(),
+                                             manager->getRecords().size(), manager->getTemplates().size());
 }
 
 void MainWindow::updateRecordEditingActions()
@@ -457,10 +439,8 @@ void MainWindow::updateRecordPreviewPanel()
         displayText = manager->getRecordDisplayName(recordPreviewIndex);
         positionText = tr("%1/%2").arg(recordPreviewIndex + 1).arg(recordCount);
     }
-    studentTablePage->sidebar()->setRecordPreview(displayText, positionText, hasPreview,
-                                                   recordCount > 0,
-                                                   hasPreview && recordPreviewIndex > 0,
-                                                   hasPreview && recordPreviewIndex < recordCount - 1);
+    studentTablePage->sidebar()->setRecordPreview(displayText, positionText, hasPreview, recordCount > 0,
+                                                  hasPreview && recordPreviewIndex > 0, hasPreview && recordPreviewIndex < recordCount - 1);
 }
 
 void MainWindow::updateTemplatePreviewPanel()
@@ -474,19 +454,18 @@ void MainWindow::updateTemplatePreviewPanel()
         displayText = manager->getTemplateDisplayName(templatePreviewIndex);
         positionText = tr("%1/%2").arg(templatePreviewIndex + 1).arg(templateCount);
     }
-    studentTablePage->sidebar()->setTemplatePreview(displayText, positionText, hasPreview,
-                                                     templateCount > 0,
-                                                     hasPreview && templatePreviewIndex > 0,
-                                                     hasPreview && templatePreviewIndex < templateCount - 1);
+    studentTablePage->sidebar()->setTemplatePreview(displayText, positionText, hasPreview, templateCount > 0,
+                                                    hasPreview && templatePreviewIndex > 0,
+                                                    hasPreview && templatePreviewIndex < templateCount - 1);
     if(hasPreview)
-        studentTablePage->sidebar()->setTemplateNameDraft(
-            manager->getTemplates().at(templatePreviewIndex).description);
+        studentTablePage->sidebar()->setTemplateNameDraft(manager->getTemplates().at(templatePreviewIndex).description);
 }
 
 void MainWindow::syncListPageSelection()
 {
     // 切到列表页时选中当前正在查看的那一条，便于直接接着操作
-    const auto selectRow = [](QListView *view, int row) {
+    const auto selectRow = [](QListView* view, int row)
+    {
         if(!view->model() || row < 0 || row >= view->model()->rowCount())
             return;
         const QModelIndex index = view->model()->index(row, 0);
@@ -501,14 +480,14 @@ void MainWindow::syncListPageSelection()
 }
 
 /*文件操作*/
-void MainWindow::openFile(const QString &filePath)
+void MainWindow::openFile(const QString& filePath)
 {
-    QString errMsg=manager->openFile(filePath);
+    QString errMsg = manager->openFile(filePath);
     if(!errMsg.isEmpty())
     {
         errMsg.prepend(tr("在解析班级信息文件时遇到错误，以下为错误信息：\n"));
-        QMessageBox::critical(this,tr("错误"),errMsg);
-        return ;
+        QMessageBox::critical(this, tr("错误"), errMsg);
+        return;
     }
     currentFileName = QFileInfo(filePath).fileName();
     onFileLoaded();
@@ -541,7 +520,7 @@ bool MainWindow::saveFile()
     }
     if(manager->isNewFile())
     {
-        QString fileName=QFileDialog::getSaveFileName(this,tr("保存班级信息文件"),QDir::currentPath(),tr("班级信息文件(*.cls)"));
+        QString fileName = QFileDialog::getSaveFileName(this, tr("保存班级信息文件"), QDir::currentPath(), tr("班级信息文件(*.cls)"));
         if(fileName.isEmpty())
             return false;
         manager->saveNewFile(fileName);
@@ -564,7 +543,7 @@ void MainWindow::closeFile()
 }
 
 /*学生操作*/
-void MainWindow::importStudents(const QStringList &newNames)
+void MainWindow::importStudents(const QStringList& newNames)
 {
     tableModel->importStudents(newNames);
     groupBoardPage->reload();
@@ -582,8 +561,7 @@ void MainWindow::editStudentGroup(const QModelIndex& index)
 {
     if(index.column() != ClassTableModel::GroupNumber || !groupEditEnabled)
         return;
-    const QString studentName = tableModel->index(index.row(), ClassTableModel::StudentName)
-                                            .data().toString();
+    const QString studentName = tableModel->index(index.row(), ClassTableModel::StudentName).data().toString();
     const qint32 currentGroup = tableModel->groupNumberAt(index.row());
     GroupNumberDialog dialog(studentName, currentGroup == StudentInfo::NoGroup ? 0 : currentGroup, this);
     if(dialog.exec() != QDialog::Accepted)
@@ -599,10 +577,9 @@ void MainWindow::selectStudentFromSearch(int resultRow)
     const int displayRow = tableModel->displayRowForStudent(studentIndex);
     if(displayRow < 0)
         return;
-    QTableView *tableView = studentTablePage->tableView();
+    QTableView* tableView = studentTablePage->tableView();
     tableView->selectRow(displayRow);
-    tableView->scrollTo(tableModel->index(displayRow, ClassTableModel::StudentName),
-                        QAbstractItemView::PositionAtCenter);
+    tableView->scrollTo(tableModel->index(displayRow, ClassTableModel::StudentName), QAbstractItemView::PositionAtCenter);
 }
 
 /*积分记录操作*/
@@ -624,11 +601,11 @@ bool MainWindow::saveScoreRecord()
 
 void MainWindow::activateTemplate(int index)
 {
-    if(index!=-1)
+    if(index != -1)
         tableModel->activateTemplate(index);
 }
 
-void MainWindow::exportScoreSum(const QVector<int> &recordIndices)
+void MainWindow::exportScoreSum(const QVector<int>& recordIndices)
 {
     if(recordIndices.isEmpty())
         return;
@@ -646,8 +623,7 @@ void MainWindow::exportScoreSum(const QVector<int> &recordIndices)
         for(int i = 0; i < studentCount; i++)
             dataList[i].totalScore += manager->recordAt(recordIndex).scores.at(i);
 
-    QString fileName = QFileDialog::getSaveFileName(
-                this, tr("保存生成的文档"), QDir::currentPath(), tr("HTML Document (*.html)"));
+    QString fileName = QFileDialog::getSaveFileName(this, tr("保存生成的文档"), QDir::currentPath(), tr("HTML Document (*.html)"));
     if(fileName.isEmpty())
         return;
     QFile file(fileName);
@@ -674,7 +650,7 @@ void MainWindow::exportSelectedRecords()
         return;
     QVector<int> recordIndices;
     recordIndices.reserve(selectedRows.size());
-    for(const QModelIndex &selectedRow : selectedRows)
+    for(const QModelIndex& selectedRow : selectedRows)
         recordIndices.append(selectedRow.row());
     std::sort(recordIndices.begin(), recordIndices.end());
     exportScoreSum(recordIndices);
@@ -691,8 +667,7 @@ void MainWindow::selectRecordToView()
     for(int i = 0; i < records.size(); ++i)
         recordNames.append(manager->getRecordDisplayName(i));
 
-    const int index = ItemSelectionDialog::selectIndex(this, tr("选择要查看的积分记录"),
-                                                       recordNames, recordPreviewIndex);
+    const int index = ItemSelectionDialog::selectIndex(this, tr("选择要查看的积分记录"), recordNames, recordPreviewIndex);
     if(index != -1)
         showRecord(index);
 }
@@ -732,7 +707,7 @@ void MainWindow::deleteSelectedRecords()
         return;
     QVector<int> indices;
     indices.reserve(selectedRows.size());
-    for(const QModelIndex &selectedRow : selectedRows)
+    for(const QModelIndex& selectedRow : selectedRows)
         indices.append(selectedRow.row());
 
     if(!confirmDestructiveOperation(tr("删除"), tr("选中的%1条积分记录").arg(indices.size())))
@@ -780,9 +755,8 @@ void MainWindow::clearRecords()
 void MainWindow::newTemplate()
 {
     ScoreTemplate newTemplate;
-    newTemplate.description=tr("未命名-%1").arg(QDateTime::currentDateTime()
-                                                .toString("yy/MM/dd hh:mm:ss:zzz"));
-    newTemplate.values=QVector<qint32>(manager->getStudents().count());
+    newTemplate.description = tr("未命名-%1").arg(QDateTime::currentDateTime().toString("yy/MM/dd hh:mm:ss:zzz"));
+    newTemplate.values = QVector<qint32>(manager->getStudents().count());
     manager->addTemplate(newTemplate);
     showTemplate(manager->getTemplates().count() - 1);
 }
@@ -812,8 +786,7 @@ void MainWindow::selectTemplateToView()
     for(int i = 0; i < templates.size(); ++i)
         templateNames.append(manager->getTemplateDisplayName(i));
 
-    const int index = ItemSelectionDialog::selectIndex(this, tr("选择要查看的积分模板"),
-                                                       templateNames, templatePreviewIndex);
+    const int index = ItemSelectionDialog::selectIndex(this, tr("选择要查看的积分模板"), templateNames, templatePreviewIndex);
     if(index != -1)
         showTemplate(index);
 }
@@ -839,7 +812,7 @@ void MainWindow::showNextTemplate()
         showTemplate(templatePreviewIndex + 1);
 }
 
-void MainWindow::updateTemplateName(const QString &newDescription)
+void MainWindow::updateTemplateName(const QString& newDescription)
 {
     if(templatePreviewIndex < 0 || templatePreviewIndex >= manager->getTemplates().size())
         return;
@@ -863,8 +836,7 @@ void MainWindow::discardTemplateNameEdit()
 {
     if(templatePreviewIndex < 0 || templatePreviewIndex >= manager->getTemplates().size())
         return;
-    studentTablePage->sidebar()->setTemplateNameDraft(
-        manager->getTemplates().at(templatePreviewIndex).description);
+    studentTablePage->sidebar()->setTemplateNameDraft(manager->getTemplates().at(templatePreviewIndex).description);
 }
 
 void MainWindow::hideTemplate()
@@ -881,7 +853,7 @@ void MainWindow::deleteSelectedTemplates()
         return;
     QVector<int> indices;
     indices.reserve(selectedRows.size());
-    for(const QModelIndex &selectedRow : selectedRows)
+    for(const QModelIndex& selectedRow : selectedRows)
         indices.append(selectedRow.row());
 
     if(!confirmDestructiveOperation(tr("删除"), tr("选中的%1个积分模板").arg(indices.size())))
@@ -951,7 +923,7 @@ bool MainWindow::confirmUnsavedChanges()
     return true;
 }
 
-bool MainWindow::confirmDestructiveOperation(const QString &action, const QString &description)
+bool MainWindow::confirmDestructiveOperation(const QString& action, const QString& description)
 {
     ExContentDialog dialog(this);
     dialog.setTitle(tr("警告"));

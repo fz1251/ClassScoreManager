@@ -24,7 +24,8 @@ constexpr int kEdgeMargin = 12;
 class DropPlaceholder : public QWidget
 {
 public:
-    explicit DropPlaceholder(QWidget* parent) : QWidget(parent)
+    explicit DropPlaceholder(QWidget* parent)
+        : QWidget(parent)
     {
         setAttribute(Qt::WA_TransparentForMouseEvents);
     }
@@ -39,8 +40,8 @@ protected:
         fill.setAlpha(46);
         painter.setPen(QPen(accent, 1.5, Qt::DashLine));
         painter.setBrush(fill);
-        const QRectF box = QRectF(rect()).adjusted(CardStyle::hoverMargin, CardStyle::hoverMargin,
-                                                   -CardStyle::hoverMargin, -CardStyle::hoverMargin);
+        const QRectF box =
+            QRectF(rect()).adjusted(CardStyle::hoverMargin, CardStyle::hoverMargin, -CardStyle::hoverMargin, -CardStyle::hoverMargin);
         painter.drawRoundedRect(box, CardStyle::studentCardRadius, CardStyle::studentCardRadius);
     }
 };
@@ -84,10 +85,12 @@ GroupCard::GroupCard(qint32 groupNumber, QWidget* parent)
     m_highlightAnimation = new QVariantAnimation(this);
     m_highlightAnimation->setDuration(kHighlightDurationMs);
     m_highlightAnimation->setEasingCurve(QEasingCurve::OutCubic);
-    connect(m_highlightAnimation, &QVariantAnimation::valueChanged, this, [this](const QVariant& value) {
-        m_highlightProgress = value.toReal();
-        update();
-    });
+    connect(m_highlightAnimation, &QVariantAnimation::valueChanged, this,
+            [this](const QVariant& value)
+            {
+                m_highlightProgress = value.toReal();
+                update();
+            });
 
     refreshHeader();
 }
@@ -255,8 +258,7 @@ void GroupCard::dropEvent(QDropEvent* event)
         return;
     }
     //占位槽留到卡片真正插入时再撤除，位置索引才对得上
-    const int insertIndex = m_placeholder ? m_cardLayout->indexOf(m_placeholder)
-                                          : dropIndexAt(event->pos());
+    const int insertIndex = m_placeholder ? m_cardLayout->indexOf(m_placeholder) : dropIndexAt(event->pos());
     startHighlightAnimation(false);
     event->acceptProposedAction();
     emit studentDropped(studentIndex, insertIndex);

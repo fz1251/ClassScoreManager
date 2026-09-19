@@ -12,5 +12,5 @@ class ItemSelectionDialog
     Q_DECLARE_TR_FUNCTIONS(ItemSelectionDialog)
 
 public:
-    static int selectIndex(QWidget *parent, const QString &title, const QStringList &items, int current = 0);
+    static int selectIndex(QWidget* parent, const QString& title, const QStringList& items, int current = 0);
 };

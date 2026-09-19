@@ -8,7 +8,7 @@ class OkCancelBox : public QWidget
     Q_OBJECT
 
 public:
-    explicit OkCancelBox(QWidget *parent = nullptr);
+    explicit OkCancelBox(QWidget* parent = nullptr);
 
 signals:
     void confirmed();

@@ -5,18 +5,21 @@ TemplateListModel::TemplateListModel(ClassDataManager* dataManager, QObject* par
     , manager(dataManager)
 {
     Q_ASSERT(dataManager);
-    connect(manager, &ClassDataManager::templatesChanged,
-            this, [this](){ resetModel(); });
+    connect(manager, &ClassDataManager::templatesChanged, this,
+            [this]()
+            {
+                resetModel();
+            });
 }
 
-int TemplateListModel::rowCount(const QModelIndex &parent) const
+int TemplateListModel::rowCount(const QModelIndex& parent) const
 {
     if(parent.isValid())
         return 0;
     return manager->getTemplates().size();
 }
 
-QVariant TemplateListModel::data(const QModelIndex &index, int role) const
+QVariant TemplateListModel::data(const QModelIndex& index, int role) const
 {
     if(!index.isValid() || index.row() < 0 || index.row() >= rowCount())
         return QVariant();

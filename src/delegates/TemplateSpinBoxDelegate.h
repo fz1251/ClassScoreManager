@@ -6,8 +6,7 @@ class TemplateSpinBoxDelegate : public QStyledItemDelegate
 {
     Q_OBJECT
 public:
-    explicit TemplateSpinBoxDelegate(QObject *parent = nullptr);
+    explicit TemplateSpinBoxDelegate(QObject* parent = nullptr);
 
-    QWidget *createEditor(QWidget *parent, const QStyleOptionViewItem &option, const QModelIndex &index) const override;
+    QWidget* createEditor(QWidget* parent, const QStyleOptionViewItem& option, const QModelIndex& index) const override;
 };
-

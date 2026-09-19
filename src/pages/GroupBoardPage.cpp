@@ -17,8 +17,8 @@
 
 namespace
 {
-constexpr int kUngroupedInitialWidth = 216;   //左栏初始宽度，最小宽度由 UngroupedPanel 自己约束
-constexpr int kGroupAreaMinWidth = 220;       //右栏至少放得下一个小组容器和一张卡片
+constexpr int kUngroupedInitialWidth = 216; //左栏初始宽度，最小宽度由 UngroupedPanel 自己约束
+constexpr int kGroupAreaMinWidth = 220;     //右栏至少放得下一个小组容器和一张卡片
 constexpr int kAutoScrollIntervalMs = 40;
 constexpr int kAutoScrollEdge = 48;
 constexpr int kAutoScrollStep = 18;
@@ -111,8 +111,16 @@ StudentCard* GroupBoardPage::createCard(int studentIndex)
 {
     auto* card = new StudentCard(studentIndex, m_manager->getStudents().at(studentIndex).name, this);
     connect(card, &StudentCard::groupNumberEditRequested, this, &GroupBoardPage::handleGroupNumberEdit);
-    connect(card, &StudentCard::dragStarted, this, [this]() { m_autoScrollTimer->start(); });
-    connect(card, &StudentCard::dragFinished, this, [this]() { m_autoScrollTimer->stop(); });
+    connect(card, &StudentCard::dragStarted, this,
+            [this]()
+            {
+                m_autoScrollTimer->start();
+            });
+    connect(card, &StudentCard::dragFinished, this,
+            [this]()
+            {
+                m_autoScrollTimer->stop();
+            });
     return card;
 }
 
@@ -123,9 +131,10 @@ GroupCard* GroupBoardPage::ensureGroupCard(qint32 groupNumber)
 
     auto* groupCard = new GroupCard(groupNumber, m_groupContainer);
     connect(groupCard, &GroupCard::studentDropped, this,
-            [this, groupCard](int studentIndex, int insertIndex) {
-        handleGroupDrop(studentIndex, groupCard, insertIndex);
-    });
+            [this, groupCard](int studentIndex, int insertIndex)
+            {
+                handleGroupDrop(studentIndex, groupCard, insertIndex);
+            });
 
     //按组号升序插到已有的小组之间
     int index = 0;

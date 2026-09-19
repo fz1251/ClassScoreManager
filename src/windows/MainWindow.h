@@ -1,8 +1,9 @@
 #pragma once
 
+#include "excontentdialog.h"
+
 #include <QCloseEvent>
 #include <QMainWindow>
-#include "excontentdialog.h"
 #include <QString>
 #include <QStringList>
 #include <QVector>
@@ -24,10 +25,10 @@ class MainWindow : public QMainWindow
     Q_OBJECT
 
 public:
-    MainWindow(QWidget *parent = nullptr);
+    MainWindow(QWidget* parent = nullptr);
 
 protected:
-    void closeEvent(QCloseEvent *event) override;
+    void closeEvent(QCloseEvent* event) override;
 
 private:
     enum StackedPageIndex

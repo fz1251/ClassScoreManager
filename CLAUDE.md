@@ -31,7 +31,7 @@
 2. 代码是代码，文档是文档：代码注释只标关键技术实现（特殊外部 API/方法、与逻辑强相关的算法），其余靠清晰命名自解释。
 3. 遇到问题追根因，不打补丁；每个决策都要能回答“为什么”。
 4. 不要过度考虑边界情况；当前项目中不可能出现的边界情况不需要处理。
-5. 代码行宽最多容忍到约 100 个字符；声明、调用、短 lambda 不要因为 60 几个字符就折行，过早换行会影响屏幕观感。
+5. 代码行宽按等宽字体半角字符计，最多 140（相当于 70 个汉字）；声明、调用、短 lambda 不要过早折行，会影响屏幕观感。clang-format 按码点计数（汉字只算 1 列），写中文注释时要自己按“1 汉字 = 2 半角宽”控制。
 6. 手写 UI 必须遵守 2.8 的纯代码 UI 编写规范。
 
 ### 2.4 文件与记忆
@@ -87,6 +87,8 @@
 - 当前 Qt 套件：Qt 5.15.19（qtbase + qtsvg），MSVC 2022 x64，prefix `D:/Projects/Qt5.15.19/msvc2022_64`。
 - 构建：只使用预设 `qt5-msvc2022-debug` / `qt5-msvc2022-release`；产物在对应 `build/` 的 `bin/` 与 `lib/`。
   - 若编译命令中出现 Strawberry Perl 的 `c++.exe` / `gcc.exe`，说明 build 目录被错误环境污染，删除该 build 目录后用预设重新配置。
+- 代码格式化：根目录 `.clang-format`（clang-format 21，工具在 `C:\Qt\Tools\QtCreator\bin\clang\bin\clang-format.exe`），只格式化 `src/`，`third_party/` 与构建目录不参与。
+  - 单语句 body 不写大括号（`RemoveBracesLLVM` 自动去掉安全的多余括号；悬垂 else 等危险形态会保留括号）。
 - 全局样式：`FluentUI3Style` 随项目构建；Fluent 属性头写作 `#include "fluentui3styleproperties.h"`。
 - UI 状态：全部界面均为纯代码，不包含 `.ui` 文件。
 - 详细项目上下文（Qt 重建、CMake 细节、部署、模块结构）见 `docs/project-context.md`。

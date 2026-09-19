@@ -12,11 +12,11 @@ class TemplateListPage : public QWidget
     Q_OBJECT
 
 public:
-    explicit TemplateListPage(QWidget *parent = nullptr);
+    explicit TemplateListPage(QWidget* parent = nullptr);
 
-    QListView *listView() const;
+    QListView* listView() const;
     QList<QModelIndex> selectedRows() const;
-    void setListModel(QAbstractItemModel *model);
+    void setListModel(QAbstractItemModel* model);
 
 signals:
     void createRequested();
@@ -27,8 +27,8 @@ private:
     void updateToolButtonStates();
 
     // 界面元素指针：构造函数中统一创建，供其他成员函数访问
-    QListView *m_listView = nullptr;
-    QPushButton *createButton = nullptr;
-    QPushButton *deleteButton = nullptr;
-    QPushButton *clearButton = nullptr;
+    QListView* m_listView = nullptr;
+    QPushButton* createButton = nullptr;
+    QPushButton* deleteButton = nullptr;
+    QPushButton* clearButton = nullptr;
 };

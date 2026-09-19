@@ -58,4 +58,3 @@ private:
     QRect m_cachedContentsRect;
     Qt::Alignment m_cachedAlignment = Qt::AlignLeft | Qt::AlignTop;
 };
-

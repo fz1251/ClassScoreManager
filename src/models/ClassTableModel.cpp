@@ -1,27 +1,29 @@
 #include "ClassTableModel.h"
 
-ClassTableModel::ClassTableModel(ClassDataManager* dataManager, QObject *parent)
+ClassTableModel::ClassTableModel(ClassDataManager* dataManager, QObject* parent)
     : QAbstractTableModel(parent)
     , manager(dataManager)
 {
     Q_ASSERT(dataManager);
     // 模板集合变化会影响当前模板列与模板预览列的取值
-    connect(manager,&ClassDataManager::templatesChanged,this,[this](){
-        if(rowCount() == 0)
-            return;
-        const QModelIndex topLeft = index(0, CurrentTemplate);
-        const QModelIndex bottomRight = index(rowCount() - 1, CurrentTemplate);
-        emit dataChanged(topLeft, bottomRight, {Qt::DisplayRole, Qt::ForegroundRole});
-    });
+    connect(manager, &ClassDataManager::templatesChanged, this,
+            [this]()
+            {
+                if(rowCount() == 0)
+                    return;
+                const QModelIndex topLeft = index(0, CurrentTemplate);
+                const QModelIndex bottomRight = index(rowCount() - 1, CurrentTemplate);
+                emit dataChanged(topLeft, bottomRight, {Qt::DisplayRole, Qt::ForegroundRole});
+            });
 }
 
-int ClassTableModel::rowCount(const QModelIndex &parent) const
+int ClassTableModel::rowCount(const QModelIndex& parent) const
 {
     Q_UNUSED(parent);
     return students().size();
 }
 
-int ClassTableModel::columnCount(const QModelIndex &parent) const
+int ClassTableModel::columnCount(const QModelIndex& parent) const
 {
     Q_UNUSED(parent);
     if(manager->hasData())
@@ -30,66 +32,66 @@ int ClassTableModel::columnCount(const QModelIndex &parent) const
         return 0;
 }
 
-QVariant ClassTableModel::data(const QModelIndex &index, int role) const
+QVariant ClassTableModel::data(const QModelIndex& index, int role) const
 {
     if(!isValidModelIndex(index))
         return QVariant();
-    switch (role)
+    switch(role)
     {
-    case Qt::DisplayRole:
-    case Qt::EditRole:
-    {
-        switch(index.column())
+        case Qt::DisplayRole:
+        case Qt::EditRole:
         {
-        case StudentName:
-            return students().at(rowToIndex[index.row()]).name;
-        case GroupNumber:
-        {
-            const int groupNum = students().at(rowToIndex[index.row()]).groupNumber;
-            if(groupNum == StudentInfo::NoGroup)
-                return QObject::tr("未分组");
-            else
-                return groupNum;
+            switch(index.column())
+            {
+                case StudentName:
+                    return students().at(rowToIndex[index.row()]).name;
+                case GroupNumber:
+                {
+                    const int groupNum = students().at(rowToIndex[index.row()]).groupNumber;
+                    if(groupNum == StudentInfo::NoGroup)
+                        return QObject::tr("未分组");
+                    else
+                        return groupNum;
+                }
+                case CurrentRecord:
+                    return manager->getTempRecord().at(rowToIndex[index.row()]);
+                case CurrentTemplate:
+                    if(isValidIndex(manager->getActivatedTemplateIndex()))
+                        return templates().at(manager->getActivatedTemplateIndex()).values.at(rowToIndex[index.row()]);
+                    else
+                        return 0;
+                case RecordHistoryPreview:
+                    return records().at(previewRecordIndex).scores.at(rowToIndex[index.row()]);
+                case ScoreTemplatePreview:
+                    return templates().at(previewTemplateIndex).values.at(rowToIndex[index.row()]);
+                default:
+                    return QVariant();
+            }
         }
-        case CurrentRecord:
-            return manager->getTempRecord().at(rowToIndex[index.row()]);
-        case CurrentTemplate:
-            if(isValidIndex(manager->getActivatedTemplateIndex()))
-                return templates().at(manager->getActivatedTemplateIndex()).values.at(rowToIndex[index.row()]);
-            else
-                return 0;
-        case RecordHistoryPreview:
-            return records().at(previewRecordIndex).scores.at(rowToIndex[index.row()]);
-        case ScoreTemplatePreview:
-            return templates().at(previewTemplateIndex).values.at(rowToIndex[index.row()]);
-        default :
-            return QVariant();
-        }
-    }
-    case Qt::TextAlignmentRole:
-        return Qt::AlignCenter;
-    case Qt::ForegroundRole:
-    {
-        switch(index.column())
+        case Qt::TextAlignmentRole:
+            return Qt::AlignCenter;
+        case Qt::ForegroundRole:
         {
-        case CurrentRecord:
-            // return getScoreColor(manager->getTempRecord().at(rowToIndex[index.row()]));
-            return getScoreColor(manager->getTempRecord().value(rowToIndex[index.row()], 0));
-        case CurrentTemplate:
-            if(isValidIndex(manager->getActivatedTemplateIndex()))
-                return getScoreColor(templates().at(manager->getActivatedTemplateIndex()).values.at(rowToIndex[index.row()]));
-            else
-                return getScoreColor(0);
-        case RecordHistoryPreview:
-            return getScoreColor(records().at(previewRecordIndex).scores.at(rowToIndex[index.row()]));
-        case ScoreTemplatePreview:
-            return getScoreColor(templates().at(previewTemplateIndex).values.at(rowToIndex[index.row()]));
+            switch(index.column())
+            {
+                case CurrentRecord:
+                    // return getScoreColor(manager->getTempRecord().at(rowToIndex[index.row()]));
+                    return getScoreColor(manager->getTempRecord().value(rowToIndex[index.row()], 0));
+                case CurrentTemplate:
+                    if(isValidIndex(manager->getActivatedTemplateIndex()))
+                        return getScoreColor(templates().at(manager->getActivatedTemplateIndex()).values.at(rowToIndex[index.row()]));
+                    else
+                        return getScoreColor(0);
+                case RecordHistoryPreview:
+                    return getScoreColor(records().at(previewRecordIndex).scores.at(rowToIndex[index.row()]));
+                case ScoreTemplatePreview:
+                    return getScoreColor(templates().at(previewTemplateIndex).values.at(rowToIndex[index.row()]));
+                default:
+                    return QVariant();
+            }
+        }
         default:
             return QVariant();
-        }
-    }
-    default:
-        return QVariant();
     }
 }
 
@@ -101,20 +103,20 @@ QVariant ClassTableModel::headerData(int section, Qt::Orientation orientation, i
     {
         switch(section)
         {
-        case StudentName:
-            return tr("姓名");
-        case GroupNumber:
-            return tr("小组号");
-        case CurrentRecord:
-            return tr("积分(当前)");
-        case CurrentTemplate:
-            return tr("积分模板(当前)");
-        case RecordHistoryPreview:
-            return tr("积分(浏览)");
-        case ScoreTemplatePreview:
-            return tr("积分模板(浏览)");
-        default:
-            return QString();
+            case StudentName:
+                return tr("姓名");
+            case GroupNumber:
+                return tr("小组号");
+            case CurrentRecord:
+                return tr("积分(当前)");
+            case CurrentTemplate:
+                return tr("积分模板(当前)");
+            case RecordHistoryPreview:
+                return tr("积分(浏览)");
+            case ScoreTemplatePreview:
+                return tr("积分模板(浏览)");
+            default:
+                return QString();
         }
     }
     else
@@ -123,7 +125,7 @@ QVariant ClassTableModel::headerData(int section, Qt::Orientation orientation, i
     }
 }
 
-bool ClassTableModel::setData(const QModelIndex &index, const QVariant &value, int role)
+bool ClassTableModel::setData(const QModelIndex& index, const QVariant& value, int role)
 {
     if(!isValidModelIndex(index))
         return false;
@@ -131,29 +133,29 @@ bool ClassTableModel::setData(const QModelIndex &index, const QVariant &value, i
     {
         switch(index.column())
         {
-        case StudentName:
-            manager->studentAt(rowToIndex[index.row()]).name = value.toString();
-            break;
-        case CurrentRecord:
-        {
-            bool ok;
-            const int val = value.toInt(&ok);
-            if(!ok)
+            case StudentName:
+                manager->studentAt(rowToIndex[index.row()]).name = value.toString();
+                break;
+            case CurrentRecord:
+            {
+                bool ok;
+                const int val = value.toInt(&ok);
+                if(!ok)
+                    return false;
+                manager->getTempRecord()[rowToIndex[index.row()]] = val;
+                break;
+            }
+            case ScoreTemplatePreview:
+            {
+                bool ok;
+                const int val = value.toInt(&ok);
+                if(!ok)
+                    return false;
+                manager->templateAt(previewTemplateIndex).values[rowToIndex[index.row()]] = val;
+                break;
+            }
+            default:
                 return false;
-            manager->getTempRecord()[rowToIndex[index.row()]] = val;
-            break;
-        }
-        case ScoreTemplatePreview:
-        {
-            bool ok;
-            const int val = value.toInt(&ok);
-            if(!ok)
-                return false;
-            manager->templateAt(previewTemplateIndex).values[rowToIndex[index.row()]] = val;
-            break;
-        }
-        default:
-            return false;
         }
         emit dataChanged(index, index);
         return true;
@@ -161,25 +163,23 @@ bool ClassTableModel::setData(const QModelIndex &index, const QVariant &value, i
     return false;
 }
 
-Qt::ItemFlags ClassTableModel::flags(const QModelIndex &index) const
+Qt::ItemFlags ClassTableModel::flags(const QModelIndex& index) const
 {
     if(!isValidModelIndex(index))
         return Qt::ItemIsEnabled | Qt::ItemIsDropEnabled;
     Qt::ItemFlags baseFlag = Qt::ItemIsEnabled | Qt::ItemIsSelectable | Qt::ItemIsDragEnabled;
     switch(index.column())
     {
-    case StudentName:
-        if(canEditStudent)
-        {
+        case StudentName:
+            if(canEditStudent)
+                baseFlag |= Qt::ItemIsEditable;
+            break;
+        case CurrentRecord:
+        case ScoreTemplatePreview:
             baseFlag |= Qt::ItemIsEditable;
-        }
-        break;
-    case CurrentRecord:
-    case ScoreTemplatePreview:
-        baseFlag |= Qt::ItemIsEditable;
-        break;
-    default:
-        break;
+            break;
+        default:
+            break;
     }
     return baseFlag;
 }
@@ -189,7 +189,7 @@ Qt::DropActions ClassTableModel::supportedDropActions() const
     return Qt::MoveAction;
 }
 
-QMimeData* ClassTableModel::mimeData(const QModelIndexList &indexes) const
+QMimeData* ClassTableModel::mimeData(const QModelIndexList& indexes) const
 {
     if(indexes.isEmpty())
         return nullptr;
@@ -201,7 +201,7 @@ QMimeData* ClassTableModel::mimeData(const QModelIndexList &indexes) const
     return mimeData;
 }
 
-bool ClassTableModel::canDropMimeData(const QMimeData *data, Qt::DropAction action, int row, int column, const QModelIndex &parent) const
+bool ClassTableModel::canDropMimeData(const QMimeData* data, Qt::DropAction action, int row, int column, const QModelIndex& parent) const
 {
     Q_UNUSED(row);
     Q_UNUSED(column);
@@ -212,7 +212,7 @@ bool ClassTableModel::canDropMimeData(const QMimeData *data, Qt::DropAction acti
         return false;
 }
 
-bool ClassTableModel::dropMimeData(const QMimeData *data, Qt::DropAction action, int row, int column, const QModelIndex &parent)
+bool ClassTableModel::dropMimeData(const QMimeData* data, Qt::DropAction action, int row, int column, const QModelIndex& parent)
 {
     Q_UNUSED(column);
     if(action != Qt::MoveAction)
@@ -230,8 +230,7 @@ bool ClassTableModel::dropMimeData(const QMimeData *data, Qt::DropAction action,
     {
         for(int i = sourceRow; i < row - 1; i++)
         {
-            std::swap(manager->studentAt(rowToIndex[i]).displayOrder,
-                      manager->studentAt(rowToIndex[i + 1]).displayOrder);
+            std::swap(manager->studentAt(rowToIndex[i]).displayOrder, manager->studentAt(rowToIndex[i + 1]).displayOrder);
             std::swap(rowToIndex[i], rowToIndex[i + 1]);
         }
     }
@@ -239,8 +238,7 @@ bool ClassTableModel::dropMimeData(const QMimeData *data, Qt::DropAction action,
     {
         for(int i = sourceRow; i > row; i--)
         {
-            std::swap(manager->studentAt(rowToIndex[i]).displayOrder,
-                      manager->studentAt(rowToIndex[i - 1]).displayOrder);
+            std::swap(manager->studentAt(rowToIndex[i]).displayOrder, manager->studentAt(rowToIndex[i - 1]).displayOrder);
             std::swap(rowToIndex[i], rowToIndex[i - 1]);
         }
     }
@@ -291,7 +289,7 @@ int ClassTableModel::displayRowForStudent(int studentIndex) const
 }
 
 // 积分记录编辑相关函数
-void ClassTableModel::newScoreRecord(const QString &newRecordName)
+void ClassTableModel::newScoreRecord(const QString& newRecordName)
 {
     manager->newRecord(newRecordName);
     showColumnWrapper(CurrentRecord);
@@ -370,7 +368,7 @@ void ClassTableModel::resetTable()
 void ClassTableModel::setStudentEditable(bool editable)
 {
     canEditStudent = editable;
-    emit dataChanged(index(0,StudentName),index(rowCount()-1,StudentName),{Qt::EditRole});
+    emit dataChanged(index(0, StudentName), index(rowCount() - 1, StudentName), {Qt::EditRole});
 }
 
 bool ClassTableModel::assignGroupNumber(int row, qint32 groupNumber)
@@ -398,12 +396,9 @@ void ClassTableModel::refreshGroupColumn()
     emit dataChanged(index(0, GroupNumber), index(rowCount() - 1, GroupNumber), {Qt::DisplayRole});
 }
 
-bool ClassTableModel::isValidModelIndex(const QModelIndex &index) const
+bool ClassTableModel::isValidModelIndex(const QModelIndex& index) const
 {
-    return index.isValid() &&
-           columnIsVisible[index.column()] &&
-           index.row() >= 0 &&
-           index.row() <= students().size();
+    return index.isValid() && columnIsVisible[index.column()] && index.row() >= 0 && index.row() <= students().size();
 }
 
 bool ClassTableModel::isValidIndex(int index) const

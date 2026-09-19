@@ -1,10 +1,9 @@
+#include "fluentui3style.h"
 #include "windows/MainWindow.h"
 
 #include <QApplication>
 
-#include "fluentui3style.h"
-
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
 
 // 调整 Qt5 默认行为，使其与原 Qt6 正确行为相符
@@ -13,8 +12,7 @@ int main(int argc, char *argv[])
     QApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
     QApplication::setAttribute(Qt::AA_UseHighDpiPixmaps);
     // Qt5 默认将 scale factor 取整（125%→100%），设为 PassThrough 保留原始值
-    QApplication::setHighDpiScaleFactorRoundingPolicy(
-        Qt::HighDpiScaleFactorRoundingPolicy::PassThrough);
+    QApplication::setHighDpiScaleFactorRoundingPolicy(Qt::HighDpiScaleFactorRoundingPolicy::PassThrough);
 #endif
 
     QApplication a(argc, argv);
@@ -28,9 +26,7 @@ int main(int argc, char *argv[])
     // Qt 5 在高 DPI 环境下默认 font family 为空，属于 Windows 平台问题
     // 导致字体回退至 SimSun（宋体），需手动设置，以避免显示问题
     // "Microsoft YaHei UI" 自 Windows 8 起提供，Windows 7 只有微软雅黑，按顺序回退
-    defaultFont.setFamilies({QStringLiteral("Microsoft YaHei UI"),
-                             QStringLiteral("Microsoft YaHei"),
-                             QStringLiteral("微软雅黑")});
+    defaultFont.setFamilies({QStringLiteral("Microsoft YaHei UI"), QStringLiteral("Microsoft YaHei"), QStringLiteral("微软雅黑")});
 #endif
     // Qt5 默认 weight 为 50（Light），需与 Qt6 下 400（Normal）统一
     defaultFont.setWeight(QFont::Normal);

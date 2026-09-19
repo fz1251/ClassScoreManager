@@ -40,7 +40,7 @@ private:
     void stopAnimationFor(QWidget* widget) const;
 
     QList<QLayoutItem*> m_items;
-    mutable QList<QLayoutItem*> m_placed;   //已经落过位的项：首次落位直接到位，不做动画
+    mutable QList<QLayoutItem*> m_placed; //已经落过位的项：首次落位直接到位，不做动画
     mutable QHash<QWidget*, QPointer<QPropertyAnimation>> m_animations;
     int m_hSpacing;
     int m_vSpacing;

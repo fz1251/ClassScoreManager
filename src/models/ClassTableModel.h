@@ -1,11 +1,12 @@
 #pragma once
 
 #include "../core/ClassDataManager.h"
-#include <QMap>
-#include <QBrush>
-#include <QMimeData>
-#include <QByteArray>
+
 #include <QAbstractTableModel>
+#include <QBrush>
+#include <QByteArray>
+#include <QMap>
+#include <QMimeData>
 
 class ClassTableModel : public QAbstractTableModel
 {
@@ -24,22 +25,22 @@ public:
     };
 
     // 表格模型所用函数
-    explicit ClassTableModel(ClassDataManager* dataManager, QObject *parent = nullptr);
-    int rowCount(const QModelIndex &parent = QModelIndex()) const override;
-    int columnCount(const QModelIndex &parent = QModelIndex()) const override;
-    QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
+    explicit ClassTableModel(ClassDataManager* dataManager, QObject* parent = nullptr);
+    int rowCount(const QModelIndex& parent = QModelIndex()) const override;
+    int columnCount(const QModelIndex& parent = QModelIndex()) const override;
+    QVariant data(const QModelIndex& index, int role = Qt::DisplayRole) const override;
     QVariant headerData(int section, Qt::Orientation orientation, int role) const override;
-    bool setData(const QModelIndex &index, const QVariant &value, int role) override;
-    Qt::ItemFlags flags(const QModelIndex &index) const override;
+    bool setData(const QModelIndex& index, const QVariant& value, int role) override;
+    Qt::ItemFlags flags(const QModelIndex& index) const override;
     Qt::DropActions supportedDropActions() const override;
-    QMimeData* mimeData(const QModelIndexList &indexes) const override;
-    bool canDropMimeData(const QMimeData *data, Qt::DropAction action, int row, int column, const QModelIndex &parent) const override;
-    bool dropMimeData(const QMimeData *data, Qt::DropAction action, int row, int column, const QModelIndex &parent) override;
+    QMimeData* mimeData(const QModelIndexList& indexes) const override;
+    bool canDropMimeData(const QMimeData* data, Qt::DropAction action, int row, int column, const QModelIndex& parent) const override;
+    bool dropMimeData(const QMimeData* data, Qt::DropAction action, int row, int column, const QModelIndex& parent) override;
 
     // 学生信息相关函数
     void importStudents(const QStringList& newNames);
-    void removeStudent (int displayIndex);
-    int  displayRowForStudent(int studentIndex) const;
+    void removeStudent(int displayIndex);
+    int displayRowForStudent(int studentIndex) const;
 
     // 积分记录编辑相关函数
     void newScoreRecord(const QString& newRecordName);
@@ -64,14 +65,24 @@ signals:
     void showColumnRequested(int column);
     void hideColumnRequested(int column);
     void groupAssignmentEdited();
+
 private:
     static const inline QString moveRowDataType = "application/row_data";
     static const inline int INVALID_INDEX = -1;
 
     // 辅助获取manager中内容
-    const QVector<StudentInfo>&   students()  const { return manager->getStudents(); };
-    const QVector<ScoreTemplate>& templates() const { return manager->getTemplates(); };
-    const QVector<ScoreRecord>&   records()   const { return manager->getRecords(); };
+    const QVector<StudentInfo>& students() const
+    {
+        return manager->getStudents();
+    };
+    const QVector<ScoreTemplate>& templates() const
+    {
+        return manager->getTemplates();
+    };
+    const QVector<ScoreRecord>& records() const
+    {
+        return manager->getRecords();
+    };
 
     // 验证索引有效性
     bool isValidModelIndex(const QModelIndex& index) const;
@@ -91,4 +102,3 @@ private:
     int previewRecordIndex = INVALID_INDEX;
     int previewTemplateIndex = INVALID_INDEX;
 };
-

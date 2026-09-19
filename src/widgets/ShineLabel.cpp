@@ -8,7 +8,8 @@
 #include <QTimer>
 #include <QtMath>
 
-ShineLabel::ShineLabel(QWidget* parent) : QLabel(parent)
+ShineLabel::ShineLabel(QWidget* parent)
+    : QLabel(parent)
 {
     QPalette palette = this->palette();
     palette.setColor(QPalette::WindowText, QColor(kDefaultTextColor));
@@ -18,32 +19,33 @@ ShineLabel::ShineLabel(QWidget* parent) : QLabel(parent)
     m_frameTimer = new QTimer(this);
     m_frameTimer->setInterval(kShineFrameIntervalMs);
     m_frameTimer->setTimerType(Qt::PreciseTimer);
-    connect(m_frameTimer, &QTimer::timeout, this, [this]
-    {
-        const int cycleMs = kShineSweepMs + kShinePauseMs;
-        const qint64 elapsedInCycle = m_elapsed.elapsed() % cycleMs;
-        const bool sweeping = elapsedInCycle < kShineSweepMs;
-        m_sweepProgress = sweeping ? qreal(elapsedInCycle) / kShineSweepMs : 1.0;
-        if (sweeping || m_bandVisible)
-            update();
-        m_bandVisible = sweeping;
-    });
+    connect(m_frameTimer, &QTimer::timeout, this,
+            [this]
+            {
+                const int cycleMs = kShineSweepMs + kShinePauseMs;
+                const qint64 elapsedInCycle = m_elapsed.elapsed() % cycleMs;
+                const bool sweeping = elapsedInCycle < kShineSweepMs;
+                m_sweepProgress = sweeping ? qreal(elapsedInCycle) / kShineSweepMs : 1.0;
+                if(sweeping || m_bandVisible)
+                    update();
+                m_bandVisible = sweeping;
+            });
 }
 
 void ShineLabel::paintEvent(QPaintEvent* event)
 {
     const QString currentText = text();
-    const bool supported = textFormat() == Qt::PlainText && !wordWrap()
-        && !currentText.contains(QLatin1Char('\n')) && !currentText.contains(QLatin1Char('\r'));
+    const bool supported = textFormat() == Qt::PlainText && !wordWrap() && !currentText.contains(QLatin1Char('\n')) &&
+                           !currentText.contains(QLatin1Char('\r'));
     Q_ASSERT(supported);
-    if (!supported)
+    if(!supported)
     {
         QLabel::paintEvent(event);
         return;
     }
 
     updateTextPathIfNeeded();
-    if (m_textPath.isEmpty())
+    if(m_textPath.isEmpty())
     {
         QLabel::paintEvent(event);
         return;
@@ -56,13 +58,12 @@ void ShineLabel::paintEvent(QPaintEvent* event)
     painter.setBrush(palette().color(foregroundRole()));
     painter.drawPath(m_textPath);
 
-    if (m_sweepProgress <= 0.0 || m_sweepProgress >= 1.0)
+    if(m_sweepProgress <= 0.0 || m_sweepProgress >= 1.0)
         return;
 
     // InOutQuad 缓动：头尾放慢、中段加速，让光带的起收更自然
-    const qreal easedProgress = m_sweepProgress < 0.5
-        ? 2.0 * m_sweepProgress * m_sweepProgress
-        : 1.0 - 2.0 * (1.0 - m_sweepProgress) * (1.0 - m_sweepProgress);
+    const qreal easedProgress =
+        m_sweepProgress < 0.5 ? 2.0 * m_sweepProgress * m_sweepProgress : 1.0 - 2.0 * (1.0 - m_sweepProgress) * (1.0 - m_sweepProgress);
     const qreal sweepCenterX = m_sweepStartX + easedProgress * (m_sweepEndX - m_sweepStartX);
     const QPointF bandCenter(sweepCenterX, m_textRect.center().y());
     const qreal gradientAngle = qDegreesToRadians(kShineGradientAngle);
@@ -105,8 +106,8 @@ void ShineLabel::updateTextPathIfNeeded()
     const QRect currentContents = contentsRect();
     const Qt::Alignment currentAlignment = alignment();
 
-    if (currentText == m_cachedText && currentFont == m_cachedFont && currentContents == m_cachedContentsRect
-        && currentAlignment == m_cachedAlignment)
+    if(currentText == m_cachedText && currentFont == m_cachedFont && currentContents == m_cachedContentsRect &&
+       currentAlignment == m_cachedAlignment)
     {
         return;
     }
@@ -127,33 +128,33 @@ void ShineLabel::updateTextPath()
     m_sweepStartX = 0.0;
     m_sweepEndX = 0.0;
 
-    if (m_cachedText.isEmpty())
+    if(m_cachedText.isEmpty())
         return;
 
     const QRectF available = m_cachedContentsRect;
-    if (available.width() <= 0.0)
+    if(available.width() <= 0.0)
         return;
 
     const QFontMetricsF metrics(m_cachedFont);
     const qreal textWidth = metrics.horizontalAdvance(m_cachedText);
 
     qreal x = available.left();
-    if (m_cachedAlignment.testFlag(Qt::AlignHCenter))
+    if(m_cachedAlignment.testFlag(Qt::AlignHCenter))
         x += (available.width() - textWidth) / 2.0;
-    else if (m_cachedAlignment.testFlag(Qt::AlignRight))
+    else if(m_cachedAlignment.testFlag(Qt::AlignRight))
         x += available.width() - textWidth;
 
     qreal y = available.top();
-    if (m_cachedAlignment.testFlag(Qt::AlignVCenter))
+    if(m_cachedAlignment.testFlag(Qt::AlignVCenter))
         y += (available.height() - metrics.height()) / 2.0;
-    else if (m_cachedAlignment.testFlag(Qt::AlignBottom))
+    else if(m_cachedAlignment.testFlag(Qt::AlignBottom))
         y += available.height() - metrics.height();
 
     QPainterPath linePath;
     linePath.addText(QPointF(x, y + metrics.ascent()), m_cachedFont, m_cachedText);
     m_textPath.addPath(linePath);
     m_textRect = linePath.boundingRect();
-    if (m_textRect.isEmpty())
+    if(m_textRect.isEmpty())
         return;
 
     m_bandWidth = metrics.height() * kShineBandHeightRatio;
@@ -162,10 +163,10 @@ void ShineLabel::updateTextPath()
     const qreal gradientAngle = qDegreesToRadians(kShineGradientAngle);
     const QPointF gradientAxis(qCos(gradientAngle), qSin(gradientAngle));
     const QPointF centerOffset(0.0, m_textRect.center().y());
-    const QPointF textCorners[] = { m_textRect.topLeft(), m_textRect.topRight(), m_textRect.bottomRight(), m_textRect.bottomLeft() };
+    const QPointF textCorners[] = {m_textRect.topLeft(), m_textRect.topRight(), m_textRect.bottomRight(), m_textRect.bottomLeft()};
     qreal minProjection = QPointF::dotProduct(textCorners[0] - centerOffset, gradientAxis);
     qreal maxProjection = minProjection;
-    for (int i = 1; i < 4; ++i)
+    for(int i = 1; i < 4; ++i)
     {
         const qreal projection = QPointF::dotProduct(textCorners[i] - centerOffset, gradientAxis);
         minProjection = qMin(minProjection, projection);

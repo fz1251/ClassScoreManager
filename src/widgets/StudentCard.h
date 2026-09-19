@@ -1,7 +1,7 @@
 #pragma once
 
-#include <QWidget>
 #include <QVariantAnimation>
+#include <QWidget>
 
 class QMimeData;
 class QMouseEvent;

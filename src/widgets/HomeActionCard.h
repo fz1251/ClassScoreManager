@@ -17,19 +17,19 @@ class HomeActionCard : public QAbstractButton
     Q_OBJECT
 
 public:
-    explicit HomeActionCard(QWidget *parent = nullptr);
-    explicit HomeActionCard(const QString &text, QWidget *parent);
+    explicit HomeActionCard(QWidget* parent = nullptr);
+    explicit HomeActionCard(const QString& text, QWidget* parent);
 
     QSize sizeHint() const override;
 
 protected:
-    void paintEvent(QPaintEvent *event) override;
-    void enterEvent(QEvent *event) override;
-    void leaveEvent(QEvent *event) override;
-    void mousePressEvent(QMouseEvent *event) override;
-    void mouseReleaseEvent(QMouseEvent *event) override;
-    void focusInEvent(QFocusEvent *event) override;
-    void focusOutEvent(QFocusEvent *event) override;
+    void paintEvent(QPaintEvent* event) override;
+    void enterEvent(QEvent* event) override;
+    void leaveEvent(QEvent* event) override;
+    void mousePressEvent(QMouseEvent* event) override;
+    void mouseReleaseEvent(QMouseEvent* event) override;
+    void focusInEvent(QFocusEvent* event) override;
+    void focusOutEvent(QFocusEvent* event) override;
 
 private:
     void startHoverAnimation(qreal endProgress);
@@ -41,4 +41,3 @@ private:
     QVariantAnimation* m_hoverAnimation{nullptr};
     QPixmap m_shadowCache;
 };
-

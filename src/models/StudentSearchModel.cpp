@@ -1,4 +1,5 @@
 #include "StudentSearchModel.h"
+
 #include <algorithm>
 
 StudentSearchModel::StudentSearchModel(ClassDataManager* dataManager, QObject* parent)
@@ -8,14 +9,14 @@ StudentSearchModel::StudentSearchModel(ClassDataManager* dataManager, QObject* p
     Q_ASSERT(dataManager);
 }
 
-int StudentSearchModel::rowCount(const QModelIndex &parent) const
+int StudentSearchModel::rowCount(const QModelIndex& parent) const
 {
     if(parent.isValid())
         return 0;
     return matchedIndices.size();
 }
 
-QVariant StudentSearchModel::data(const QModelIndex &index, int role) const
+QVariant StudentSearchModel::data(const QModelIndex& index, int role) const
 {
     if(!index.isValid() || index.row() < 0 || index.row() >= matchedIndices.size())
         return QVariant();
@@ -31,7 +32,7 @@ int StudentSearchModel::studentIndexAt(int row) const
     return matchedIndices.at(row);
 }
 
-void StudentSearchModel::setFilter(const QString &text)
+void StudentSearchModel::setFilter(const QString& text)
 {
     filter = text;
     refresh();
@@ -48,8 +49,10 @@ void StudentSearchModel::refresh()
             if(students.at(i).name.contains(keyword, Qt::CaseInsensitive))
                 matchedIndices.append(i);
     // 结果顺序与表格显示顺序保持一致
-    std::sort(matchedIndices.begin(), matchedIndices.end(), [&students](int left, int right) {
-        return students.at(left).displayOrder < students.at(right).displayOrder;
-    });
+    std::sort(matchedIndices.begin(), matchedIndices.end(),
+              [&students](int left, int right)
+              {
+                  return students.at(left).displayOrder < students.at(right).displayOrder;
+              });
     endResetModel();
 }

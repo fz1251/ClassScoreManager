@@ -2,8 +2,8 @@
 
 #include "CardHost.h"
 
-#include <QWidget>
 #include <QVariantAnimation>
+#include <QWidget>
 
 class FlowLayout;
 class StudentCard;

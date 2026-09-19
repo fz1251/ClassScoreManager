@@ -5,18 +5,21 @@ RecordListModel::RecordListModel(ClassDataManager* dataManager, QObject* parent)
     , manager(dataManager)
 {
     Q_ASSERT(dataManager);
-    connect(manager, &ClassDataManager::recordsChanged,
-            this, [this](){ resetModel(); });
+    connect(manager, &ClassDataManager::recordsChanged, this,
+            [this]()
+            {
+                resetModel();
+            });
 }
 
-int RecordListModel::rowCount(const QModelIndex &parent) const
+int RecordListModel::rowCount(const QModelIndex& parent) const
 {
     if(parent.isValid())
         return 0;
     return manager->getRecords().size();
 }
 
-QVariant RecordListModel::data(const QModelIndex &index, int role) const
+QVariant RecordListModel::data(const QModelIndex& index, int role) const
 {
     if(!index.isValid() || index.row() < 0 || index.row() >= rowCount())
         return QVariant();
