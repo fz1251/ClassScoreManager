@@ -18,6 +18,7 @@
 #include "GroupNumberDialog.h"
 #include "ItemSelectionDialog.h"
 #include "SumExportDialog.h"
+#include "exinfobarhost.h"
 #include "fluentui3styleproperties.h"
 
 #include <QAbstractItemView>
@@ -86,6 +87,8 @@ MainWindow::MainWindow(QWidget* parent)
     mainLayout->insertWidget(0, navigationTabBar);
 
     setCentralWidget(centralWidget);
+    // 通知层挂在中央区，窗口级通知不会压住菜单栏
+    ExInfoBarHost::setDefaultTarget(centralWidget);
     statusBar()->setVisible(false);
 
     createActions();
@@ -323,8 +326,14 @@ void MainWindow::deleteStudentDialog()
     const QList<QModelIndex> selectedRows = tableView->selectionModel()->selectedRows();
     const int currentStudent = selectedRows.isEmpty() ? -1 : selectedRows.first().row();
     const int index = ItemSelectionDialog::selectIndex(this, tr("选择要删除的学生"), manager->getStudentList(), currentStudent);
-    if(index != -1)
-        removeStudent(index);
+    if(index == -1)
+        return;
+
+    // 删除学生同时会移除所有积分记录与模板中的对应分数，与其他删除操作一致先二次确认
+    const QString studentName = tableModel->index(index, ClassTableModel::StudentName).data().toString();
+    if(!confirmDestructiveOperation(tr("删除"), tr("学生「%1」").arg(studentName)))
+        return;
+    removeStudent(index, studentName);
 }
 
 /*积分记录操作入口*/
@@ -348,7 +357,7 @@ void MainWindow::applyTemplateDialog()
     const auto& templates = manager->getTemplates();
     if(templates.isEmpty())
     {
-        QMessageBox::information(this, tr("提示"), tr("当前还没有可用的积分模板"));
+        showNotification(ExInfoBar::Informational, tr("提示"), tr("当前还没有可用的积分模板"));
         return;
     }
     QStringList templateNames;
@@ -492,8 +501,7 @@ void MainWindow::openFile(const QString& filePath)
     QString errMsg = manager->openFile(filePath);
     if(!errMsg.isEmpty())
     {
-        errMsg.prepend(tr("在解析班级信息文件时遇到错误，以下为错误信息：\n"));
-        QMessageBox::critical(this, tr("错误"), errMsg);
+        showNotification(ExInfoBar::Error, tr("打开文件失败"), errMsg);
         return;
     }
     currentFileName = QFileInfo(filePath).fileName();
@@ -545,9 +553,10 @@ bool MainWindow::saveFile()
     }
     if(!saved)
     {
-        QMessageBox::warning(this, tr("警告"), tr("无法写入文件，请检查路径是否可写"));
+        showNotification(ExInfoBar::Error, tr("错误"), tr("无法写入文件，请检查路径是否可写"));
         return false;
     }
+    showNotification(ExInfoBar::Success, tr("保存成功"), tr("班级信息已保存到 %1").arg(currentFileName));
     return true;
 }
 
@@ -565,13 +574,15 @@ void MainWindow::importStudents(const QStringList& newNames)
     tableModel->importStudents(newNames);
     groupBoardPage->reload();
     updateFilePreview();
+    showNotification(ExInfoBar::Success, tr("添加学生"), tr("已添加%1名学生").arg(newNames.size()));
 }
 
-void MainWindow::removeStudent(int displayIndex)
+void MainWindow::removeStudent(int displayIndex, const QString& studentName)
 {
     tableModel->removeStudent(displayIndex);
     groupBoardPage->reload();
     updateFilePreview();
+    showNotification(ExInfoBar::Informational, tr("删除学生"), tr("已删除学生「%1」").arg(studentName));
 }
 
 void MainWindow::editStudentGroup(const QModelIndex& index)
@@ -605,7 +616,7 @@ bool MainWindow::saveScoreRecord()
     const QString recordName = studentTablePage->sidebar()->recordNameText();
     if(!manager->verifyRecordName(recordName))
     {
-        QMessageBox::warning(this, tr("警告"), tr("描述不能为空或与之前重复"));
+        showNotification(ExInfoBar::Warning, tr("警告"), tr("描述不能为空或与之前重复"));
         return false;
     }
     manager->setRecordDraftDescription(recordName);
@@ -613,6 +624,7 @@ bool MainWindow::saveScoreRecord()
     studentTablePage->sidebar()->setRecordNameText(QString());
     updateRecordEditingActions();
     updateRecordPreviewPanel();
+    showNotification(ExInfoBar::Success, tr("保存成功"), tr("积分记录已保存"));
     return true;
 }
 
@@ -646,7 +658,7 @@ void MainWindow::exportScoreSum(const QVector<int>& recordIndices)
     QFile file(fileName);
     if(!file.open(QIODevice::WriteOnly))
     {
-        QMessageBox::warning(this, tr("警告"), tr("无法写入文件"));
+        showNotification(ExInfoBar::Error, tr("错误"), tr("无法写入文件"));
         return;
     }
     SortSettings curMode = dialog.getCurrentConfig();
@@ -657,7 +669,7 @@ void MainWindow::exportScoreSum(const QVector<int>& recordIndices)
     file.close();
     if(file.error() != QFile::NoError || stream.status() != QTextStream::Ok)
     {
-        QMessageBox::warning(this, tr("警告"), tr("无法写入文件，请检查磁盘空间与路径"));
+        showNotification(ExInfoBar::Error, tr("错误"), tr("无法写入文件，请检查磁盘空间与路径"));
         return;
     }
     manager->setPreviousSettings(curMode);
@@ -754,6 +766,7 @@ void MainWindow::deleteSelectedRecords()
 
     tableModel->setRecordPreviewIndex(recordPreviewIndex);
     updateRecordPreviewPanel();
+    showNotification(ExInfoBar::Informational, tr("删除积分记录"), tr("已删除%1条积分记录").arg(indices.size()));
 }
 
 void MainWindow::clearRecordsWithConfirm()
@@ -764,11 +777,12 @@ void MainWindow::clearRecordsWithConfirm()
 
 void MainWindow::clearRecords()
 {
-
+    const int recordCount = manager->getRecords().size();
     manager->clearRecords();
     recordPreviewIndex = -1;
     tableModel->setRecordPreviewIndex(-1);
     updateRecordPreviewPanel();
+    showNotification(ExInfoBar::Informational, tr("清空积分记录"), tr("已清空%1条积分记录").arg(recordCount));
 }
 
 /*积分模板操作*/
@@ -844,7 +858,7 @@ void MainWindow::updateTemplateName(const QString& newDescription)
     }
     if(!manager->verifyTemplateName(newDescription))
     {
-        QMessageBox::warning(this, tr("警告"), tr("描述不能为空或与之前重复"));
+        showNotification(ExInfoBar::Warning, tr("警告"), tr("描述不能为空或与之前重复"));
         studentTablePage->sidebar()->setTemplateNameDraft(currentName);
         return;
     }
@@ -900,6 +914,7 @@ void MainWindow::deleteSelectedTemplates()
 
     tableModel->setTemplatePreviewIndex(templatePreviewIndex);
     updateTemplatePreviewPanel();
+    showNotification(ExInfoBar::Informational, tr("删除积分模板"), tr("已删除%1个积分模板").arg(indices.size()));
 }
 
 void MainWindow::clearTemplatesWithConfirm()
@@ -910,10 +925,12 @@ void MainWindow::clearTemplatesWithConfirm()
 
 void MainWindow::clearTemplates()
 {
+    const int templateCount = manager->getTemplates().size();
     manager->clearTemplates();
     templatePreviewIndex = -1;
     tableModel->setTemplatePreviewIndex(-1);
     updateTemplatePreviewPanel();
+    showNotification(ExInfoBar::Informational, tr("清空积分模板"), tr("已清空%1个积分模板").arg(templateCount));
 }
 
 /*通用确认：返回是否可以继续后续操作*/
@@ -952,4 +969,10 @@ bool MainWindow::confirmDestructiveOperation(const QString& action, const QStrin
     dialog.setCloseButtonText(tr("取消"));
     dialog.setDefaultButton(ExContentDialog::CloseBtn);
     return dialog.showDialog() == ExContentDialog::Primary;
+}
+
+/*提示通知*/
+void MainWindow::showNotification(ExInfoBar::Severity severity, const QString& title, const QString& message)
+{
+    ExInfoBarHost::defaultHost()->showInfoBar(severity, title, message, ExInfoBarHost::BottomRight, 3000);
 }

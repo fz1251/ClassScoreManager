@@ -16,7 +16,6 @@
 - 重建脚本：`D:\Projects\Qt5.15.19\build_qt.ps1`（qtbase）、`D:\Projects\Qt5.15.19\build_qtsvg.ps1`（qtsvg）。
   - 必须在 x64 VS2022 环境中运行；脚本会先验证 cl 为 x64，并清空旧构建再 configure/build/install。
   - 该 Qt 曾整库被误建成 i386（`qsizetype` 4 字节）导致 `.cls` 文件兼容问题；凡涉及 Qt 重建或新装，必须确认编译器和产物都是 x64，不能只依赖目录名。
-- 旧 Qt 5.15.2 暂保留，等新套件稳定后再清理。
 
 ## 3. CMake 构建
 
@@ -88,6 +87,7 @@
 - 侧栏"表格选项"块提供三个开关：拖动排序学生、学生姓名编辑、小组信息编辑，分别控制表格的拖拽排序、姓名就地编辑与小组号双击编辑。
 - 学生添加与批量导入合并为同一个多行输入入口。
 - 确认框与列表选择框统一使用 ExWidgets 的 `ExContentDialog`；配置型对话框（如 `SumExportDialog`）用 `QDialog` + `OkCancelBox`。
+- 提示信息统一使用 ExWidgets 的 `ExInfoBar` 窗口级通知条，宿主为 `ExInfoBarHost`；文件读写等操作失败、输入校验不通过、操作完成与状态说明分别用不同严重级别。
 
 ## 7. 第三方库
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "excontentdialog.h"
+#include "exinfobar.h"
 
 #include <QCloseEvent>
 #include <QMainWindow>
@@ -66,7 +67,7 @@ private:
     void addStudentsDialog();
     void deleteStudentDialog();
     void importStudents(const QStringList& newNames);
-    void removeStudent(int displayIndex);
+    void removeStudent(int displayIndex, const QString& studentName);
     void editStudentGroup(const QModelIndex& index);
     void selectStudentFromSearch(int resultRow);
 
@@ -109,6 +110,9 @@ private:
     /*通用确认*/
     bool confirmUnsavedChanges();
     bool confirmDestructiveOperation(const QString& action, const QString& description);
+
+    /*提示通知*/
+    void showNotification(ExInfoBar::Severity severity, const QString& title, const QString& message);
 
     // 界面元素指针：构造函数中统一创建，供其他成员函数访问
     QStackedWidget* stackedWidget = nullptr;

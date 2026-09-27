@@ -1,6 +1,8 @@
 #include "ScoreExprDelegate.h"
 
-#include <QMessageBox>
+#include "exinfobar.h"
+#include "exinfobarhost.h"
+
 #include <QRegularExpression>
 #include <QRegularExpressionValidator>
 
@@ -66,7 +68,8 @@ void ScoreExprDelegate::setModelData(QWidget* editor, QAbstractItemModel* model,
     if(!res.isSuccess)
     {
         //表达式合法但结果超出 int 范围，保留原值并提示
-        QMessageBox::warning(editor->window(), tr("警告"), tr("积分超出可表示的范围，本次输入未生效"));
+        ExInfoBarHost::defaultHost()->showInfoBar(ExInfoBar::Warning, tr("警告"), tr("积分超出可表示的范围，本次输入未生效"),
+                                                  ExInfoBarHost::TopRight);
         return;
     }
     model->setData(index, res.value);

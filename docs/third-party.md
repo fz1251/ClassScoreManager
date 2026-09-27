@@ -22,7 +22,7 @@
   - `fluentui3style/`：`FluentUI3Style` 全局 QStyle，随程序直接实例化使用。
   - `ExWidgets/`：`ExWidgets::ExWidgets` 扩展控件库。
   - `frameless/`：独立静态库 `Frameless`，提供无边框窗口组件（`FluentTitleBar` / `FluentWindowFrame`）。
-  - `ExWidgets/dialogs/`：`ExContentDialog`（WinUI3 风格模态对话框）、`ExMessageBox` 等对话框组件。
+  - `ExWidgets/dialogs/`：`ExContentDialog`（WinUI3 风格模态对话框）、`ExInfoBar` / `ExInfoBarHost`（窗口级非阻塞通知条）、`ExMessageBox` 等对话框组件。
   - `3rd/`：携带的 QWindowKit 与 kissfft 依赖。
 
 ### 构建方式
@@ -60,6 +60,7 @@ FluentUIStyle 的 CMake 需要 `Qt5Svg`（或 Qt6 的 Svg 组件）。当前自�
   ```
 - `AboutInfoDialog` 当前使用自己的手写 DWM 无边框标题栏实现；`Frameless::Frameless` 已构建并链接，但该对话框尚未改用它。
 - 对话框统一走 `ExContentDialog`：确认框用 `setContent` + 主副按钮，列表选择框用 `setContentWidget` 承载下拉框。头文件写作 `#include "excontentdialog.h"`。
+- 提示信息统一走 `ExInfoBar`：`MainWindow` 构造函数用 `ExInfoBarHost::setDefaultTarget(centralWidget)` 设定通知宿主，各处通过 `MainWindow::showNotification()` 弹出窗口级通知条；严重级别按「文件读写等操作失败 → `Error`、输入校验不通过 → `Warning`、操作完成 → `Success`、状态说明 → `Informational`」选取。头文件写作 `#include "exinfobarhost.h"`。
 
 ### 构建产物位置
 

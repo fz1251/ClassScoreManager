@@ -43,7 +43,7 @@
 
 1. 如认为某个目录为空，**必须**再用 `dir` 命令验证一次。
 2. 如需调用 PowerShell 命令（如 `Select-String`、`Get-Content` 等），必须显式使用 PowerShell 7，即 `pwsh -NoProfile -ExecutionPolicy Bypass -Command "[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; ..."` 调用并指定 UTF-8 编码；不要再使用 PowerShell 5.1（`powershell.exe`）。
-3. 如需临时写代码验证 Qt 行为，把验证程序放进 `C:\Users\dell\Desktop\C++\projects\widget_demo`，由用户选择 Qt 5.15.19（项目当前套件）、5.15.2 或 6.8.3 编译；助手没有视觉能力，交付验证程序时必须明确写出需要用户观察什么现象。
+3. 如需临时写代码验证 Qt 行为，向用户索取测试环境；助手没有视觉能力，交付验证程序时必须明确写出需要用户观察什么现象。
 4. 不要做无意义的静态验证（括号配对、残留字符串搜索、`git diff --check` 等）；编译和用户测试足以发现全部问题，把算力和上下文留给实际修改。
 5. 用 Python 处理 Windows 路径时，普通字符串里的 `\` 会被当成转义符并吃掉字符；必须使用 raw string（`r'C:\path'`）、正斜杠或双反斜杠。
 6. 不要为了找某个工具或文件做全盘大范围搜索（尤其是磁盘根目录），会造成严重卡顿；需要工具路径时直接问用户。项目目录内部的搜索不受此限。

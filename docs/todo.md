@@ -13,6 +13,3 @@
 
 5. 打开文件时校验 displayOrder 是否为 1..n 的排列。
    `ClassDataManager::getStudentList` 用 `std::map<displayOrder, name>` 排序，重复的 displayOrder 会让对应学生在“删除学生”选择框里静默消失。
-
-6. 提示统一迁移到 Toast 通知。
-   当前警告与确认分散使用 `QMessageBox` 与 `ExContentDialog`，后续统一为 Toast 风格提示。
