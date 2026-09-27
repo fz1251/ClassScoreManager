@@ -7,7 +7,7 @@
 - 项目：ClassScoreManager，班级积分管理系统，面向班级日常积分管理。
 - 技术栈：C++17 + Qt Widgets（纯 Widgets，禁用 QML）。
 - 构建：CMake + Ninja，开发环境为 VS Code（CMake Tools + clangd）。
-- 代码只按当前 Qt 5.15.19 编译，不保留 Qt6 条件编译分支。
+- 代码使用 Qt 5.15.19 编译。
 
 ## 2. Qt 套件
 
@@ -15,7 +15,6 @@
 - 安装前缀：`D:/Projects/Qt5.15.19/msvc2022_64`。
 - 重建脚本：`D:\Projects\Qt5.15.19\build_qt.ps1`（qtbase）、`D:\Projects\Qt5.15.19\build_qtsvg.ps1`（qtsvg）。
   - 必须在 x64 VS2022 环境中运行；脚本会先验证 cl 为 x64，并清空旧构建再 configure/build/install。
-  - 该 Qt 曾整库被误建成 i386（`qsizetype` 4 字节）导致 `.cls` 文件兼容问题；凡涉及 Qt 重建或新装，必须确认编译器和产物都是 x64，不能只依赖目录名。
 
 ## 3. CMake 构建
 
