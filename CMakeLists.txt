@@ -61,6 +61,7 @@ set(APP_SOURCES
     src/pages/StudentTableSidebar.cpp
     src/pages/WelcomePage.cpp
     src/windows/AboutInfoDialog.cpp
+    src/widgets/CardStyle.cpp
     src/widgets/FlowLayout.cpp
     src/widgets/GroupCard.cpp
     src/windows/GroupNumberDialog.cpp

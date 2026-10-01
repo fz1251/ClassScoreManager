@@ -9,7 +9,7 @@
 #include <QVBoxLayout>
 #include <limits>
 
-GroupNumberDialog::GroupNumberDialog(const QString& studentName, int currentGroup, QWidget* parent)
+GroupNumberDialog::GroupNumberDialog(const QString& studentName, qint32 currentGroup, QWidget* parent)
     : QDialog(parent)
 {
     setWindowTitle(tr("设置小组"));
@@ -45,7 +45,7 @@ GroupNumberDialog::GroupNumberDialog(const QString& studentName, int currentGrou
     groupSpinBox->selectAll();
 }
 
-int GroupNumberDialog::getGroupNumber() const
+qint32 GroupNumberDialog::getGroupNumber() const
 {
     return groupSpinBox->value();
 }

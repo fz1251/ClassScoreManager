@@ -9,7 +9,7 @@
 struct ScoreParseResult
 {
     bool isSuccess = true; // 解析状态
-    int value = 0;         // 计算结果
+    qint32 value = 0;      // 计算结果
 };
 
 ScoreParseResult parseScoreExpression(const QString& expr);

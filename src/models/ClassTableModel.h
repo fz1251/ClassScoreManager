@@ -93,7 +93,7 @@ private:
     void hideColumnWrapper(int column);
 
     // 获取HTML表格中积分颜色
-    static QBrush getScoreColor(int scoreValue);
+    static QBrush getScoreColor(qint32 scoreValue);
 
     ClassDataManager* manager;
     bool columnIsVisible[MaxColumnCount] = {};

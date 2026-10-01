@@ -288,7 +288,7 @@ QVector<qint32>& ClassDataManager::getTempRecord()
 
 void ClassDataManager::importStudents(const QStringList& newNames)
 {
-    const int beginId = students.size() + 1;
+    const qint32 beginId = students.size() + 1;
     QVector<StudentInfo> newStudents;
     newStudents.reserve(newNames.size());
     for(int i = 0; i < newNames.size(); i++)
@@ -306,7 +306,7 @@ void ClassDataManager::importStudents(const QStringList& newNames)
 
 void ClassDataManager::removeStudent(int index)
 {
-    const int removedPlace = students.at(index).displayOrder;
+    const qint32 removedPlace = students.at(index).displayOrder;
     const qint32 removedGroup = students.at(index).groupNumber;
     const qint32 removedOrder = students.at(index).groupOrder;
     students.removeAt(index);

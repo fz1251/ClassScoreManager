@@ -46,7 +46,7 @@ QVariant ClassTableModel::data(const QModelIndex& index, int role) const
                     return students().at(rowToIndex[index.row()]).name;
                 case GroupNumber:
                 {
-                    const int groupNum = students().at(rowToIndex[index.row()]).groupNumber;
+                    const qint32 groupNum = students().at(rowToIndex[index.row()]).groupNumber;
                     if(groupNum == StudentInfo::NoGroup)
                         return QObject::tr("未分组");
                     else
@@ -412,7 +412,7 @@ void ClassTableModel::hideColumnWrapper(int column)
     emit hideColumnRequested(column);
 }
 
-QBrush ClassTableModel::getScoreColor(int scoreValue)
+QBrush ClassTableModel::getScoreColor(qint32 scoreValue)
 {
     if(scoreValue > 0)
         return QBrush(QColor(39, 174, 96));

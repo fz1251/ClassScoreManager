@@ -30,7 +30,7 @@ ScoreParseResult parseScoreExpression(const QString& expr)
             return res;
         }
     }
-    res.value = static_cast<int>(total);
+    res.value = static_cast<qint32>(total);
     return res;
 }
 

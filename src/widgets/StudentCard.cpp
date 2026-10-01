@@ -20,6 +20,8 @@ constexpr qreal kPressedScale = 0.97;
 constexpr qreal kEnterScale = 0.86;
 constexpr int kDragOpacity = 190;
 constexpr qreal kDragHoverProgress = 0.6;
+constexpr qreal kDragScale = 1.08;    //拖动缩略图的放大倍数，做出"拿起来"的感觉
+constexpr qreal kHoverLighten = 0.35; //悬停时向白色提亮的比例
 }
 
 StudentCard::StudentCard(int studentIndex, const QString& name, QWidget* parent)
@@ -134,8 +136,9 @@ void StudentCard::drawCapsule(QPainter& painter, qreal scale, qreal opacity, qre
     painter.scale(scale, scale);
     painter.translate(-capsule.center());
 
-    const QColor base = palette().button().color();
-    painter.setBrush(CardStyle::mix(base, base.lighter(112), hoverProgress));
+    //组内卡片带本组颜色，未分组卡片保持中性，底色由所属容器给出
+    const QColor base = m_host ? m_host->cardColor() : palette().button().color();
+    painter.setBrush(CardStyle::mix(base, QColor(255, 255, 255), kHoverLighten * hoverProgress));
     painter.setPen(QPen(CardStyle::mix(QColor(0, 0, 0, 40), QColor(0, 0, 0, 90), hoverProgress), 1.0));
     painter.drawRoundedRect(capsule.adjusted(0.5, 0.5, -0.5, -0.5), CardStyle::studentCardRadius, CardStyle::studentCardRadius);
 
@@ -149,11 +152,13 @@ void StudentCard::drawCapsule(QPainter& painter, qreal scale, qreal opacity, qre
 
 QPixmap StudentCard::renderCard() const
 {
-    QPixmap pixmap(size());
+    //缩略图比卡片略大，做出"拿起来"的感觉
+    QPixmap pixmap(qRound(width() * kDragScale), qRound(height() * kDragScale));
     pixmap.fill(Qt::transparent);
+
     QPainter painter(&pixmap);
     painter.setRenderHints(QPainter::Antialiasing | QPainter::TextAntialiasing);
-    drawCapsule(painter, 1.0, 1.0, kDragHoverProgress);
+    drawCapsule(painter, kDragScale, 1.0, kDragHoverProgress);
     painter.end();
 
     //整体压成半透明，作为跟随光标的拖动缩略图
@@ -227,10 +232,11 @@ void StudentCard::startDrag()
     drag->setPixmap(snapshot);
     drag->setHotSpot(QPoint(snapshot.width() / 2, snapshot.height() / 2));
 
-    //拿起卡片：只隐藏不退出布局，隐藏项不参与排位，同容器内其余卡片自动补位
-    //因此落点索引要按“不含隐藏项”的顺序换算（见 GroupCard::dropEvent）
-    hide();
+    //拿起卡片：先让容器用占位槽顶住原来的位置再隐藏，布局在拖动起步时不动。只隐藏不退出布局，
+    //隐藏项不参与排位，同容器内其余卡片自动补位，因此落点索引要按“不含隐藏项”的顺序换算
+    //（见 GroupCard::dropEvent）
     emit dragStarted();
+    hide();
     drag->exec(Qt::MoveAction);
     emit dragFinished();
     m_dragging = false;

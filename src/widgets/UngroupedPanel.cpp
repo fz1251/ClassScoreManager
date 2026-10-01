@@ -4,39 +4,34 @@
 #include "StudentCard.h"
 #include "exfonticon.h"
 
-#include <QApplication>
 #include <QDragEnterEvent>
 #include <QDragLeaveEvent>
 #include <QDragMoveEvent>
 #include <QDropEvent>
 #include <QFontMetrics>
+#include <QLabel>
 #include <QPainter>
 #include <QScrollArea>
-#include <QStyle>
-#include <QStyleOptionGroupBox>
 #include <QVBoxLayout>
 
 namespace
 {
-constexpr int kPanelMinWidth = 200; //刚好放得下最宽的胶囊、边距与滚动条
+constexpr int kPanelMinWidth = 120; //够放 3 个字的名字，再窄长名字就会被裁切
+constexpr int kEdgeMargin = 12;
+constexpr int kHeaderSpacing = 8;
 constexpr int kMaskDurationMs = 140;
-constexpr qreal kFrameInset = 1.5;            //与样式库绘制GroupBox边框时的内缩一致
-constexpr int kDefaultRoundingRadius = 4;     //样式库 secondLevelRoundingRadius 的默认值
-constexpr QColor kMaskColor(211, 47, 47);     //蒙版与虚线
+constexpr int kRailRadius = 12;               //与右侧小组卡片、学生胶囊同一套圆角
+constexpr QColor kRailSurface(238, 240, 242); //左栏栏面：比页面略深，比右栏明显更深
+constexpr QColor kRailBorder(0, 0, 0, 30);
+constexpr QColor kMaskColor(211, 47, 47);     //蒙版
 constexpr QColor kMaskTextColor(155, 28, 28); //深红图标与提示文字
 constexpr char16_t kDeleteGlyph = static_cast<char16_t>(SegoeIcon::Delete);
 constexpr int kMaskIconPixelSize = 48;
 constexpr int kMaskTextPointSize = 20;
 constexpr int kIconTextSpacing = 10;
+constexpr qreal kMaskTintAlpha = 0.16;
 
-//边框圆角半径取自样式库的全局属性，取不到就退回它的默认值
-qreal frameRoundingRadius()
-{
-    const QVariant radius = qApp->property("secondLevelRoundingRadius");
-    return radius.isValid() ? radius.toDouble() : kDefaultRoundingRadius;
-}
-
-//覆盖在面板之上的红色蒙版，提示拖到此处即取消分组
+//覆盖在列表区之上的红色蒙版，提示拖到此处即取消分组
 class DropMask : public QWidget
 {
 public:
@@ -61,23 +56,15 @@ protected:
         QPainter painter(this);
         painter.setRenderHints(QPainter::Antialiasing | QPainter::TextAntialiasing);
 
-        //蒙版与虚线都取GroupBox边框的矩形和圆角，正好盖在边框上
-        const QRectF frame = frameRect();
-        const qreal radius = frameRoundingRadius();
-
+        //铺满整块栏面，圆角与栏自身的边框对齐
+        const QRectF area = QRectF(rect()).adjusted(0.5, 0.5, -0.5, -0.5);
         QColor tint = kMaskColor;
-        tint.setAlphaF(0.30 * m_progress);
+        tint.setAlphaF(kMaskTintAlpha * m_progress);
         painter.setPen(Qt::NoPen);
         painter.setBrush(tint);
-        painter.drawRoundedRect(frame, radius, radius);
+        painter.drawRoundedRect(area, kRailRadius, kRailRadius);
 
-        QColor border = kMaskColor;
-        border.setAlphaF(0.85 * m_progress);
-        painter.setPen(QPen(border, 1.0, Qt::DashLine));
-        painter.setBrush(Qt::NoBrush);
-        painter.drawRoundedRect(frame, radius, radius);
-
-        //深红的垃圾桶图标与提示文字，整体在框内垂直居中
+        //深红的垃圾桶图标与提示文字，在栏面内垂直居中
         QColor contentColor = kMaskTextColor;
         contentColor.setAlphaF(m_progress);
 
@@ -90,59 +77,52 @@ protected:
         const QFontMetricsF textMetrics(textFont);
         const qreal iconHeight = iconMetrics.height();
         const qreal textHeight = textMetrics.height();
-        const qreal top = frame.top() + (frame.height() - iconHeight - kIconTextSpacing - textHeight) / 2.0;
+        const qreal top = area.top() + (area.height() - iconHeight - kIconTextSpacing - textHeight) / 2.0;
 
         painter.setPen(contentColor);
         painter.setFont(iconFont);
-        painter.drawText(QRectF(frame.left(), top, frame.width(), iconHeight), Qt::AlignCenter, QString(QChar(kDeleteGlyph)));
+        painter.drawText(QRectF(area.left(), top, area.width(), iconHeight), Qt::AlignCenter, QString(QChar(kDeleteGlyph)));
         painter.setFont(textFont);
-        painter.drawText(QRectF(frame.left(), top + iconHeight + kIconTextSpacing, frame.width(), textHeight), Qt::AlignCenter, m_text);
+        painter.drawText(QRectF(area.left(), top + iconHeight + kIconTextSpacing, area.width(), textHeight), Qt::AlignCenter, m_text);
     }
 
 private:
-    //按GroupBox当前样式算出边框矩形，与样式库绘制时用的是同一个子控件
-    QRectF frameRect() const
-    {
-        const auto* groupBox = qobject_cast<const QGroupBox*>(parentWidget());
-        if(!groupBox)
-            return QRectF(rect()).marginsRemoved(QMarginsF(kFrameInset, kFrameInset, kFrameInset, kFrameInset));
-
-        QStyleOptionGroupBox option;
-        option.initFrom(groupBox);
-        option.text = groupBox->title();
-        option.textAlignment = groupBox->alignment();
-        option.subControls = QStyle::SC_GroupBoxFrame;
-        option.lineWidth = groupBox->style()->pixelMetric(QStyle::PM_DefaultFrameWidth, nullptr, groupBox);
-        option.midLineWidth = 0;
-        const QRect frame = groupBox->style()->subControlRect(QStyle::CC_GroupBox, &option, QStyle::SC_GroupBoxFrame, groupBox);
-        return QRectF(frame).marginsRemoved(QMarginsF(kFrameInset, kFrameInset, kFrameInset, kFrameInset));
-    }
-
     QString m_text;
     qreal m_progress = 0.0;
 };
 }
 
 UngroupedPanel::UngroupedPanel(QWidget* parent)
-    : QGroupBox(parent)
+    : QWidget(parent)
 {
     setAcceptDrops(true);
     setMinimumWidth(kPanelMinWidth);
 
-    //内容区边距由QGroupBox按样式给出的标题高度自动计算，这里只控制间距
     auto* rootLayout = new QVBoxLayout(this);
-    rootLayout->setSpacing(8);
+    rootLayout->setContentsMargins(kEdgeMargin, kEdgeMargin, kEdgeMargin, kEdgeMargin);
+    rootLayout->setSpacing(kHeaderSpacing);
+
+    //表头：未分组人数
+    m_headerLabel = new QLabel(this);
+    QFont headerFont = m_headerLabel->font();
+    headerFont.setBold(true);
+    m_headerLabel->setFont(headerFont);
+    rootLayout->addWidget(m_headerLabel);
 
     m_scrollArea = new QScrollArea(this);
     m_scrollArea->setWidgetResizable(true);
     m_scrollArea->setFrameShape(QFrame::NoFrame);
     m_scrollArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-    m_scrollArea->viewport()->setAutoFillBackground(false);
 
     m_cardContainer = new QWidget;
     m_cardLayout = new FlowLayout(m_cardContainer, 0, 0, 2);
     m_cardLayout->setSingleColumn(true);
     m_scrollArea->setWidget(m_cardContainer);
+
+    //滚动区、视口与容器都不填底色，让栏面整体透上来（setWidget 会把容器设成自填背景）
+    m_scrollArea->setAutoFillBackground(false);
+    m_scrollArea->viewport()->setAutoFillBackground(false);
+    m_cardContainer->setAutoFillBackground(false);
     rootLayout->addWidget(m_scrollArea, 1);
 
     m_mask = new DropMask(tr("取消分组"), this);
@@ -162,6 +142,12 @@ UngroupedPanel::UngroupedPanel(QWidget* parent)
 FlowLayout* UngroupedPanel::cardLayout() const
 {
     return m_cardLayout;
+}
+
+QColor UngroupedPanel::cardColor() const
+{
+    //未分组学生保持中性色，与有色小组形成对照
+    return palette().base().color();
 }
 
 QScrollArea* UngroupedPanel::scrollArea() const
@@ -207,12 +193,21 @@ void UngroupedPanel::clearCards()
 
 void UngroupedPanel::refreshHeader()
 {
-    setTitle(tr("未分组学生 (%1)").arg(cardCount()));
+    m_headerLabel->setText(tr("未分组学生 (%1)").arg(cardCount()));
+}
+
+void UngroupedPanel::paintEvent(QPaintEvent*)
+{
+    QPainter painter(this);
+    painter.setRenderHints(QPainter::Antialiasing);
+    painter.setPen(QPen(kRailBorder, 1.0));
+    painter.setBrush(kRailSurface);
+    painter.drawRoundedRect(QRectF(rect()).adjusted(0.5, 0.5, -0.5, -0.5), kRailRadius, kRailRadius);
 }
 
 void UngroupedPanel::resizeEvent(QResizeEvent* event)
 {
-    QGroupBox::resizeEvent(event);
+    QWidget::resizeEvent(event);
     m_mask->setGeometry(rect());
     m_mask->raise();
 }

@@ -22,6 +22,7 @@ public:
     CardHost* host() const;
     void setHost(CardHost* host);
     void playEnterAnimation();
+    QSize sizeHint() const override;
 
     //解析拖动负载：输出学生索引与卡片尺寸，非本页卡片返回false
     static bool decodeDragPayload(const QMimeData* mimeData, int& studentIndex, QSize& cardSize);
@@ -37,7 +38,6 @@ protected:
     void mousePressEvent(QMouseEvent* event) override;
     void mouseMoveEvent(QMouseEvent* event) override;
     void mouseReleaseEvent(QMouseEvent* event) override;
-    QSize sizeHint() const override;
 
 private:
     void startDrag();

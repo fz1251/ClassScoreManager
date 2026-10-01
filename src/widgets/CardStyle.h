@@ -14,8 +14,13 @@ constexpr int hoverMargin = 4; //卡片四周的留白，供悬停放大与描�
 
 inline QColor mix(const QColor& from, const QColor& to, qreal progress)
 {
-    return QColor::fromRgbF(from.redF() + (to.redF() - from.redF()) * progress, from.greenF() + (to.greenF() - from.greenF()) * progress,
-                            from.blueF() + (to.blueF() - from.blueF()) * progress,
-                            from.alphaF() + (to.alphaF() - from.alphaF()) * progress);
+    const qreal red = from.redF() + (to.redF() - from.redF()) * progress;
+    const qreal green = from.greenF() + (to.greenF() - from.greenF()) * progress;
+    const qreal blue = from.blueF() + (to.blueF() - from.blueF()) * progress;
+    const qreal alpha = from.alphaF() + (to.alphaF() - from.alphaF()) * progress;
+    return QColor::fromRgbF(red, green, blue, alpha);
 }
+
+//按组号取组色：同一组号恒定同色，组号相邻的小组色相相距最远
+QColor groupColor(qint32 groupNumber);
 }

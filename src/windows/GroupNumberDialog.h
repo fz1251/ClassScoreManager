@@ -10,9 +10,9 @@ class GroupNumberDialog : public QDialog
     Q_OBJECT
 
 public:
-    GroupNumberDialog(const QString& studentName, int currentGroup, QWidget* parent = nullptr);
+    GroupNumberDialog(const QString& studentName, qint32 currentGroup, QWidget* parent = nullptr);
 
-    int getGroupNumber() const;
+    qint32 getGroupNumber() const;
 
 private:
     // 界面元素指针：构造函数中统一创建，供其他成员函数访问

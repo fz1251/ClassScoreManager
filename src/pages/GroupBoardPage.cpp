@@ -18,36 +18,20 @@
 
 namespace
 {
-constexpr int kUngroupedInitialWidth = 216; //左栏初始宽度，最小宽度由 UngroupedPanel 自己约束
+constexpr int kUngroupedInitialWidth = 140; //左栏初始宽度，最小宽度由 UngroupedPanel 自己约束
 constexpr int kGroupAreaMinWidth = 220;     //右栏至少放得下一个小组容器和一张卡片
-constexpr int kAutoScrollIntervalMs = 40;
-constexpr int kAutoScrollEdge = 48;
-constexpr int kAutoScrollStep = 18;
-
-//光标贴近滚动区上下边缘时自动滚动，便于拖到还没露出来的小组
-void scrollNearEdge(QScrollArea* scrollArea)
-{
-    QScrollBar* bar = scrollArea->verticalScrollBar();
-    if(bar->maximum() <= bar->minimum())
-        return;
-    const QRect viewport = scrollArea->viewport()->rect();
-    const QPoint pos = scrollArea->viewport()->mapFromGlobal(QCursor::pos());
-    if(!viewport.contains(pos))
-        return;
-    if(pos.y() < viewport.top() + kAutoScrollEdge)
-        bar->setValue(bar->value() - kAutoScrollStep);
-    else if(pos.y() > viewport.bottom() - kAutoScrollEdge)
-        bar->setValue(bar->value() + kAutoScrollStep);
-}
+constexpr int kAutoScrollIntervalMs = 16;   //约 60Hz，看不出台阶
+constexpr int kAutoScrollEdge = 60;         //光标进入边缘这么多像素内开始自动滚动
+constexpr qreal kAutoScrollMaxSpeed = 800;  //贴到边框时的滚动速度（px/s）
 }
 
 GroupBoardPage::GroupBoardPage(ClassDataManager* manager, QWidget* parent)
     : QWidget(parent)
     , m_manager(manager)
 {
-    //左边给导航栏留出间距；右栏内容的留白在 FlowLayout 边距里，这里不再重复
+    //左边给导航栏留出间距；四周留白让左栏成为一张与其他卡片同套圆角的栏
     auto* rootLayout = new QHBoxLayout(this);
-    rootLayout->setContentsMargins(12, 0, 0, 12);
+    rootLayout->setContentsMargins(12, 12, 0, 12);
     rootLayout->setSpacing(0);
 
     m_ungroupedPanel = new UngroupedPanel(this);
@@ -123,13 +107,18 @@ StudentCard* GroupBoardPage::createCard(int studentIndex)
     auto* card = new StudentCard(studentIndex, m_manager->getStudents().at(studentIndex).name, this);
     connect(card, &StudentCard::groupNumberEditRequested, this, &GroupBoardPage::handleGroupNumberEdit);
     connect(card, &StudentCard::dragStarted, this,
-            [this]()
+            [this, card]()
             {
+                //拿起卡片：源小组先用占位槽顶住它的位置，避免起步时布局先收拢再展开
+                if(auto* group = dynamic_cast<GroupCard*>(card->host()))
+                    group->beginDrag(card);
                 m_autoScrollTimer->start();
             });
     connect(card, &StudentCard::dragFinished, this,
-            [this]()
+            [this, card]()
             {
+                if(auto* group = dynamic_cast<GroupCard*>(card->host()))
+                    group->endDrag();
                 m_autoScrollTimer->stop();
             });
     return card;
@@ -228,7 +217,7 @@ void GroupBoardPage::handleGroupNumberEdit(int studentIndex)
     GroupNumberDialog dialog(name, currentGroup == StudentInfo::NoGroup ? 0 : currentGroup, this);
     if(dialog.exec() != QDialog::Accepted)
         return;
-    const int groupNumber = dialog.getGroupNumber();
+    const qint32 groupNumber = dialog.getGroupNumber();
     if(groupNumber == currentGroup)
         return;
 
@@ -240,6 +229,39 @@ void GroupBoardPage::handleGroupNumberEdit(int studentIndex)
 
     if(sourceGroup)
         removeGroupCardIfEmpty(sourceGroup);
+}
+
+//光标贴近滚动区上下边缘时自动滚动：越靠边越快，便于拖到还没露出来的小组
+void GroupBoardPage::scrollNearEdge(QScrollArea* scrollArea)
+{
+    QScrollBar* bar = scrollArea->verticalScrollBar();
+    if(bar->maximum() <= bar->minimum())
+        return;
+    const QRect viewport = scrollArea->viewport()->rect();
+    const QPoint pos = scrollArea->viewport()->mapFromGlobal(QCursor::pos());
+    if(!viewport.contains(pos))
+        return;
+
+    //光标深入边缘区的比例：刚进边缘区是 0，贴到边框是 1
+    const bool atTop = pos.y() < viewport.top() + kAutoScrollEdge;
+    qreal intensity = 0.0;
+    if(atTop)
+        intensity = qreal(viewport.top() + kAutoScrollEdge - pos.y()) / kAutoScrollEdge;
+    else if(pos.y() > viewport.bottom() - kAutoScrollEdge)
+        intensity = qreal(pos.y() - viewport.bottom() + kAutoScrollEdge) / kAutoScrollEdge;
+    if(intensity <= 0.0)
+    {
+        m_autoScrollRemainder = 0.0;
+        return;
+    }
+
+    //速度按深入程度二次增长：边缘区里慢、贴边快，进出都连续，不需要额外的缓动
+    //不足 1px 的零头累加到下一拍，否则低速段永远滚不动
+    const qreal delta = kAutoScrollMaxSpeed * intensity * intensity * kAutoScrollIntervalMs / 1000.0 + m_autoScrollRemainder;
+    const int whole = int(delta);
+    m_autoScrollRemainder = delta - whole;
+    if(whole > 0)
+        bar->setValue(bar->value() + (atTop ? -whole : whole));
 }
 
 void GroupBoardPage::updateAutoScroll()

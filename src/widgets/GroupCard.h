@@ -2,6 +2,7 @@
 
 #include "CardHost.h"
 
+#include <QColor>
 #include <QVariantAnimation>
 #include <QWidget>
 
@@ -24,9 +25,14 @@ public:
     int cardCount() const;
 
     FlowLayout* cardLayout() const override;
+    QColor cardColor() const override;
     void insertCard(StudentCard* card, int index) override;
     void removeCard(StudentCard* card) override;
     void refreshHeader() override;
+
+    //拖动开始与结束：占位槽先在卡片原地顶住位置，落下或取消后再撤除
+    void beginDrag(StudentCard* card);
+    void endDrag();
 
 signals:
     void studentDropped(int studentIndex, int insertIndex);
@@ -45,6 +51,7 @@ private:
     void startHighlightAnimation(bool highlighted);
 
     qint32 m_groupNumber;
+    QColor m_groupColor; //小组固有颜色，构造时算一次
     QLabel* m_titleLabel = nullptr;
     QLabel* m_countLabel = nullptr;
     FlowLayout* m_cardLayout = nullptr;

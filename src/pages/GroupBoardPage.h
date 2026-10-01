@@ -31,6 +31,7 @@ private:
     void handleGroupNumberEdit(int studentIndex);
     void handleGroupDrop(int studentIndex, GroupCard* target, int insertIndex);
     void handleUngroupDrop(int studentIndex);
+    void scrollNearEdge(QScrollArea* scrollArea);
     void updateAutoScroll();
 
     ClassDataManager* m_manager = nullptr;
@@ -41,4 +42,5 @@ private:
     QHash<qint32, GroupCard*> m_groupCards;
     QHash<int, StudentCard*> m_cards;
     QTimer* m_autoScrollTimer = nullptr;
+    qreal m_autoScrollRemainder = 0.0; //不足 1px 的滚动零头，累加到下一拍
 };

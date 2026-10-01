@@ -12,17 +12,19 @@ using namespace ScoreSumReport;
 struct StudentSumData
 {
     QString name;
-    int number, groupOrder, score, rank;
+    qint32 number, groupOrder, score;
+    int rank;
 };
 
 struct GroupSumData
 {
     std::vector<StudentSumData> members;
-    int number, score, rank;
+    qint32 number, score;
+    int rank;
 };
 
 // 次序依据：个人模式用学号；小组模式用组内编号，未分组学生没有组内编号，退回学号
-int orderKey(const StudentSumData& student, bool byGroupOrder)
+qint32 orderKey(const StudentSumData& student, bool byGroupOrder)
 {
     if(byGroupOrder && student.groupOrder >= 0)
         return student.groupOrder;
@@ -118,7 +120,7 @@ QString generateHtmlString(QVector<SummaryData> dataList, SortSettings mode)
 {
     if(mode.useGroupModeFlag)
     {
-        std::unordered_map<int, GroupSumData> groupMap;
+        std::unordered_map<qint32, GroupSumData> groupMap;
         for(const auto& i : dataList)
         {
             GroupSumData& curData = groupMap[i.groupNo];
@@ -262,7 +264,7 @@ const QString HTMLStudentNumber = QStringLiteral(R"(
 )");
 QString generate(std::vector<StudentSumData> dataList, bool showStudentNumber)
 {
-    auto getSumTextClass = [](int num) -> QString
+    auto getSumTextClass = [](qint32 num) -> QString
     {
         if(num > 0)
             return "positive-number";
@@ -477,7 +479,7 @@ const QString HTMLStudentNumber = QStringLiteral(R"(
 )");
 QString generate(std::vector<GroupSumData> dataList, bool showStudentNumber)
 {
-    auto getGroupName = [](int num) -> QString
+    auto getGroupName = [](qint32 num) -> QString
     {
         if(num == StudentInfo::NoGroup)
             return QObject::tr("未分组");
@@ -485,7 +487,7 @@ QString generate(std::vector<GroupSumData> dataList, bool showStudentNumber)
             return QObject::tr("%1组").arg(num);
     };
 
-    auto getSumTextClass = [](int num) -> QString
+    auto getSumTextClass = [](qint32 num) -> QString
     {
         if(num > 0)
             return "positive-number";

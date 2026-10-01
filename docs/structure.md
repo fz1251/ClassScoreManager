@@ -26,7 +26,7 @@ src/
 ├── pages/                      # 堆叠窗口页面（只建 UI、发信号，不含业务）
 │   ├── WelcomePage.h/.cpp      # 欢迎页：打开/新建两个入口卡片，使用 resources/icons 矢量图标
 │   ├── StudentTablePage.h/.cpp # 班级表格页：左表格 + 右侧 StudentTableSidebar
-│   ├── GroupBoardPage.h/.cpp   # 小组管理页：左未分组面板 + 右小组容器，拖放完成分组与组内排序
+│   ├── GroupBoardPage.h/.cpp   # 小组管理页：左未分组面板 + 右小组容器，拖放完成分组与组内排序，拖动时贴边自动滚动
 │   ├── StudentTableSidebar.h/.cpp # 侧栏：5 个 ExExpander；学生块内提供姓名搜索与结果跳转，记录/模板块支持查看与上下项导航
 │   ├── RecordListPage.h/.cpp   # 记录列表页：顶部工具行 + 多选列表
 │   └── TemplateListPage.h/.cpp # 模板列表页：顶部工具行 + 多选列表
@@ -34,15 +34,15 @@ src/
 │   ├── ScoreExprDelegate.h/.cpp# 积分表达式委托
 │   └── TemplateSpinBoxDelegate.h/.cpp # 模板分值 SpinBox 委托
 ├── widgets/                    # 自绘/复用控件
-│   ├── CardHost.h              # 卡片容器统一接口：插入/移除卡片、刷新标题
-│   ├── CardStyle.h             # 小组管理页卡片的尺寸与配色工具
-│   ├── FlowLayout.h/.cpp       # 流式布局：换行、隐藏项补位、重排位移动画、单列模式
-│   ├── GroupCard.h/.cpp        # 小组容器：标题、落点高亮、插入占位槽
+│   ├── CardHost.h              # 卡片容器统一接口：插入/移除卡片、刷新标题、提供卡片底色
+│   ├── CardStyle.h/.cpp        # 小组卡片的尺寸与配色：按组号在 OKLCH 上取点生成组色
+│   ├── FlowLayout.h/.cpp       # 流式布局：换行、隐藏项补位、重排弹簧动画、单列模式
+│   ├── GroupCard.h/.cpp        # 小组容器：标题、落点判定与高亮、插入占位槽
 │   ├── HomeActionCard.h/.cpp   # 欢迎页操作卡片
 │   ├── LineSpacedLabel.h/.cpp  # 可调节行距标签
 │   ├── OkCancelBox.h/.cpp      # 对话框底部的确定/取消按钮组
 │   ├── ShineLabel.h/.cpp       # 发光标题标签
-│   ├── StudentCard.h/.cpp      # 学生胶囊卡片：悬停动效、拖动、单击改组号
+│   ├── StudentCard.h/.cpp      # 学生胶囊卡片：悬停动效、拖动（略放大的缩略图）、单击改组号
 │   └── UngroupedPanel.h/.cpp   # 未分组面板：单列卡片与取消分组蒙版
 └── windows/                    # 主窗口与对话框（全部纯代码）
     ├── MainWindow.h/.cpp       # 窗口层协调器：文件/关于菜单，页面、侧栏与模型的信号连接

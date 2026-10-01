@@ -27,6 +27,7 @@
 - 两个预设继承隐藏预设 `msvc2022-x64-base`：
   - 固定 `CMAKE_C_COMPILER` / `CMAKE_CXX_COMPILER` 为 `cl`。
   - 在 PATH/INCLUDE/LIB 中内置 VS2022 x64 工具链与 Windows SDK 路径。
+  - 设置 `VSLANG=1033`，让 MSVC 工具链输出英文消息（配合 VS 英文语言包，是头文件依赖能被 ninja 记录的前提，见下方排查提示）。
   - 普通终端和 VS Code 构建都无需先进入 VS 开发环境，也不能让 CMake 自行选中 Strawberry Perl 的 GCC。
 - VS 或 Windows SDK 版本升级后，需同步更新 `msvc2022-x64-base` 与根目录 `.clangd` 里写死的 MSVC / Windows Kits 版本路径。
 - 产物统一输出到对应构建目录的 `bin/`（exe 与所有 DLL）和 `lib/`。
@@ -43,6 +44,12 @@
   - 界面通过其中的 `APP_BUILD_DATE` 宏显示构建日期。
 - 排查提示：
   - 若构建错误显示编译器是 `C:/dev/runtimes/StrawberryPerl/c/bin/c++.exe` / `gcc.exe`，说明该 build 目录的 CMakeCache 被错误环境污染；删除对应 build 目录后用预设重新配置。
+  - 头文件依赖走 MSVC 的 `/showIncludes`：规则里的 `deps = msvc` 让 ninja 按 `msvc_deps_prefix` 逐行匹配编译输出。MSVC 的提示语是本地化的，而 ninja 只做字节比较——中文前缀（`注意: 包含文件:`）经过"cl 输出 → CMake 解码 → 以 UTF-8 写进 rules.ninja"这一圈后字节必然对不上，于是一条依赖也不记录（`ninja -t deps <obj>` 显示 `#deps 0`）。
+    - 后果链条：改头文件 → 只有同时改过的 .cpp 重编，其余 .obj 仍是旧头文件编出来的 → 类大小或虚表顺序不一致 → `new` 出来的对象被越界写入、或虚调用落到错误的槽 → 崩在构造或使用这些控件的那一刻。小组管理页在主窗口构造时就建，所以典型表现是"启动秒崩"。
+    - 现状：预设设了 `VSLANG=1033`，配合 VS 英文语言包（`bin/Hostx64/x64/1033/clui.dll`），cl 输出 ASCII 前缀 `Note: including file: `，依赖正常记录。
+    - 自查：`ninja -C build/<预设> -t deps CMakeFiles/ClassScoreManager.dir/src/widgets/FlowLayout.cpp.obj`。正常时能看到几十条头文件；出现 `#deps 0` 说明英文资源没生效（语言包被卸载，或工具链换版本后没带 1033 资源）。
+    - 处理：装回 VS 英文语言包；急用时删掉 `CMakeFiles/ClassScoreManager.dir` 与 `ClassScoreManager_autogen` 后重新构建（只重编主程序，第三方库不动），或删除整个 build 目录后重新配置。
+    - 判断线索：崩溃**时有时无**（同样操作有时能进主界面、过一会儿才崩）是堆损坏的典型征兆——越界写当下不报错，等被踩的内存被用到才炸。遇到这种就按上面两条查依赖记录与陈旧对象。
 
 ## 4. CMakeLists.txt 关键点
 
@@ -76,7 +83,7 @@
   - `src/pages/GroupBoardPage`
   - `src/pages/RecordListPage`
   - `src/pages/TemplateListPage`
-- `GroupBoardPage` 为小组管理页：左栏是未分组学生面板（`QGroupBox` 呈现标题与边框，内含单列卡片滚动区），右侧按组号升序排列小组容器；学生卡片可拖到小组容器并按插入位置落位，拖到左栏则取消分组，拖动期间目标容器高亮并显示虚线插入位，其余卡片带动画让位。
+- `GroupBoardPage` 为小组管理页：左栏是未分组学生面板（自绘圆角栏面与栏内表头，内含单列卡片滚动区），右侧按组号升序排列小组容器；学生卡片可拖到小组容器并按插入位置落位，拖到左栏则取消分组，拖动期间目标容器高亮并按插入位置显示组色占位槽，其余卡片用弹簧动画让位。小组配色只由组号决定且恒定：色相沿黄金角递进，明度固定并按 sRGB 色域压低彩度，组容器用组色淡雾底与深色描边，组内学生卡片直接用组色本体，未分组学生保持中性灰。落点判定、重排弹簧与拖动周边手感见 [group-board.md](group-board.md)。
 - 小组只由成员决定：组里有学生才存在该小组，成员归零时容器自动移除；新小组通过把学生分到某个组号自然产生，没有独立的新建小组操作。
 - 小组号列的表格单元格只读，双击打开 `GroupNumberDialog` 修改；取消分组只能通过小组管理页拖到左栏完成。
 - 表格单元格的编辑触发为双击与 F2/回车，选中单元格后直接输入不会进入编辑。
