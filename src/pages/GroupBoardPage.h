@@ -5,12 +5,12 @@
 
 class CardHost;
 class ClassDataManager;
+class DragAutoScroller;
 class FlowLayout;
 class GroupCard;
 class StudentCard;
 class UngroupedPanel;
 class QScrollArea;
-class QTimer;
 
 //小组管理页：左侧未分组学生，右侧按组号排列的小组容器，拖放即完成分组
 class GroupBoardPage : public QWidget
@@ -31,8 +31,6 @@ private:
     void handleGroupNumberEdit(int studentIndex);
     void handleGroupDrop(int studentIndex, GroupCard* target, int insertIndex);
     void handleUngroupDrop(int studentIndex);
-    void scrollNearEdge(QScrollArea* scrollArea);
-    void updateAutoScroll();
 
     ClassDataManager* m_manager = nullptr;
     UngroupedPanel* m_ungroupedPanel = nullptr;
@@ -41,6 +39,6 @@ private:
     FlowLayout* m_groupLayout = nullptr;
     QHash<qint32, GroupCard*> m_groupCards;
     QHash<int, StudentCard*> m_cards;
-    QTimer* m_autoScrollTimer = nullptr;
-    qreal m_autoScrollRemainder = 0.0; //不足 1px 的滚动零头，累加到下一拍
+    DragAutoScroller* m_groupAutoScroller = nullptr;
+    DragAutoScroller* m_ungroupedAutoScroller = nullptr;
 };

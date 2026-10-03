@@ -25,7 +25,7 @@ src/
 │   └── TemplateListModel.h/.cpp # 积分模板列表模型：templatesChanged 后重置
 ├── pages/                      # 堆叠窗口页面（只建 UI、发信号，不含业务）
 │   ├── WelcomePage.h/.cpp      # 欢迎页：打开/新建两个入口卡片，使用 resources/icons 矢量图标
-│   ├── StudentTablePage.h/.cpp # 班级表格页：左表格 + 右侧 StudentTableSidebar
+│   ├── StudentTablePage.h/.cpp # 班级表格页：左表格 + 右侧 StudentTableSidebar；拖动排序时贴边自动滚动，右侧滚动条不显示
 │   ├── GroupBoardPage.h/.cpp   # 小组管理页：左未分组面板 + 右小组容器，拖放完成分组与组内排序，拖动时贴边自动滚动
 │   ├── StudentTableSidebar.h/.cpp # 侧栏：5 个 ExExpander；学生块内提供姓名搜索与结果跳转，记录/模板块支持查看与上下项导航
 │   ├── RecordListPage.h/.cpp   # 记录列表页：顶部工具行 + 多选列表
@@ -36,6 +36,7 @@ src/
 ├── widgets/                    # 自绘/复用控件
 │   ├── CardHost.h              # 卡片容器统一接口：插入/移除卡片、刷新标题、提供卡片底色
 │   ├── CardStyle.h/.cpp        # 小组卡片的尺寸与配色：按组号在 OKLCH 上取点生成组色
+│   ├── DragAutoScroller.h/.cpp # 拖动时贴近滚动区边缘自动滚动：表格与小组管理页共用
 │   ├── FlowLayout.h/.cpp       # 流式布局：换行、隐藏项补位、重排弹簧动画、单列模式
 │   ├── GroupCard.h/.cpp        # 小组容器：标题、落点判定与高亮、插入占位槽
 │   ├── HomeActionCard.h/.cpp   # 欢迎页操作卡片
@@ -70,6 +71,7 @@ flowchart TD
     GroupCard[GroupCard 小组容器]
     FlowLayout[FlowLayout 流式布局]
     StudentCard[StudentCard 学生卡片]
+    AutoScroll[DragAutoScroller 拖动自动滚动]
     GroupNumber[GroupNumberDialog 设置小组号]
     RecordPage[RecordListPage]
     TemplatePage[TemplateListPage]
@@ -90,6 +92,8 @@ flowchart TD
 
     StudentPage --> TableView
     StudentPage --> Sidebar
+    StudentPage -->|拖动排序时| AutoScroll
+    GroupPage -->|拖动卡片时| AutoScroll
     GroupPage --> Ungrouped
     GroupPage --> GroupCard
     Ungrouped --> FlowLayout

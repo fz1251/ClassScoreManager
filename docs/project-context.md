@@ -15,6 +15,7 @@
 - 安装前缀：`D:/Projects/Qt5.15.19/msvc2022_64`。
 - 重建脚本：`D:\Projects\Qt5.15.19\build_qt.ps1`（qtbase）、`D:\Projects\Qt5.15.19\build_qtsvg.ps1`（qtsvg）。
   - 必须在 x64 VS2022 环境中运行；脚本会先验证 cl 为 x64，并清空旧构建再 configure/build/install。
+- 源码树中带有本项目改动（拖动指示线），改动内容与增量重建方式见 [qt-patches.md](qt-patches.md)。
 
 ## 3. CMake 构建
 

@@ -2,27 +2,24 @@
 
 #include "../core/ClassDataManager.h"
 #include "../widgets/CardHost.h"
+#include "../widgets/DragAutoScroller.h"
 #include "../widgets/FlowLayout.h"
 #include "../widgets/GroupCard.h"
 #include "../widgets/StudentCard.h"
 #include "../widgets/UngroupedPanel.h"
 #include "../windows/GroupNumberDialog.h"
 
-#include <QCursor>
 #include <QHBoxLayout>
 #include <QScrollArea>
-#include <QScrollBar>
 #include <QSplitter>
-#include <QTimer>
 #include <algorithm>
 
 namespace
 {
 constexpr int kUngroupedInitialWidth = 140; //左栏初始宽度，最小宽度由 UngroupedPanel 自己约束
 constexpr int kGroupAreaMinWidth = 220;     //右栏至少放得下一个小组容器和一张卡片
-constexpr int kAutoScrollIntervalMs = 16;   //约 60Hz，看不出台阶
-constexpr int kAutoScrollEdge = 60;         //光标进入边缘这么多像素内开始自动滚动
-constexpr qreal kAutoScrollMaxSpeed = 800;  //贴到边框时的滚动速度（px/s）
+//卡片信息密度低，自动滚动的速度要更高
+constexpr DragAutoScroller::Config kAutoScrollConfig{16, 60, 800};
 }
 
 GroupBoardPage::GroupBoardPage(ClassDataManager* manager, QWidget* parent)
@@ -59,9 +56,9 @@ GroupBoardPage::GroupBoardPage(ClassDataManager* manager, QWidget* parent)
     splitter->setSizes({kUngroupedInitialWidth, kGroupAreaMinWidth * 2});
     rootLayout->addWidget(splitter);
 
-    m_autoScrollTimer = new QTimer(this);
-    m_autoScrollTimer->setInterval(kAutoScrollIntervalMs);
-    connect(m_autoScrollTimer, &QTimer::timeout, this, &GroupBoardPage::updateAutoScroll);
+    //拖动时贴近上下边缘自动滚动，与主界面表格共用同一套手感
+    m_groupAutoScroller = new DragAutoScroller(m_groupScrollArea, kAutoScrollConfig, this);
+    m_ungroupedAutoScroller = new DragAutoScroller(m_ungroupedPanel->scrollArea(), kAutoScrollConfig, this);
 }
 
 void GroupBoardPage::reload()
@@ -112,14 +109,16 @@ StudentCard* GroupBoardPage::createCard(int studentIndex)
                 //拿起卡片：源小组先用占位槽顶住它的位置，避免起步时布局先收拢再展开
                 if(auto* group = dynamic_cast<GroupCard*>(card->host()))
                     group->beginDrag(card);
-                m_autoScrollTimer->start();
+                m_groupAutoScroller->start();
+                m_ungroupedAutoScroller->start();
             });
     connect(card, &StudentCard::dragFinished, this,
             [this, card]()
             {
                 if(auto* group = dynamic_cast<GroupCard*>(card->host()))
                     group->endDrag();
-                m_autoScrollTimer->stop();
+                m_groupAutoScroller->stop();
+                m_ungroupedAutoScroller->stop();
             });
     return card;
 }
@@ -229,43 +228,4 @@ void GroupBoardPage::handleGroupNumberEdit(int studentIndex)
 
     if(sourceGroup)
         removeGroupCardIfEmpty(sourceGroup);
-}
-
-//光标贴近滚动区上下边缘时自动滚动：越靠边越快，便于拖到还没露出来的小组
-void GroupBoardPage::scrollNearEdge(QScrollArea* scrollArea)
-{
-    QScrollBar* bar = scrollArea->verticalScrollBar();
-    if(bar->maximum() <= bar->minimum())
-        return;
-    const QRect viewport = scrollArea->viewport()->rect();
-    const QPoint pos = scrollArea->viewport()->mapFromGlobal(QCursor::pos());
-    if(!viewport.contains(pos))
-        return;
-
-    //光标深入边缘区的比例：刚进边缘区是 0，贴到边框是 1
-    const bool atTop = pos.y() < viewport.top() + kAutoScrollEdge;
-    qreal intensity = 0.0;
-    if(atTop)
-        intensity = qreal(viewport.top() + kAutoScrollEdge - pos.y()) / kAutoScrollEdge;
-    else if(pos.y() > viewport.bottom() - kAutoScrollEdge)
-        intensity = qreal(pos.y() - viewport.bottom() + kAutoScrollEdge) / kAutoScrollEdge;
-    if(intensity <= 0.0)
-    {
-        m_autoScrollRemainder = 0.0;
-        return;
-    }
-
-    //速度按深入程度二次增长：边缘区里慢、贴边快，进出都连续，不需要额外的缓动
-    //不足 1px 的零头累加到下一拍，否则低速段永远滚不动
-    const qreal delta = kAutoScrollMaxSpeed * intensity * intensity * kAutoScrollIntervalMs / 1000.0 + m_autoScrollRemainder;
-    const int whole = int(delta);
-    m_autoScrollRemainder = delta - whole;
-    if(whole > 0)
-        bar->setValue(bar->value() + (atTop ? -whole : whole));
-}
-
-void GroupBoardPage::updateAutoScroll()
-{
-    scrollNearEdge(m_groupScrollArea);
-    scrollNearEdge(m_ungroupedPanel->scrollArea());
 }

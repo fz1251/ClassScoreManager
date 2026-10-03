@@ -230,7 +230,9 @@ bool ClassTableModel::dropMimeData(const QMimeData* data, Qt::DropAction action,
     int sourceRow;
     stream >> sourceRow;
     //行序只由 displayOrder 与 rowToIndex 表达，students 向量本身不动，records/templates 的分数向量因此不会错位
-    beginMoveRows(parent, sourceRow, sourceRow, parent, row);
+    //落点不改变行序时 beginMoveRows 返回 false 且不记录变更，继续调用 endMoveRows 会从空变更栈弹出而崩溃
+    if(!beginMoveRows(parent, sourceRow, sourceRow, parent, row))
+        return false;
     if(row > sourceRow)
     {
         for(int i = sourceRow; i < row - 1; i++)
@@ -362,6 +364,8 @@ void ClassTableModel::resetTable()
 void ClassTableModel::setStudentEditable(bool editable)
 {
     canEditStudent = editable;
+    if(rowCount() == 0)
+        return;
     emit dataChanged(index(0, StudentName), index(rowCount() - 1, StudentName), {Qt::EditRole});
 }
 

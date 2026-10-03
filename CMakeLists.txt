@@ -62,6 +62,7 @@ set(APP_SOURCES
     src/pages/WelcomePage.cpp
     src/windows/AboutInfoDialog.cpp
     src/widgets/CardStyle.cpp
+    src/widgets/DragAutoScroller.cpp
     src/widgets/FlowLayout.cpp
     src/widgets/GroupCard.cpp
     src/windows/GroupNumberDialog.cpp
@@ -95,6 +96,7 @@ set(APP_HEADERS
     src/windows/AboutInfoDialog.h
     src/widgets/CardHost.h
     src/widgets/CardStyle.h
+    src/widgets/DragAutoScroller.h
     src/widgets/FlowLayout.h
     src/widgets/GroupCard.h
     src/windows/GroupNumberDialog.h

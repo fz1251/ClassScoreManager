@@ -12,6 +12,7 @@
 | [coding-conventions.md](coding-conventions.md) | 编码约定：整数类型选择（定长类型、int 与 qsizetype 的边界） |
 | [group-board.md](group-board.md) | 小组管理页：组色取点、落点判定、重排弹簧与拖动周边手感 |
 | [third-party.md](third-party.md) | 第三方美化库 FluentUIStyle 及其携带依赖（QWindowKit、kissfft、qmsetup）的配置与使用 |
+| [qt-patches.md](qt-patches.md) | 自编译 Qt 源码树的项目改动：拖动指示线的覆盖范围与绘制、增量重建方式 |
 | [todo.md](todo.md) | 待办事项清单 |
 
 ## 维护约定
