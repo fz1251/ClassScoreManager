@@ -20,7 +20,8 @@ WelcomePage::WelcomePage(QWidget* parent)
 
     // 标题：应用名称
     auto* titleLabel = new ShineLabel(this);
-    QFont titleFont;
+    //必须从应用字体派生：默认构造的 QFont 族名为空，会被解析成宋体
+    QFont titleFont = font();
     titleFont.setPointSize(42);
     titleLabel->setFont(titleFont);
     titleLabel->setAlignment(Qt::AlignCenter);

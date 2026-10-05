@@ -132,10 +132,9 @@ AboutInfoDialog::AboutInfoDialog(QWidget* parent)
     // 标题：应用名称
     titleLabel = new QLabel(this);
     titleLabel->setObjectName(QStringLiteral("titleLabel"));
-    QFont titleFont;
-    titleFont.setFamily(QStringLiteral("黑体"));
+    //标题与欢迎页大标题统一，直接用应用字体；不要再 setBold，合成粗体会把笔画糊成一团
+    QFont titleFont = font();
     titleFont.setPointSize(24);
-    titleFont.setBold(true);
     titleLabel->setFont(titleFont);
     titleLabel->setAlignment(Qt::AlignCenter);
     titleLabel->setText(tr("班级积分管理系统"));
@@ -144,19 +143,21 @@ AboutInfoDialog::AboutInfoDialog(QWidget* parent)
     // 副标题：构建日期
     subtitleLabel = new QLabel(this);
     subtitleLabel->setObjectName(QStringLiteral("subtitleLabel"));
-    QFont subtitleFont;
-    subtitleFont.setFamily(QStringLiteral("宋体"));
+    //副标题：日期数字指定 Segoe UI（数字更规整）；纯西文字体不含汉字，只对数字用富文本局部指定
+    QFont subtitleFont = font();
     subtitleFont.setPointSize(16);
     subtitleLabel->setFont(subtitleFont);
     subtitleLabel->setAlignment(Qt::AlignCenter);
-    subtitleLabel->setText(tr("构建日期：%1").arg(QStringLiteral(APP_BUILD_DATE)));
+    subtitleLabel->setTextFormat(Qt::RichText);
+    subtitleLabel->setText(tr("构建日期：<span style=\"font-family:'Segoe UI'\">%1</span>").arg(QStringLiteral(APP_BUILD_DATE)));
     textLayout->addWidget(subtitleLabel);
 
     // 内容：技术栈、版权与仓库信息
     contentLabel = new LineSpacedLabel(this);
     contentLabel->setObjectName(QStringLiteral("contentLabel"));
     contentLabel->setLineHeight(1.4);
-    QFont contentFont;
+    //必须从应用字体派生：默认构造的 QFont 族名为空，会被解析成宋体
+    QFont contentFont = font();
     contentFont.setPointSize(12);
     contentLabel->setFont(contentFont);
     contentLabel->setWordWrap(false);

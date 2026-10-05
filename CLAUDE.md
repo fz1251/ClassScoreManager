@@ -98,6 +98,7 @@
 - 编码约定（整数类型选择）见 `docs/coding-conventions.md`。
 - 小组管理页的组色取点、落点判定、重排弹簧与拖动周边手感见 `docs/group-board.md`。
 - 自编译 Qt 源码树中的项目改动（拖动指示线的覆盖范围与绘制、增量重建）见 `docs/qt-patches.md`。
+- Windows 字体渲染的取舍与实测数据（光栅器、hinting 分档、拖动缩略图 DPR）见 `docs/font-rendering.md`。
 - 待办事项见 `docs/todo.md`。
 
 ## 4. 提交信息规范（C++/Qt 项目版）

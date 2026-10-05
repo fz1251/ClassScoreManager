@@ -152,8 +152,11 @@ void StudentCard::drawCapsule(QPainter& painter, qreal scale, qreal opacity, qre
 
 QPixmap StudentCard::renderCard() const
 {
-    //缩略图比卡片略大，做出"拿起来"的感觉
-    QPixmap pixmap(qRound(width() * kDragScale), qRound(height() * kDragScale));
+    //缩略图比卡片略大，做出"拿起来"的感觉；必须按设备像素渲染并标上 devicePixelRatio，
+    //否则平台实现会按屏幕缩放系数再对缩略图做一次平滑放大，文字变糊
+    const qreal ratio = devicePixelRatioF();
+    QPixmap pixmap(QSize(qRound(width() * kDragScale * ratio), qRound(height() * kDragScale * ratio)));
+    pixmap.setDevicePixelRatio(ratio);
     pixmap.fill(Qt::transparent);
 
     QPainter painter(&pixmap);
@@ -164,7 +167,7 @@ QPixmap StudentCard::renderCard() const
     //整体压成半透明，作为跟随光标的拖动缩略图
     QPainter fade(&pixmap);
     fade.setCompositionMode(QPainter::CompositionMode_DestinationIn);
-    fade.fillRect(pixmap.rect(), QColor(0, 0, 0, kDragOpacity));
+    fade.fillRect(QRectF(0, 0, width() * kDragScale, height() * kDragScale), QColor(0, 0, 0, kDragOpacity));
     return pixmap;
 }
 
@@ -230,7 +233,9 @@ void StudentCard::startDrag()
     auto* drag = new QDrag(this);
     drag->setMimeData(mimeData);
     drag->setPixmap(snapshot);
-    drag->setHotSpot(QPoint(snapshot.width() / 2, snapshot.height() / 2));
+    //热点按逻辑坐标给出：平台实现在显示时会再乘一次屏幕缩放系数
+    const qreal ratio = snapshot.devicePixelRatio();
+    drag->setHotSpot(QPoint(qRound(snapshot.width() / ratio / 2), qRound(snapshot.height() / ratio / 2)));
 
     //拿起卡片：先让容器用占位槽顶住原来的位置再隐藏，布局在拖动起步时不动。只隐藏不退出布局，
     //隐藏项不参与排位，同容器内其余卡片自动补位，因此落点索引要按“不含隐藏项”的顺序换算

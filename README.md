@@ -33,10 +33,7 @@ cmake --build --preset qt5-msvc2022-debug
 
 ## 文档
 
-- [docs/structure.md](docs/structure.md)：代码结构、架构关系与数据流
-- [docs/project-context.md](docs/project-context.md)：Qt 套件、CMake 构建、样式与部署
-- [docs/third-party.md](docs/third-party.md)：FluentUIStyle 及其携带依赖
-- [docs/todo.md](docs/todo.md)：待办事项
+开发文档在 [docs/](docs/README.md)，索引见 [docs/README.md](docs/README.md)。
 
 ## 许可
 
