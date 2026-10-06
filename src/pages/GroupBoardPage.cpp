@@ -56,9 +56,8 @@ GroupBoardPage::GroupBoardPage(ClassDataManager* manager, QWidget* parent)
     splitter->setSizes({kUngroupedInitialWidth, kGroupAreaMinWidth * 2});
     rootLayout->addWidget(splitter);
 
-    //拖动时贴近上下边缘自动滚动，与主界面表格共用同一套手感
+    //右侧小组列表在拖动时贴边自动滚动，与主界面表格共用同一套手感；左栏只是容器，不需要滚动
     m_groupAutoScroller = new DragAutoScroller(m_groupScrollArea, kAutoScrollConfig, this);
-    m_ungroupedAutoScroller = new DragAutoScroller(m_ungroupedPanel->scrollArea(), kAutoScrollConfig, this);
 }
 
 void GroupBoardPage::reload()
@@ -110,7 +109,6 @@ StudentCard* GroupBoardPage::createCard(int studentIndex)
                 if(auto* group = dynamic_cast<GroupCard*>(card->host()))
                     group->beginDrag(card);
                 m_groupAutoScroller->start();
-                m_ungroupedAutoScroller->start();
             });
     connect(card, &StudentCard::dragFinished, this,
             [this, card]()
@@ -118,7 +116,6 @@ StudentCard* GroupBoardPage::createCard(int studentIndex)
                 if(auto* group = dynamic_cast<GroupCard*>(card->host()))
                     group->endDrag();
                 m_groupAutoScroller->stop();
-                m_ungroupedAutoScroller->stop();
             });
     return card;
 }

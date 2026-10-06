@@ -9,8 +9,14 @@
 #include <QDragMoveEvent>
 #include <QDropEvent>
 #include <QFontMetrics>
+#include <QGraphicsBlurEffect>
+#include <QGraphicsPixmapItem>
+#include <QGraphicsScene>
 #include <QLabel>
 #include <QPainter>
+#include <QPainterPath>
+#include <QPixmap>
+#include <QRadialGradient>
 #include <QScrollArea>
 #include <QVBoxLayout>
 
@@ -19,24 +25,49 @@ namespace
 constexpr int kPanelMinWidth = 120; //够放 3 个字的名字，再窄长名字就会被裁切
 constexpr int kEdgeMargin = 12;
 constexpr int kHeaderSpacing = 8;
-constexpr int kMaskDurationMs = 140;
-constexpr int kRailRadius = 12;               //与右侧小组卡片、学生胶囊同一套圆角
-constexpr QColor kRailSurface(238, 240, 242); //左栏栏面：比页面略深，比右栏明显更深
+constexpr int kMaskEnterMs = 500; //出现要慢慢化开
+constexpr int kMaskLeaveMs = 300; //收起要干脆
+constexpr int kRailRadius = 12;   //与右侧小组卡片、学生胶囊同一套圆角
 constexpr QColor kRailBorder(0, 0, 0, 30);
-constexpr QColor kMaskColor(211, 47, 47);     //蒙版
-constexpr QColor kMaskTextColor(155, 28, 28); //深红图标与提示文字
 constexpr char16_t kDeleteGlyph = static_cast<char16_t>(SegoeIcon::Delete);
 constexpr int kMaskIconPixelSize = 48;
 constexpr int kMaskTextPointSize = 20;
 constexpr int kIconTextSpacing = 10;
-constexpr qreal kMaskTintAlpha = 0.16;
+constexpr qreal kMaskIconDelay = 0.25;  //图标与文字比底色晚这么多进度起淡入，做出错峰
+constexpr qreal kMaskIconSpread = 0.55; //错峰占用的进度区间
 
-//覆盖在列表区之上的红色蒙版，提示拖到此处即取消分组
+//淡红薄膜：只给毛玻璃染上一层红味，不压住底下的模糊。两档透明度决定"红到什么程度"
+constexpr QColor kMaskFilmColor(211, 47, 47);
+constexpr int kMaskTintAlphaCenter = 25;
+constexpr int kMaskTintAlphaEdge = 0;
+constexpr QColor kMaskInkColor(179, 38, 30); //深红：垃圾桶图标与提示文字
+
+//毛玻璃：用 Qt 的图形模糊效果生成一张缓存图，整段拖动只算一次
+constexpr qreal kBackdropBlurRadius = 8.0;
+
+QImage blurredImage(const QImage& source, qreal radius)
+{
+    QGraphicsScene scene;
+    auto* item = new QGraphicsPixmapItem(QPixmap::fromImage(source));
+    auto* effect = new QGraphicsBlurEffect;
+    effect->setBlurRadius(radius);
+    item->setGraphicsEffect(effect);
+    scene.addItem(item);
+
+    QImage result(source.size(), QImage::Format_ARGB32_Premultiplied);
+    result.fill(Qt::transparent);
+    QPainter painter(&result);
+    scene.render(&painter);
+    return result;
+}
+
+//覆盖在栏面上的毛玻璃蒙版，提示拖到此处即取消分组
 class DropMask : public QWidget
 {
 public:
-    DropMask(const QString& text, QWidget* parent)
+    DropMask(QScrollArea* area, const QString& text, QWidget* parent)
         : QWidget(parent)
+        , m_area(area)
         , m_text(text)
     {
         setAttribute(Qt::WA_TransparentForMouseEvents);
@@ -45,9 +76,21 @@ public:
 
     void setProgress(qreal progress)
     {
+        const bool wasHidden = m_progress <= 0.0;
         m_progress = progress;
-        setVisible(progress > 0.002);
+        if(wasHidden && progress > 0.0)
+            rebuildBackdrop();
+        //透明度归零才隐藏：逐帧反复切换可见性会白白走一遍显隐流程
+        const bool visible = progress > 0.002;
+        if(isVisible() != visible)
+            setVisible(visible);
         update();
+    }
+
+    //列表内容变化后模糊底已过期，下次显形时重新采样
+    void invalidateBackdrop()
+    {
+        m_backdrop = QPixmap();
     }
 
 protected:
@@ -56,38 +99,82 @@ protected:
         QPainter painter(this);
         painter.setRenderHints(QPainter::Antialiasing | QPainter::TextAntialiasing);
 
-        //铺满整块栏面，圆角与栏自身的边框对齐
-        const QRectF area = QRectF(rect()).adjusted(0.5, 0.5, -0.5, -0.5);
-        QColor tint = kMaskColor;
-        tint.setAlphaF(kMaskTintAlpha * m_progress);
+        //整块栏面都在圆角里，蒙版的每一层都不越出栏面
+        QPainterPath rail;
+        rail.addRoundedRect(QRectF(rect()).adjusted(0.5, 0.5, -0.5, -0.5), kRailRadius, kRailRadius);
+        painter.setClipPath(rail);
+        painter.setOpacity(m_progress);
+
+        //模糊底只铺列表区：表头在模糊之外保持清晰
+        if(!m_backdrop.isNull())
+            painter.drawPixmap(m_backdropRect, m_backdrop);
+
+        //淡红薄膜铺满整块栏面，中心略深、四角略浅
+        const QPointF center(m_backdropRect.isNull() ? rect().center() : QPointF(m_backdropRect.center()));
+        const qreal reach = qMax(rect().width(), rect().height()) * 0.75;
+        QRadialGradient tint(center, reach);
+        tint.setColorAt(0.0, QColor(kMaskFilmColor.red(), kMaskFilmColor.green(), kMaskFilmColor.blue(), kMaskTintAlphaCenter));
+        tint.setColorAt(1.0, QColor(kMaskFilmColor.red(), kMaskFilmColor.green(), kMaskFilmColor.blue(), kMaskTintAlphaEdge));
         painter.setPen(Qt::NoPen);
         painter.setBrush(tint);
-        painter.drawRoundedRect(area, kRailRadius, kRailRadius);
+        painter.drawRoundedRect(QRectF(rect()).adjusted(0.5, 0.5, -0.5, -0.5), kRailRadius, kRailRadius);
 
-        //深红的垃圾桶图标与提示文字，在栏面内垂直居中
-        QColor contentColor = kMaskTextColor;
-        contentColor.setAlphaF(m_progress);
-
+        //垃圾桶图标与提示文字在整块栏面里居中，深红压在淡红的毛玻璃上
         QFont iconFont(QStringLiteral("Segoe Fluent Icons"));
         iconFont.setPixelSize(kMaskIconPixelSize);
+        //图标字体只走自带的图标字族，否则会掉进合并字体里画出个不相干的汉字
+        iconFont.setStyleStrategy(QFont::NoFontMerging);
         QFont textFont = font();
         textFont.setPointSize(kMaskTextPointSize);
+        textFont.setLetterSpacing(QFont::AbsoluteSpacing, 2.0);
 
         const QFontMetricsF iconMetrics(iconFont);
         const QFontMetricsF textMetrics(textFont);
         const qreal iconHeight = iconMetrics.height();
         const qreal textHeight = textMetrics.height();
-        const qreal top = area.top() + (area.height() - iconHeight - kIconTextSpacing - textHeight) / 2.0;
+        const qreal blockTop = (rect().height() - iconHeight - kIconTextSpacing - textHeight) / 2.0;
+        const QRectF iconRect(0, blockTop, rect().width(), iconHeight);
+        const QRectF textRect(0, iconRect.bottom() + kIconTextSpacing, rect().width(), textHeight);
 
-        painter.setPen(contentColor);
+        //前景比底色晚起淡入，错峰出现
+        painter.setOpacity(m_progress * qBound(0.0, (m_progress - kMaskIconDelay) / kMaskIconSpread, 1.0));
         painter.setFont(iconFont);
-        painter.drawText(QRectF(area.left(), top, area.width(), iconHeight), Qt::AlignCenter, QString(QChar(kDeleteGlyph)));
+        painter.setPen(kMaskInkColor);
+        painter.drawText(iconRect, Qt::AlignCenter, QString(QChar(kDeleteGlyph)));
         painter.setFont(textFont);
-        painter.drawText(QRectF(area.left(), top + iconHeight + kIconTextSpacing, area.width(), textHeight), Qt::AlignCenter, m_text);
+        painter.setPen(kMaskInkColor);
+        painter.drawText(textRect, Qt::AlignCenter, m_text);
+        painter.setOpacity(1.0);
     }
 
 private:
+    void rebuildBackdrop()
+    {
+        m_backdropRect = m_area->geometry();
+        if(m_backdropRect.isEmpty())
+            return;
+
+        const qreal ratio = devicePixelRatioF();
+        //采样面板自身：此刻蒙版刚显形、进度为 0，抓进来的是一张干净的面板
+        const QImage shot = parentWidget()->grab(m_backdropRect).toImage();
+        if(shot.isNull())
+            return;
+
+        const QImage blurred = blurredImage(shot, kBackdropBlurRadius);
+
+        QPixmap result(blurred.size());
+        result.setDevicePixelRatio(ratio);
+        result.fill(Qt::transparent);
+        QPainter painter(&result);
+        painter.setRenderHint(QPainter::SmoothPixmapTransform);
+        painter.drawImage(QRectF(0, 0, m_backdropRect.width(), m_backdropRect.height()), blurred);
+        m_backdrop = result;
+    }
+
+    QScrollArea* m_area = nullptr;
     QString m_text;
+    QPixmap m_backdrop;
+    QRect m_backdropRect;
     qreal m_progress = 0.0;
 };
 }
@@ -125,10 +212,9 @@ UngroupedPanel::UngroupedPanel(QWidget* parent)
     m_cardContainer->setAutoFillBackground(false);
     rootLayout->addWidget(m_scrollArea, 1);
 
-    m_mask = new DropMask(tr("取消分组"), this);
+    m_mask = new DropMask(m_scrollArea, tr("取消分组"), this);
 
     m_maskAnimation = new QVariantAnimation(this);
-    m_maskAnimation->setDuration(kMaskDurationMs);
     m_maskAnimation->setEasingCurve(QEasingCurve::OutCubic);
     connect(m_maskAnimation, &QVariantAnimation::valueChanged, this,
             [this](const QVariant& value)
@@ -150,11 +236,6 @@ QColor UngroupedPanel::cardColor() const
     return palette().base().color();
 }
 
-QScrollArea* UngroupedPanel::scrollArea() const
-{
-    return m_scrollArea;
-}
-
 int UngroupedPanel::cardCount() const
 {
     int count = 0;
@@ -170,12 +251,14 @@ void UngroupedPanel::insertCard(StudentCard* card, int index)
     card->setHost(this);
     //重新认领父控件会让卡片转为隐藏，插入后要显式恢复显示
     card->show();
+    static_cast<DropMask*>(m_mask)->invalidateBackdrop();
     refreshHeader();
 }
 
 void UngroupedPanel::removeCard(StudentCard* card)
 {
     m_cardLayout->removeWidget(card);
+    static_cast<DropMask*>(m_mask)->invalidateBackdrop();
     refreshHeader();
 }
 
@@ -188,6 +271,7 @@ void UngroupedPanel::clearCards()
         delete item;
         delete widget;
     }
+    static_cast<DropMask*>(m_mask)->invalidateBackdrop();
     refreshHeader();
 }
 
@@ -201,7 +285,8 @@ void UngroupedPanel::paintEvent(QPaintEvent*)
     QPainter painter(this);
     painter.setRenderHints(QPainter::Antialiasing);
     painter.setPen(QPen(kRailBorder, 1.0));
-    painter.setBrush(kRailSurface);
+    //栏面用页面的全局底色，左栏与其余界面同底，靠圆角与描边立出栏面
+    painter.setBrush(palette().color(QPalette::Window));
     painter.drawRoundedRect(QRectF(rect()).adjusted(0.5, 0.5, -0.5, -0.5), kRailRadius, kRailRadius);
 }
 
@@ -210,6 +295,8 @@ void UngroupedPanel::resizeEvent(QResizeEvent* event)
     QWidget::resizeEvent(event);
     m_mask->setGeometry(rect());
     m_mask->raise();
+    //尺寸变了，缓存下来的模糊底不再对应列表区
+    static_cast<DropMask*>(m_mask)->invalidateBackdrop();
 }
 
 void UngroupedPanel::updateMaskProgress(qreal progress)
@@ -222,6 +309,13 @@ void UngroupedPanel::updateMaskProgress(qreal progress)
 void UngroupedPanel::startMaskAnimation(bool visible)
 {
     m_maskAnimation->stop();
+    const int duration = visible ? kMaskEnterMs : kMaskLeaveMs;
+    if(m_maskAnimation->duration() != duration)
+    {
+        //时长不同必须重设：只在变化时改，避免打断正在跑的补间
+        m_maskAnimation->setDuration(duration);
+        m_maskAnimation->setEasingCurve(visible ? QEasingCurve::OutCubic : QEasingCurve::InCubic);
+    }
     m_maskAnimation->setStartValue(m_maskProgress);
     m_maskAnimation->setEndValue(visible ? 1.0 : 0.0);
     m_maskAnimation->start();

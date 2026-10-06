@@ -28,7 +28,6 @@ public:
     void refreshHeader() override;
     void clearCards();
 
-    QScrollArea* scrollArea() const;
     int cardCount() const;
 
 signals:

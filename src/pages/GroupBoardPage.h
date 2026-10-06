@@ -40,5 +40,4 @@ private:
     QHash<qint32, GroupCard*> m_groupCards;
     QHash<int, StudentCard*> m_cards;
     DragAutoScroller* m_groupAutoScroller = nullptr;
-    DragAutoScroller* m_ungroupedAutoScroller = nullptr;
 };
