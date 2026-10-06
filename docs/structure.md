@@ -132,7 +132,12 @@ flowchart TD
 flowchart LR
     User[用户] -->|打开 .cls| Open[MainWindow::openFile]
     Open --> Parse[ClassDataManager::openFile / newFile]
-    Parse --> Emit[发出 recordsChanged / templatesChanged]
+    Parse --> Result{解析结果}
+    Result -->|失败| Fail[提示错误并中止]
+    Result -->|成功| Repair[字段归一化]
+    Repair --> Warn[有修正则提示并置脏]
+    Repair --> Emit[发出 recordsChanged / templatesChanged]
+    Warn --> Emit
     Emit --> RecordModel[RecordListModel 重置]
     Emit --> TemplateModel[TemplateListModel 重置]
     Emit --> Preview[MainWindow::updateFilePreview]

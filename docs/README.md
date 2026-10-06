@@ -8,6 +8,7 @@
 | 文档 | 内容 |
 | --- | --- |
 | [structure.md](structure.md) | 代码结构、模块关系图与数据流向图 |
+| [data-model.md](data-model.md) | 数据模型：学生身份、编号字段取值、各层索引换算、打开文件时的归一化 |
 | [project-context.md](project-context.md) | 项目技术栈、Qt 套件、CMake 构建、样式、部署、模块结构 |
 | [coding-conventions.md](coding-conventions.md) | 编码约定：整数类型选择（定长类型、int 与 qsizetype 的边界） |
 | [group-board.md](group-board.md) | 小组管理页：组色取点、落点判定、重排弹簧与拖动周边手感 |

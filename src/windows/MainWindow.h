@@ -1,6 +1,5 @@
 #pragma once
 
-#include "excontentdialog.h"
 #include "exinfobar.h"
 
 #include <QCloseEvent>

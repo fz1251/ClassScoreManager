@@ -1,5 +1,6 @@
 #include "ClassDataManager.h"
 
+#include <QSaveFile>
 #include <algorithm>
 #include <qglobal.h>
 #include <utility>
@@ -9,12 +10,12 @@ ClassDataManager::ClassDataManager(QObject* parent)
 {
 }
 
-QString ClassDataManager::openFile(const QString& openFilePath)
+ClassDataManager::OpenResult ClassDataManager::openFile(const QString& openFilePath)
 {
     clearRecordDraft();
     QFile file(openFilePath);
     if(!file.open(QIODevice::ReadOnly))
-        return QObject::tr("无法打开名为%1的文件").arg(openFilePath);
+        return {false, QObject::tr("无法打开名为%1的文件").arg(openFilePath)};
     QDataStream stream(&file);
     stream.setVersion(QDataStream::Qt_5_15);
 
@@ -26,30 +27,115 @@ QString ClassDataManager::openFile(const QString& openFilePath)
     QVector<ScoreRecord> newRecords;
     stream >> newHeader;
     if(newHeader.fileHeader != CorrectFileHeader)
-        return QObject::tr("错误的文件头，文件格式不正确或已损坏");
+        return {false, QObject::tr("错误的文件头，文件格式不正确或已损坏")};
     stream >> newSettings;
     stream >> newStudents;
-    if(newHeader.studentCount != newStudents.size())
-        return QObject::tr("学生信息不正确，应为%1条，实际为%2条").arg(newHeader.studentCount).arg(newStudents.size());
     stream >> newTemplates;
-    if(newHeader.templateCount != newTemplates.size())
-        return QObject::tr("积分模板信息不正确，应为%1条，实际为%2条").arg(newHeader.templateCount).arg(newTemplates.size());
     stream >> newRecords;
+    //读取中断说明文件被截断，容器已被清空，先于数量校验拦下
+    if(stream.status() != QDataStream::Ok)
+        return {false, QObject::tr("文件不完整，读取失败")};
+    //文件头的计数与数据由同一次保存写出，对不上说明文件已被外部改动，任何一侧都不可信
+    if(newHeader.studentCount != newStudents.size())
+        return {false, QObject::tr("学生信息不正确，应为%1条，实际为%2条").arg(newHeader.studentCount).arg(newStudents.size())};
+    if(newHeader.templateCount != newTemplates.size())
+        return {false, QObject::tr("积分模板信息不正确，应为%1条，实际为%2条").arg(newHeader.templateCount).arg(newTemplates.size())};
     if(newHeader.recordCount != newRecords.size())
-        return QObject::tr("积分记录信息不正确，应为%1条，实际为%2条").arg(newHeader.recordCount).arg(newRecords.size());
+        return {false, QObject::tr("积分记录信息不正确，应为%1条，实际为%2条").arg(newHeader.recordCount).arg(newRecords.size())};
     file.close();
 
+    //结构完整的前提下，字段级的不一致都可以就地修正
+    const QStringList repairs = repairLoadedData(newStudents, newTemplates, newRecords);
     filePath = openFilePath;
     settings = newSettings;
     students = std::move(newStudents);
     templates = std::move(newTemplates);
     records = std::move(newRecords);
     m_hasData = true;
+    setDirty(!repairs.isEmpty());
     emit recordsChanged();
     emit templatesChanged();
     emit studentsChanged();
 
-    return QString();
+    return {true, repairs.join('\n')};
+}
+
+bool ClassDataManager::renumberOrder(QVector<StudentInfo>& students, QVector<int> indices, qint32 base, qint32 StudentInfo::* field)
+{
+    std::sort(indices.begin(), indices.end(),
+              [&students, field](int left, int right)
+              {
+                  const qint32 leftOrder = students.at(left).*field;
+                  const qint32 rightOrder = students.at(right).*field;
+                  //相同顺序值时按学生索引决定先后，保证结果确定
+                  return leftOrder != rightOrder ? leftOrder < rightOrder : left < right;
+              });
+    bool changed = false;
+    for(int i = 0; i < indices.size(); i++)
+    {
+        StudentInfo& student = students[indices.at(i)];
+        if(student.*field != base + i)
+            changed = true;
+        student.*field = base + i;
+    }
+    return changed;
+}
+
+QStringList ClassDataManager::repairLoadedData(QVector<StudentInfo>& newStudents, QVector<ScoreTemplate>& newTemplates,
+                                               QVector<ScoreRecord>& newRecords)
+{
+    QStringList repairs;
+
+    //显示顺序必须是1..size的排列；它在students向量中的先后无关，拖动排序只交换该字段
+    QVector<int> allIndices;
+    allIndices.reserve(newStudents.size());
+    for(int i = 0; i < newStudents.size(); i++)
+        allIndices.append(i);
+    if(renumberOrder(newStudents, allIndices, 1, &StudentInfo::displayOrder))
+        repairs.append(QObject::tr("学生的显示顺序不正确"));
+
+    //组内顺序每组各自是1..组内人数的排列，未分组的学生没有组内顺序
+    QVector<qint32> groupList;
+    for(const StudentInfo& student : newStudents)
+        if(student.groupNumber != StudentInfo::NoGroup && !groupList.contains(student.groupNumber))
+            groupList.append(student.groupNumber);
+    bool groupOrderChanged = false;
+    for(qint32 groupNumber : groupList)
+    {
+        QVector<int> members;
+        for(int i = 0; i < newStudents.size(); i++)
+            if(newStudents.at(i).groupNumber == groupNumber)
+                members.append(i);
+        if(renumberOrder(newStudents, members, 1, &StudentInfo::groupOrder))
+            groupOrderChanged = true;
+    }
+    for(StudentInfo& student : newStudents)
+        if(student.groupNumber == StudentInfo::NoGroup && student.groupOrder != StudentInfo::NoOrder)
+        {
+            student.groupOrder = StudentInfo::NoOrder;
+            groupOrderChanged = true;
+        }
+    if(groupOrderChanged)
+        repairs.append(QObject::tr("小组内的顺序不正确"));
+
+    //分数向量的长度必须与学生数一致：长于学生数的截断，短于学生数的补零
+    bool scoreSizeChanged = false;
+    for(ScoreTemplate& scoreTemplate : newTemplates)
+    {
+        if(scoreTemplate.values.size() != newStudents.size())
+            scoreSizeChanged = true;
+        scoreTemplate.values.resize(newStudents.size());
+    }
+    for(ScoreRecord& record : newRecords)
+    {
+        if(record.scores.size() != newStudents.size())
+            scoreSizeChanged = true;
+        record.scores.resize(newStudents.size());
+    }
+    if(scoreSizeChanged)
+        repairs.append(QObject::tr("积分模板与积分记录中的分数个数与学生数不一致"));
+
+    return repairs;
 }
 
 void ClassDataManager::newFile()
@@ -74,8 +160,9 @@ bool ClassDataManager::saveNewFile(const QString& saveFilePath)
 
 bool ClassDataManager::saveFile()
 {
-    QFile file(filePath);
-    if(!file.open(QIODevice::WriteOnly | QIODevice::Truncate))
+    //先写同目录的临时文件，commit成功才替换目标文件，写失败时磁盘上的旧文件保持原样
+    QSaveFile file(filePath);
+    if(!file.open(QIODevice::WriteOnly))
         return false;
     QDataStream stream(&file);
     stream.setVersion(QDataStream::Qt_5_15);
@@ -84,8 +171,7 @@ bool ClassDataManager::saveFile()
     stream << students;
     stream << templates;
     stream << records;
-    file.close();
-    if(file.error() != QFile::NoError || stream.status() != QDataStream::Ok)
+    if(stream.status() != QDataStream::Ok || !file.commit())
         return false;
 
     if(!this->isRecordUnsaved())
@@ -356,7 +442,7 @@ bool ClassDataManager::moveStudentToGroup(int studentIndex, qint32 groupNumber, 
     students[studentIndex].groupNumber = groupNumber;
     students[studentIndex].groupOrder = StudentInfo::NoOrder;
 
-    //目标组内按插入位置重排为连续的0..n-1
+    //目标组内按插入位置重排为连续的1..n
     if(groupNumber != StudentInfo::NoGroup)
     {
         QVector<int> members = groupStudentIndices(groupNumber);
@@ -365,7 +451,7 @@ bool ClassDataManager::moveStudentToGroup(int studentIndex, qint32 groupNumber, 
             position = members.size();
         members.insert(position, studentIndex);
         for(int i = 0; i < members.size(); i++)
-            students[members.at(i)].groupOrder = i;
+            students[members.at(i)].groupOrder = i + 1;
     }
     setDirty(true);
     emit studentsChanged();

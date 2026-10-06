@@ -98,7 +98,7 @@ private:
     ClassDataManager* manager;
     bool columnIsVisible[MaxColumnCount] = {};
     bool canEditStudent = true;
-    QVector<int> rowToIndex; // rowIndex[0,size-1]=>students[0,size-1]
+    QVector<int> rowToIndex; // 行号→学生索引：rowToIndex[displayOrder-1]，即displayOrder的逆置换
     int previewRecordIndex = INVALID_INDEX;
     int previewTemplateIndex = INVALID_INDEX;
 };

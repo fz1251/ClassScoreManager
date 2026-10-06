@@ -18,6 +18,7 @@
 #include "GroupNumberDialog.h"
 #include "ItemSelectionDialog.h"
 #include "SumExportDialog.h"
+#include "excontentdialog.h"
 #include "exinfobarhost.h"
 #include "fluentui3styleproperties.h"
 
@@ -498,16 +499,19 @@ void MainWindow::syncListPageSelection()
 /*文件操作*/
 void MainWindow::openFile(const QString& filePath)
 {
-    QString errMsg = manager->openFile(filePath);
-    if(!errMsg.isEmpty())
+    const ClassDataManager::OpenResult result = manager->openFile(filePath);
+    if(!result.succeeded)
     {
-        showNotification(ExInfoBar::Error, tr("打开文件失败"), errMsg);
+        showNotification(ExInfoBar::Error, tr("打开文件失败"), result.message);
         return;
     }
     currentFileName = QFileInfo(filePath).fileName();
     //先重建表格的行映射再切页面，否则页面切换过程中的取数可能用到旧映射
     resetTable();
     onFileLoaded();
+    //修正过的数据与磁盘上的文件不同，按未保存处理，并把修正内容告知用户
+    if(!result.message.isEmpty())
+        showNotification(ExInfoBar::Warning, tr("文件已自动修正"), result.message);
 }
 
 void MainWindow::newFile()

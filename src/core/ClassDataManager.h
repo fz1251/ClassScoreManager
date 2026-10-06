@@ -16,10 +16,16 @@ signals:
     void studentsChanged();
 
 public:
+    //打开文件的结果：解析失败时message为失败原因；解析成功但修正过数据时message为修正说明，正常打开时为空
+    struct OpenResult
+    {
+        bool succeeded = false;
+        QString message;
+    };
     explicit ClassDataManager(QObject* parent = nullptr);
     virtual ~ClassDataManager() = default;
     //文件读写
-    QString openFile(const QString& openFilePath);
+    OpenResult openFile(const QString& openFilePath);
     void newFile();
     bool saveNewFile(const QString& saveFilePath);
     bool saveFile();
@@ -67,6 +73,11 @@ public:
 
 private:
     static constexpr quint64 CorrectFileHeader = 0x0123456789abcdefull;
+    //把indices指到的学生按(顺序字段, 学生索引)递增排序后从base起重新编号，返回是否真的改动过
+    static bool renumberOrder(QVector<StudentInfo>& students, QVector<int> indices, qint32 base, qint32 StudentInfo::* field);
+    //修正读入的数据：顺序字段归一化、分数向量长度对齐，返回修正说明（无修正时为空）
+    static QStringList repairLoadedData(QVector<StudentInfo>& newStudents, QVector<ScoreTemplate>& newTemplates,
+                                        QVector<ScoreRecord>& newRecords);
     void setDirty(bool isDirty);
     void clearRecordDraft();
     bool m_hasData = false;

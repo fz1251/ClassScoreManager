@@ -94,6 +94,7 @@
 - 全局样式：`FluentUI3Style` 随项目构建；Fluent 属性头写作 `#include "fluentui3styleproperties.h"`。
 - UI 状态：全部界面均为纯代码，不包含 `.ui` 文件。
 - 详细项目上下文（Qt 重建、CMake 细节、部署、模块结构）见 `docs/project-context.md`。
+- 数据模型（学生身份、编号字段取值、各层索引换算、打开文件时的归一化）见 `docs/data-model.md`。
 - 第三方库与子模块更新见 `docs/third-party.md`。
 - 编码约定（整数类型选择）见 `docs/coding-conventions.md`。
 - 小组管理页的组色取点、落点判定、重排弹簧与拖动周边手感见 `docs/group-board.md`。
