@@ -11,20 +11,24 @@
 #include <QPropertyAnimation>
 #include <QPushButton>
 #include <QSize>
+#include <QStringList>
+#include <QWKWidgets/widgetwindowagent.h>
 #include <QWindow>
 
 #ifdef Q_OS_WIN
 #include <dwmapi.h>
 #include <windows.h>
 #include <windowsx.h>
-#ifdef _MSC_VER
-#pragma comment(lib, "user32.lib")
-#endif
 #endif
 
-#ifdef Q_OS_WIN
 namespace
 {
+// 方向键弹跳动画时长，也是彩蛋触发前等待动画结束的时间
+constexpr int kBounceDurationMs = 350;
+// 标题栏到窗口边缘的留白：缩放边界厚度在 100% DPI 下为 SM_CXSIZEFRAME(4) + SM_CXPADDEDBORDER(4)，
+// Win32 度量随 DPI 放大、Qt 再除以 DPR，因此逻辑像素下恒为 8
+constexpr int kTitleBarMargin = 8;
+
 const QString closeButtonStyle = QStringLiteral(R"(
 #closeButton {
     border: none;
@@ -61,73 +65,66 @@ const QString modeButtonStyle = QStringLiteral(R"(
     color: #000;
 }
 )");
-}
-#endif
+} // namespace
 
-// TODO: Win11 DWM 材料效果验证 — 当前实现在 Win10 已验证，Win11 待实测
-//
-// 【当前实现】
-// Win11 材料：DwmExtendFrameIntoClientArea({65536,0,0,0}) + DWMWA_SYSTEMBACKDROP_TYPE
-//              (Acrylic→DWMSBT_TRANSIENTWINDOW, Mica→DWMSBT_MAINWINDOW, MicaAlt→DWMSBT_TABBEDWINDOW)
-// Win11 Blur：SetWindowCompositionAttribute(ACCENT_ENABLE_BLURBEHIND)，沿用 Win10 路径
-// 背景透明：  WA_TranslucentBackground → WS_EX_LAYERED，paintEvent 填 QColor(255,255,255,1) 防点击穿透
-// 窗口阴影：  DwmExtendFrameIntoClientArea({0,0,1,0}) 顶部 1px 扩展
-// 标题栏：    无 FramelessWindowHint，QDialog 默认 WS_THICKFRAME|WS_CAPTION，WM_NCCALCSIZE 整窗为客户区
-//
-// 【争议：WS_EX_LAYERED 是否破坏 DWMWA_SYSTEMBACKDROP_TYPE？】
-// 说法 A（某 WinUI3 文章）：SetWindowRgn→WS_EX_LAYERED 触发 DWM "降级熔断"，Mica 变纯白或 fallback Acrylic。
-//                          要求 WS_EX_LAYERED=FALSE、禁用自定义区域、WS_THICKFRAME 必须启用。
-// 说法 B（B站视频演示）：  WA_TranslucentBackground + {-1,-1,-1,-1} 全窗扩展 + DWMWA_SYSTEMBACKDROP_TYPE，
-//                          Mica/Acrylic 正常渲染。Qt 窗口需设背景透明。
-// 分析：我们未使用 SetWindowRgn，窗口区域完整。SetWindowRgn 与 WA_TranslucentBackground 虽然都设
-//       WS_EX_LAYERED，但前者还破坏窗口区域拓扑（这是真正的致命因素）。后者仅分层化，区域完整，
-//       理论上 DWM 合成管线仍可正常运作。说法 A 的警告可能不适用于我们。
-//
-// 【争议：帧扩展边距】
-// 视频方案：{-1,-1,-1,-1} 全窗扩展 → 材料覆盖整个窗口
-// 当前方案：{65536,0,0,0} 仅左侧大幅扩展（源自 ElaWidgetTools / WinUI3 源码）
-// 待测：两种边距在材料渲染上有无差异？左侧单边扩展是否影响四边阴影均匀性？
-//
-// 【Win11 测试清单】
-// □ Acrylic / Mica / MicaAlt / Blur 四种模式切换是否即时生效
-// □ 背景材料是否正常渲染（非纯白/灰色，非明显降级）
-// □ Mica 是否正确采样桌面壁纸（而非实时模糊）
-// □ DWM 原生阴影在四种模式下是否均正常
-// □ 尝试 {-1,-1,-1,-1} 替代 {65536,0,0,0}，对比材料渲染差异
-// □ 若材料失效，尝试临时去掉 WA_TranslucentBackground，验证是否因 WS_EX_LAYERED 被 DWM 拒绝
-// □ Win11 22H2+ 的 MicaAlt 是否与 Mica 有可见差异
 AboutInfoDialog::AboutInfoDialog(QWidget* parent)
     : QDialog(parent)
 {
 #ifdef Q_OS_WIN
+    // 从新到旧的阶梯：每档只判断一次，档位之间的包含关系由枚举顺序表达
     const QOperatingSystemVersion osVer = QOperatingSystemVersion::current();
-    if(osVer >= QOperatingSystemVersion::Windows10)
-    {
-        m_isWin10or11 = true;
-        if(osVer >= QOperatingSystemVersion(QOperatingSystemVersion::Windows, 10, 0, 22000))
-            m_isWin11 = true;
-        if(osVer >= QOperatingSystemVersion(QOperatingSystemVersion::Windows, 10, 0, 22621))
-            m_gtWin11_22H2 = true;
-    }
+    if(osVer >= QOperatingSystemVersion(QOperatingSystemVersion::Windows, 10, 0, 22621))
+        m_winVersion = WindowsVersion::Win11_22H2;
+    else if(osVer >= QOperatingSystemVersion(QOperatingSystemVersion::Windows, 10, 0, 22000))
+        m_winVersion = WindowsVersion::Win11;
+    else if(osVer >= QOperatingSystemVersion::Windows10)
+        m_winVersion = WindowsVersion::Win10;
     else if(osVer >= QOperatingSystemVersion::Windows7 && osVer < QOperatingSystemVersion::Windows8)
-    {
-        m_isWin7 = true;
-    }
+        m_winVersion = WindowsVersion::Win7;
 #endif
     resize(550, 300);
     setWindowTitle(tr("关于"));
 
-    // 对话框根布局：容纳下方文字区与无边框窗口标题栏
+    // 对话框根布局：容纳无边框窗口标题栏与下方文字区
     outerLayout = new QVBoxLayout(this);
     outerLayout->setObjectName(QStringLiteral("outerLayout"));
     outerLayout->setSpacing(0);
     outerLayout->setContentsMargins(0, 0, 0, 0);
 
+    /*
+     * 窗口样式取舍说明
+     *
+     * 【Win10 及以上】不使用 Qt::FramelessWindowHint。QWindowKit 保留 QDialog 默认的
+     * WS_OVERLAPPEDWINDOW（含 WS_THICKFRAME | WS_CAPTION），仅去掉 WS_SYSMENU，再以
+     * WM_NCCALCSIZE 把整窗声明为客户区：
+     *  — WS_THICKFRAME 使命中测试返回的 HT* 缩放值生效。
+     *  — WS_CAPTION 使 DWM 按有标题栏的坐标系对齐，确保 Qt mapFromGlobal 按钮命中无偏移。
+     *
+     * 【Win7】保留原生标题栏与系统帧：Aero 玻璃与四边缩放都由系统帧提供，去掉标题栏会一并失去，
+     * 因此只在 nativeEvent 中把客户区补成拖动区。
+     *
+     * 【背景透明】WA_TranslucentBackground → WS_EX_LAYERED，系统玻璃与窗口材质得以透过显示；
+     * paintEvent 填充近乎不可见的底色，避免全透明导致点击穿透。
+     */
+    if(m_winVersion != WindowsVersion::Unadapted)
+    {
+        setAttribute(Qt::WA_TranslucentBackground);
+        m_translucentBackground = true;
+    }
+    if(m_winVersion >= WindowsVersion::Win10)
+        createFramelessTitleBar();
+
+    // 方向键弹跳动画：复用同一对象，重复触发时以当前位置重新起跳
+    m_bounceAnimation = new QPropertyAnimation(this, "pos", this);
+    m_bounceAnimation->setDuration(kBounceDurationMs);
+    m_bounceAnimation->setEasingCurve(QEasingCurve::OutInCirc);
+
     // 文字区垂直布局：标题、副标题与内容按 1:1:4 分配纵向空间
     auto* textLayout = new QVBoxLayout;
     textLayout->setObjectName(QStringLiteral("textLayout"));
     textLayout->setSpacing(12);
-    textLayout->setContentsMargins(25, 20, 25, 20);
+    // 有无边框标题栏时顶部空间由标题栏占据，文字区不再重复留白
+    textLayout->setContentsMargins(25, m_winVersion >= WindowsVersion::Win10 ? 0 : 20, 25, 20);
 
     // 标题：应用名称
     titleLabel = new QLabel(this);
@@ -176,95 +173,51 @@ AboutInfoDialog::AboutInfoDialog(QWidget* parent)
     textLayout->setStretch(1, 1);
     textLayout->setStretch(2, 4);
 
-    outerLayout->addLayout(textLayout);
+    // 文字区占满剩余空间，标题栏保持自身高度
+    outerLayout->addLayout(textLayout, 1);
+}
 
-    if(m_isWin7 || m_isWin10or11)
-    {
-        setAttribute(Qt::WA_TranslucentBackground);
-        m_translucentBackground = true;
+void AboutInfoDialog::createFramelessTitleBar()
+{
+    // QWindowKit 窗口代理：接管 WM_NCCALCSIZE、WM_NCHITTEST、边缘缩放与 DWM 帧扩展
+    windowAgent = new QWK::WidgetWindowAgent(this);
+    windowAgent->setup(this);
+    // 整个对话框都是拖动区，可交互的控件再用 setHitTestVisible 逐个放行
+    windowAgent->setTitleBar(this);
 
-        /*
-         * 窗口样式取舍说明
-         *
-         * 【基础窗口样式】
-         * 不使用 Qt::FramelessWindowHint。QDialog 默认 WS_OVERLAPPEDWINDOW 已含
-         * WS_THICKFRAME | WS_CAPTION：
-         *  — WS_THICKFRAME 使 WM_NCHITTEST 返回的 HT* 缩放值生效。
-         *  — WS_CAPTION 使 DWM 按有标题栏的坐标系对齐，确保 Qt mapFromGlobal 按钮命中无偏移。
-         *
-         * 【WM_NCCALCSIZE 处理】
-         * *result = 0 将整窗声明为客户区、标题栏不渲染，但 DWM 内部仍保留 WS_CAPTION
-         * 的对齐逻辑。此即保留 WS_CAPTION 而不用 FramelessWindowHint 的原因。
-         *
-         * 【背景透明与 DWM 阴影】
-         *  — WA_TranslucentBackground → WS_EX_LAYERED，材料（Blur/Acrylic/Mica）可透过显示。
-         *  — DwmExtendFrameIntoClientArea({0,0,1,0}) 顶部扩展 1px DWM 帧，启用原生窗口阴影。
-         *
-         * 【Win10 策略：仅 Blur，禁用 Acrylic】
-         * Win10 的 DWM 处理 ACCENT_ENABLE_ACRYLICBLURBEHIND 时存在性能缺陷：高轮询率鼠标
-         * （250Hz 及以上）移动或调整窗口大小时，后台合成/渲染在高频输入下形成瓶颈，导致窗口
-         * 响应延迟甚至"幽灵光标"——鼠标释放后窗口仍持续移动，仿佛在消化积压的事件队列。
-         * 此前尝试用 QElapsedTimer 手动限流丢弃间隔过短的询问来缓解，代码复杂混乱，故直接禁用。
-         * Blur 路径（ACCENT_ENABLE_BLURBEHIND）不触发此缺陷，效果纯净通透。
-         *
-         * 【技术硬伤：DWM 帧扩展的 1px 白线】
-         * DwmExtendFrameIntoClientArea 扩展后，扩展边与原始客户区之间始终存在 1px 渲染偏差
-         * （白线），系 DWM 合成管线底层限制，无法通过参数消除。微软官方 Windows Terminal
-         * 在实现亚克力材料时窗口顶部同样可见此白线，可作印证。
-         * 测试记录：{0,0,0,0}=无阴影；{1,0,0,0}=白线在左；{0,1,0,0}=白线在右；
-         *           {0,0,1,0}=白线与 WS_CAPTION 顶部残留重叠，只显一条，视觉干扰最小。
-         * 结论：选择顶部扩展，利用已有残留重叠掩盖，不引入额外边缘白线。
-         */
-        if(m_isWin10or11)
-        {
-            HWND hwnd = reinterpret_cast<HWND>(winId());
+    // 标题栏布局：只有右侧按钮是实体，其余空白即拖动区
+    titleBarLayout = new QHBoxLayout;
+    titleBarLayout->setObjectName(QStringLiteral("titleBarLayout"));
+    titleBarLayout->setSpacing(0);
+    // 四周留出与缩放边界等宽的空隙，避免按钮压在缩放判定区上
+    titleBarLayout->setContentsMargins(kTitleBarMargin, kTitleBarMargin, kTitleBarMargin, kTitleBarMargin);
+    titleBarLayout->addStretch();
 
-            // 顶部扩展 1px DWM 帧以启用原生阴影，白线与 WS_CAPTION 残留重叠，视觉干扰最小
-            const MARGINS shadowMargins = {0, 0, 1, 0};
-            DwmExtendFrameIntoClientArea(hwnd, &shadowMargins);
+    // 无边框窗口的关闭按钮
+    const QSize buttonSize = {30, 30};
+    auto* closeButton = new QPushButton(this);
+    closeButton->setObjectName(QStringLiteral("closeButton"));
+    closeButton->setFocusPolicy(Qt::ClickFocus);
+    closeButton->setFixedSize(buttonSize);
+    closeButton->setIconSize(buttonSize);
+    m_closeIconNormal.addFile(":/icons/resources/about-dialog-close.svg");
+    m_closeIconHover.addFile(":/icons/resources/about-dialog-close-hovered.svg");
+    closeButton->setIcon(m_closeIconNormal);
+    closeButton->installEventFilter(this);
+    windowAgent->setHitTestVisible(closeButton, true);
+    titleBarLayout->addWidget(closeButton);
+    connect(closeButton, &QPushButton::clicked, this, &AboutInfoDialog::close);
 
-            // 手动模拟窗口标题栏
-            titleBarLayout = new QHBoxLayout();
-            titleBarLayout->setObjectName("titleBarLayout");
-            titleBarLayout->setSpacing(0);
-            titleBarLayout->setContentsMargins(BLUR_RADIUS, BLUR_RADIUS, BLUR_RADIUS, BLUR_RADIUS);
-            titleBarLayout->addStretch();
+    outerLayout->addLayout(titleBarLayout);
 
-            // 为无边框窗口添加关闭按钮
-            const QSize buttonSize = {30, 30};
-            QPushButton* closeButton = new QPushButton(this);
-            closeButton->setObjectName("closeButton");
-            closeButton->setFocusPolicy(Qt::ClickFocus);
-            closeButton->setFixedSize(buttonSize);
-            closeButton->setIconSize(buttonSize);
-            m_closeIconNormal.addFile(":/icons/resources/about-dialog-close.svg");
-            m_closeIconHover.addFile(":/icons/resources/about-dialog-close-hovered.svg");
-            closeButton->setIcon(m_closeIconNormal);
-            closeButton->installEventFilter(this);
-            titleBarLayout->addWidget(closeButton);
-
-            // 调整原有布局以腾出标题栏空间
-            QMargins newMargins = textLayout->contentsMargins();
-            newMargins.setTop(0);
-            textLayout->setContentsMargins(newMargins);
-            outerLayout->setStretch(0, 1);
-            outerLayout->insertLayout(0, titleBarLayout);
-
-            connect(closeButton, &QPushButton::clicked, this, &AboutInfoDialog::close);
-            if(m_isWin11)
-                setStyleSheet(closeButtonStyle + modeButtonStyle);
-            else
-                setStyleSheet(closeButtonStyle);
-        }
-    }
+    setStyleSheet(m_winVersion >= WindowsVersion::Win11 ? closeButtonStyle + modeButtonStyle : closeButtonStyle);
 }
 
 void AboutInfoDialog::keyPressEvent(QKeyEvent* event)
 {
-    static int m_curKeyIndex = 0;
     if(m_effectsEnabled)
         return;
-    int key = event->key();
+    const int key = event->key();
     switch(key)
     {
         case Qt::Key_Up:
@@ -283,19 +236,19 @@ void AboutInfoDialog::keyPressEvent(QKeyEvent* event)
             QDialog::keyPressEvent(event);
             break;
     }
-    if(m_keySequence.at(m_curKeyIndex) == key)
+    if(m_keySequence.at(m_keyIndex) == key)
     {
-        m_curKeyIndex++;
-        if(m_curKeyIndex == m_keySequence.size())
+        m_keyIndex++;
+        if(m_keyIndex == m_keySequence.size())
         {
-            // 立即标记，不在进行按键序列判断，防止越界访问
+            // 立即标记，不再进行按键序列判断，防止越界访问
             m_effectsEnabled = true;
-            QTimer::singleShot(351, this, &AboutInfoDialog::enableEffects);
+            QTimer::singleShot(kBounceDurationMs + 1, this, &AboutInfoDialog::enableEffects);
         }
     }
     else
     {
-        m_curKeyIndex = 0;
+        m_keyIndex = 0;
     }
 
     event->accept();
@@ -316,14 +269,11 @@ bool AboutInfoDialog::eventFilter(QObject* watched, QEvent* event)
 
 void AboutInfoDialog::paintEvent(QPaintEvent* event)
 {
+    // WS_EX_LAYERED 下背景全透明会点击穿透到下层窗口，必须填充底色
     if(m_translucentBackground)
     {
-        // 防止 WS_EX_LAYERED + 全透明导致点击穿透到下层窗口
         QPainter painter(this);
-        if(m_effectsEnabled)
-            painter.fillRect(rect(), QColor(255, 255, 255, 1));
-        else
-            painter.fillRect(rect(), Qt::white);
+        painter.fillRect(rect(), m_effectsEnabled ? QColor(255, 255, 255, 1) : QColor(Qt::white));
     }
     QDialog::paintEvent(event);
 }
@@ -331,140 +281,30 @@ void AboutInfoDialog::paintEvent(QPaintEvent* event)
 bool AboutInfoDialog::nativeEvent(const QByteArray& eventType, void* message, long* result)
 {
 #ifdef Q_OS_WIN
-    if(!m_isWin10or11)
-        return false;
+    // QWidget::nativeEvent 的 eventType 在 Windows 上是 QPA 插件写死的常量，没有第二种取值，无需判断
+    Q_UNUSED(eventType);
 
-    if(eventType == "windows_generic_MSG")
+    // Win10 及以上的命中测试由 QWindowKit 处理；Win7 保留原生标题栏与系统帧，
+    // 这里只把客户区补成拖动区（标题栏与边框不在 rect() 内，交回系统处理）
+    if(m_winVersion == WindowsVersion::Win7)
     {
         MSG* msg = static_cast<MSG*>(message);
-        if(msg->message == WM_NCCALCSIZE)
-        {
-            if(msg->wParam == TRUE)
-            {
-                // 整窗声明为客户区，WS_CAPTION 标题栏不渲染，但其 DWM 坐标系对齐仍生效
-                *result = 0;
-                return true;
-            }
-        }
-        else if(msg->message == WM_NCHITTEST)
+        if(msg->message == WM_NCHITTEST)
         {
             // GET_X/Y_LPARAM 正确处理多显示器负坐标，不可用 LOWORD/HIWORD 替代
             const int xPos = GET_X_LPARAM(msg->lParam);
             const int yPos = GET_Y_LPARAM(msg->lParam);
-
-            // 放行按钮区域以免被 HTCAPTION 覆盖
             const QPoint clientPos = mapFromGlobal((QPointF(xPos, yPos) / windowHandle()->devicePixelRatio()).toPoint());
-            QWidget* child = childAt(clientPos);
-            if(child && qobject_cast<QPushButton*>(child))
-                return false;
-
-            // 边缘检测用 Win32 屏幕坐标（Qt 无法感知 WS_THICKFRAME 边框区域）
-            RECT wr;
-            GetWindowRect(reinterpret_cast<HWND>(winId()), &wr);
-            const int hitMargin = qRound(BLUR_RADIUS * windowHandle()->devicePixelRatio());
-            const int rx = xPos - wr.left;
-            const int ry = yPos - wr.top;
-            const int ww = wr.right - wr.left;
-            const int wh = wr.bottom - wr.top;
-
-            const bool onLeft = rx <= hitMargin;
-            const bool onRight = rx >= ww - hitMargin;
-            const bool onTop = ry <= hitMargin;
-            const bool onBottom = ry >= wh - hitMargin;
-
-            if(onTop && onLeft)
+            if(rect().contains(clientPos))
             {
-                *result = HTTOPLEFT;
+                *result = HTCAPTION;
                 return true;
             }
-            if(onTop && onRight)
-            {
-                *result = HTTOPRIGHT;
-                return true;
-            }
-            if(onBottom && onLeft)
-            {
-                *result = HTBOTTOMLEFT;
-                return true;
-            }
-            if(onBottom && onRight)
-            {
-                *result = HTBOTTOMRIGHT;
-                return true;
-            }
-            if(onTop)
-            {
-                *result = HTTOP;
-                return true;
-            }
-            if(onBottom)
-            {
-                *result = HTBOTTOM;
-                return true;
-            }
-            if(onLeft)
-            {
-                *result = HTLEFT;
-                return true;
-            }
-            if(onRight)
-            {
-                *result = HTRIGHT;
-                return true;
-            }
-
-            *result = HTCAPTION; // 剩余区域均可拖动
-            return true;
         }
     }
 #endif
     return false;
 }
-
-#ifdef Q_OS_WIN
-
-enum AccentState
-{
-    ACCENT_DISABLED = 0,
-    ACCENT_ENABLE_GRADIENT = 1,
-    ACCENT_ENABLE_TRANSPARENTGRADIENT = 2,
-    ACCENT_ENABLE_BLURBEHIND = 3,
-    ACCENT_ENABLE_ACRYLICBLURBEHIND = 4,
-    ACCENT_ENABLE_HOST_BACKDROP = 5,
-    ACCENT_INVALID_STATE = 6
-};
-
-struct AccentPolicy
-{
-    AccentState AccentState;
-    int AccentFlags;
-    int GradientColor;
-    int AnimationId;
-};
-
-struct WindowCompositionAttributeData
-{
-    int Attribute;
-    PVOID Data;
-    ULONG DataSize;
-};
-
-typedef BOOL(WINAPI* pSetWindowCompositionAttribute)(HWND, WindowCompositionAttributeData*);
-
-enum DWM_SYSTEMBACKDROP_TYPE
-{
-    DWMSBT_AUTO = 0,
-    DWMSBT_NONE = 1,
-    DWMSBT_MAINWINDOW = 2,
-    DWMSBT_TRANSIENTWINDOW = 3,
-    DWMSBT_TABBEDWINDOW = 4
-};
-
-const DWORD DWMWA_SYSTEMBACKDROP_TYPE = 38;
-const DWORD DWMWA_MICA_EFFECT = 1029;
-
-typedef HRESULT(WINAPI* pDwmSetWindowAttribute)(HWND, DWORD, LPCVOID, DWORD);
-#endif
 
 void AboutInfoDialog::enableEffects()
 {
@@ -483,210 +323,139 @@ void AboutInfoDialog::enableEffects()
         animation->setEndValue(0.0);
         animation->start(QAbstractAnimation::DeleteWhenStopped);
         connect(animation, &QAbstractAnimation::finished, widget, &QWidget::hide);
-
-        static bool firstEntered = true;
-        if(firstEntered)
-        {
-            connect(animation, &QAbstractAnimation::finished, this,
-                    [this]()
+        connect(animation, &QAbstractAnimation::finished, this,
+                [this]()
+                {
+                    // 文字隐藏后补一个弹簧，避免剩余纵向空间被重新分摊
+                    if(!m_stretchAdded)
                     {
                         outerLayout->addStretch();
-                    });
-            firstEntered = false;
-        }
+                        m_stretchAdded = true;
+                    }
+                });
     };
     animateWidgetFadeOut(titleLabel);
     animateWidgetFadeOut(subtitleLabel);
     animateWidgetFadeOut(contentLabel);
-    enableBackgroundBlurEffect();
+    enableBackdrop();
 }
 
-void AboutInfoDialog::enableBackgroundBlurEffect()
+void AboutInfoDialog::enableBackdrop()
 {
 #ifdef Q_OS_WIN
-    if(m_isWin10or11)
-    {
-        HWND hwnd = reinterpret_cast<HWND>(winId());
-
-        // 通过 DwmSetWindowAttribute 设置 Win11 原生材料
-        auto dwmSetAttr = [hwnd](DWORD attr, LPCVOID data, DWORD size)
-        {
-            static pDwmSetWindowAttribute fn = nullptr;
-            if(!fn)
-            {
-                HMODULE hMod = GetModuleHandleW(L"dwmapi.dll");
-                if(hMod)
-                    fn = reinterpret_cast<pDwmSetWindowAttribute>(reinterpret_cast<void*>(GetProcAddress(hMod, "DwmSetWindowAttribute")));
-            }
-            if(fn)
-                fn(hwnd, attr, data, size);
-        };
-
-        // 通过 SetWindowCompositionAttribute 设置 Blur（Win10/Win11 通用）
-        auto setWindowComposition = [this](AccentState effectState)
-        {
-            HWND hwnd = reinterpret_cast<HWND>(winId());
-            static pSetWindowCompositionAttribute fn = nullptr;
-            if(!fn)
-            {
-                HMODULE hMod = GetModuleHandleW(L"user32.dll");
-                if(hMod)
-                    fn = reinterpret_cast<pSetWindowCompositionAttribute>(
-                        reinterpret_cast<void*>(GetProcAddress(hMod, "SetWindowCompositionAttribute")));
-            }
-            if(fn)
-            {
-                AccentPolicy policy = {effectState, 2, 0x01FFFFFF, 0};
-                WindowCompositionAttributeData data = {19, &policy, sizeof(policy)};
-                fn(hwnd, &data);
-            }
-        };
-
-        // 为 Win11 原生材料扩展 DWM 绘制区域
-        auto extendMargins = [hwnd]()
-        {
-            static const MARGINS margins = {65536, 0, 0, 0};
-            DwmExtendFrameIntoClientArea(hwnd, &margins);
-        };
-
-        if(m_isWin11)
-        {
-            // Win11：Acrylic / Mica / MicaAlt / Blur 按钮组
-            QPushButton* acrylicButton = new QPushButton(this);
-            QPushButton* micaButton = new QPushButton(this);
-            QPushButton* blurButton = new QPushButton(this);
-            acrylicButton->setObjectName("acrylicButton");
-            micaButton->setObjectName("micaButton");
-            blurButton->setObjectName("blurButton");
-            acrylicButton->setText("Acrylic");
-            micaButton->setText("Mica");
-            blurButton->setText("Blur");
-            acrylicButton->setCheckable(true);
-            micaButton->setCheckable(true);
-            blurButton->setCheckable(true);
-            acrylicButton->setSizePolicy({QSizePolicy::Policy::Fixed, QSizePolicy::Policy::Fixed});
-            micaButton->setSizePolicy({QSizePolicy::Policy::Fixed, QSizePolicy::Policy::Fixed});
-            blurButton->setSizePolicy({QSizePolicy::Policy::Fixed, QSizePolicy::Policy::Fixed});
-            acrylicButton->setFocusPolicy(Qt::ClickFocus);
-            micaButton->setFocusPolicy(Qt::ClickFocus);
-            blurButton->setFocusPolicy(Qt::ClickFocus);
-
-            QButtonGroup* group = new QButtonGroup(this);
-
-            // 按钮顺序：Acrylic, Mica, (MicaAlt), Blur
-            titleBarLayout->insertWidget(0, acrylicButton);
-            titleBarLayout->insertWidget(1, micaButton);
-            group->addButton(acrylicButton, 1);
-            group->addButton(micaButton, 2);
-
-            QPushButton* micaAltButton = nullptr;
-            if(m_gtWin11_22H2)
-            {
-                micaAltButton = new QPushButton(this);
-                micaAltButton->setObjectName("micaAltButton");
-                micaAltButton->setText("MicaAlt");
-                micaAltButton->setCheckable(true);
-                micaAltButton->setSizePolicy({QSizePolicy::Policy::Fixed, QSizePolicy::Policy::Fixed});
-                micaAltButton->setFocusPolicy(Qt::ClickFocus);
-                titleBarLayout->insertWidget(2, micaAltButton);
-                group->addButton(micaAltButton, 3);
-            }
-
-            titleBarLayout->insertWidget(m_gtWin11_22H2 ? 3 : 2, blurButton);
-            group->addButton(blurButton, m_gtWin11_22H2 ? 4 : 3);
-            acrylicButton->setChecked(true);
-
-            // Acrylic — 通过 DWMWA_SYSTEMBACKDROP_TYPE
-            connect(acrylicButton, &QPushButton::clicked, this,
-                    [extendMargins, dwmSetAttr](bool checked)
-                    {
-                        if(checked)
-                        {
-                            extendMargins();
-                            const DWM_SYSTEMBACKDROP_TYPE type = DWMSBT_TRANSIENTWINDOW;
-                            dwmSetAttr(DWMWA_SYSTEMBACKDROP_TYPE, &type, sizeof(type));
-                        }
-                    });
-
-            // Mica — 22H2 用 DWMWA_SYSTEMBACKDROP_TYPE，旧版用 DWMWA_MICA_EFFECT
-            connect(micaButton, &QPushButton::clicked, this,
-                    [this, extendMargins, dwmSetAttr](bool checked)
-                    {
-                        if(checked)
-                        {
-                            extendMargins();
-                            if(m_gtWin11_22H2)
-                            {
-                                const DWM_SYSTEMBACKDROP_TYPE type = DWMSBT_MAINWINDOW;
-                                dwmSetAttr(DWMWA_SYSTEMBACKDROP_TYPE, &type, sizeof(type));
-                            }
-                            else
-                            {
-                                const BOOL enable = TRUE;
-                                dwmSetAttr(DWMWA_MICA_EFFECT, &enable, sizeof(enable));
-                            }
-                        }
-                    });
-
-            // MicaAlt — 22H2+ 通过 DWMWA_SYSTEMBACKDROP_TYPE
-            if(micaAltButton)
-            {
-                connect(micaAltButton, &QPushButton::clicked, this,
-                        [extendMargins, dwmSetAttr](bool checked)
-                        {
-                            if(checked)
-                            {
-                                extendMargins();
-                                const DWM_SYSTEMBACKDROP_TYPE type = DWMSBT_TABBEDWINDOW;
-                                dwmSetAttr(DWMWA_SYSTEMBACKDROP_TYPE, &type, sizeof(type));
-                            }
-                        });
-            }
-
-            // Blur — 沿用 SetWindowCompositionAttribute
-            connect(blurButton, &QPushButton::clicked, this,
-                    [setWindowComposition](bool checked)
-                    {
-                        if(checked)
-                            setWindowComposition(ACCENT_ENABLE_BLURBEHIND);
-                    });
-
-            // 默认选中 Acrylic
-            extendMargins();
-            const DWM_SYSTEMBACKDROP_TYPE defaultType = DWMSBT_TRANSIENTWINDOW;
-            dwmSetAttr(DWMWA_SYSTEMBACKDROP_TYPE, &defaultType, sizeof(defaultType));
-        }
-        else
-        {
-            // Win10：仅 Blur，不创建切换按钮
-            setWindowComposition(ACCENT_ENABLE_BLURBEHIND);
-        }
-        return;
-    }
-    else if(m_isWin7)
+    // Win7：原生标题栏与系统帧保留，把 DWM 帧扩展到整个客户区，得到全窗 Aero 玻璃
+    if(m_winVersion == WindowsVersion::Win7)
     {
         HWND hwnd = reinterpret_cast<HWND>(winId());
         BOOL dwmEnabled = FALSE;
         if(SUCCEEDED(DwmIsCompositionEnabled(&dwmEnabled)) && dwmEnabled)
         {
-            MARGINS margins = {-1, -1, -1, -1};
+            const MARGINS margins = {-1, -1, -1, -1};
             DwmExtendFrameIntoClientArea(hwnd, &margins);
         }
         return;
     }
+
+    // Win11：Acrylic / Mica / MicaAlt / Blur 按钮组
+    if(m_winVersion >= WindowsVersion::Win11)
+    {
+        auto* acrylicButton = new QPushButton(this);
+        auto* micaButton = new QPushButton(this);
+        auto* blurButton = new QPushButton(this);
+        acrylicButton->setObjectName("acrylicButton");
+        micaButton->setObjectName("micaButton");
+        blurButton->setObjectName("blurButton");
+        acrylicButton->setText("Acrylic");
+        micaButton->setText("Mica");
+        blurButton->setText("Blur");
+        for(QPushButton* button : {acrylicButton, micaButton, blurButton})
+        {
+            button->setCheckable(true);
+            button->setSizePolicy({QSizePolicy::Policy::Fixed, QSizePolicy::Policy::Fixed});
+            button->setFocusPolicy(Qt::ClickFocus);
+        }
+
+        QButtonGroup* group = new QButtonGroup(this);
+
+        // 按钮顺序：Acrylic, Mica, (MicaAlt), Blur
+        titleBarLayout->insertWidget(0, acrylicButton);
+        titleBarLayout->insertWidget(1, micaButton);
+        group->addButton(acrylicButton, 1);
+        group->addButton(micaButton, 2);
+
+        // MicaAlt 从 Win11 22H2 起提供
+        const bool hasMicaAlt = m_winVersion >= WindowsVersion::Win11_22H2;
+        QPushButton* micaAltButton = nullptr;
+        if(hasMicaAlt)
+        {
+            micaAltButton = new QPushButton(this);
+            micaAltButton->setObjectName("micaAltButton");
+            micaAltButton->setText("MicaAlt");
+            micaAltButton->setCheckable(true);
+            micaAltButton->setSizePolicy({QSizePolicy::Policy::Fixed, QSizePolicy::Policy::Fixed});
+            micaAltButton->setFocusPolicy(Qt::ClickFocus);
+            titleBarLayout->insertWidget(2, micaAltButton);
+            group->addButton(micaAltButton, 3);
+        }
+
+        titleBarLayout->insertWidget(hasMicaAlt ? 3 : 2, blurButton);
+        group->addButton(blurButton, hasMicaAlt ? 4 : 3);
+        acrylicButton->setChecked(true);
+
+        // 材质按钮必须登记为可命中，否则会被整窗拖动区吞掉点击
+        windowAgent->setHitTestVisible(acrylicButton, true);
+        windowAgent->setHitTestVisible(micaButton, true);
+        windowAgent->setHitTestVisible(blurButton, true);
+        if(micaAltButton)
+            windowAgent->setHitTestVisible(micaAltButton, true);
+
+        const auto connectBackdrop = [this](QPushButton* button, const QString& key)
+        {
+            connect(button, &QPushButton::clicked, this,
+                    [this, key](bool checked)
+                    {
+                        if(checked)
+                            setBackdrop(key);
+                    });
+        };
+        connectBackdrop(acrylicButton, QStringLiteral("acrylic-material"));
+        connectBackdrop(micaButton, QStringLiteral("mica"));
+        if(micaAltButton)
+            connectBackdrop(micaAltButton, QStringLiteral("mica-alt"));
+        connectBackdrop(blurButton, QStringLiteral("dwm-blur"));
+
+        setBackdrop(QStringLiteral("acrylic-material"));
+        return;
+    }
+
+    // Win10：只用 Blur。Win10 的 ACCENT_ENABLE_ACRYLICBLURBEHIND 存在性能缺陷：高轮询率鼠标
+    // （250Hz 及以上）移动或调整窗口大小时，后台合成/渲染在高频输入下形成瓶颈，窗口响应延迟
+    // 甚至出现"幽灵光标"——鼠标释放后窗口仍持续移动，仿佛在消化积压的事件队列。
+    if(m_winVersion == WindowsVersion::Win10)
+        setBackdrop(QStringLiteral("dwm-blur"));
 #endif
-    // 不符合要求的Windows和其它系统什么也不做
 }
 
-void AboutInfoDialog::windowBounce(int dx, int dy, int duration_ms)
+void AboutInfoDialog::setBackdrop(const QString& key)
 {
-    QPoint startPos = pos();
-    QPoint endPos(startPos.x() + dx, startPos.y() + dy);
-    QPropertyAnimation* animation = new QPropertyAnimation(this, "pos");
-    animation->setDuration(duration_ms);
-    animation->setStartValue(startPos);
-    animation->setKeyValueAt(0.5, endPos);
-    animation->setEndValue(startPos);
-    animation->setEasingCurve(QEasingCurve::OutInCirc);
-    animation->start(QPropertyAnimation::DeleteWhenStopped);
+    // 四个材质键互斥，先清掉其余键再设置目标键
+    static const QStringList backdropKeys = {QStringLiteral("dwm-blur"), QStringLiteral("acrylic-material"), QStringLiteral("mica"),
+                                             QStringLiteral("mica-alt")};
+    for(const QString& backdropKey : backdropKeys)
+        windowAgent->setWindowAttribute(backdropKey, false);
+    windowAgent->setWindowAttribute(key, true);
+}
+
+void AboutInfoDialog::windowBounce(int dx, int dy)
+{
+    // 落点：一段弹跳结束后才重新记录，连按期间终点保持不变，窗口最终回到起跳前的位置
+    if(m_bounceAnimation->state() != QAbstractAnimation::Running)
+        m_bounceHome = pos();
+    // 起点与峰值都相对当前位置：连按时从当前位置续接，弹幅在上一段的基础上叠加
+    const QPoint origin = pos();
+    m_bounceAnimation->stop();
+    m_bounceAnimation->setStartValue(origin);
+    m_bounceAnimation->setKeyValueAt(0.5, origin + QPoint(dx, dy));
+    m_bounceAnimation->setEndValue(m_bounceHome);
+    m_bounceAnimation->start();
 }

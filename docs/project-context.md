@@ -64,7 +64,7 @@
 - QWindowKit：
   - 必须预先 `add_subdirectory` 到浅目录 `${CMAKE_BINARY_DIR}/qwindowkit`，避免深路径生成的私有 forwarding header 相对路径过长。
   - `QWINDOWKIT_INSTALL ON` 才能通过 CMake export 校验。
-- 主程序链接：Qt Core/Gui/Widgets、FluentUI3Style、ExWidgets::ExWidgets、Frameless::Frameless、dwmapi。
+- 主程序链接：Qt Core/Gui/Widgets、FluentUI3Style、ExWidgets::ExWidgets、Frameless::Frameless、QWindowKit::Widgets、dwmapi。
 
 ## 5. 样式
 
@@ -73,7 +73,7 @@
 - 全局视觉统一走 FluentUI3Style。
 - `QGroupBox` 的圆角细线边框与标题由样式库的 `PE_FrameGroupBox` / `SH_GroupBox_TextLabelColor` 绘制，需要这种边框时直接用标准 `QGroupBox`，不要自行绘制。
 - `AboutInfoDialog` 是整体独立定制的对话框，其局部 QSS 属该对话框自身的完整定制，与主界面样式不冲突。
-- `AboutInfoDialog` 当前保留手写 DWM/无边框标题栏逻辑；已链接 Frameless::Frameless 但尚未切换，迁移到 `FluentTitleBar`/`FluentWindowFrame` 是单独待办。
+- `AboutInfoDialog` 在 Win10 及以上用 QWindowKit 的 `QWK::WidgetWindowAgent` 实现无边框窗口，整窗拖动、边缘缩放、DWM 帧扩展与窗口材质全部由它接管；Win7 保留原生标题栏、系统帧与 Aero 玻璃，只在客户区补拖动。`Frameless::Frameless` 的 `FluentTitleBar`/`FluentWindowFrame` 只接受 `QMainWindow*`，对话框窗口用不上。
 
 ## 6. UI 现状
 

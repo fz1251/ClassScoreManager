@@ -10,6 +10,12 @@
 #include <QVBoxLayout>
 
 class LineSpacedLabel;
+class QPropertyAnimation;
+
+namespace QWK
+{
+class WidgetWindowAgent;
+}
 
 class AboutInfoDialog : public QDialog
 {
@@ -28,8 +34,10 @@ private slots:
     void enableEffects();
 
 private:
-    void enableBackgroundBlurEffect();
-    void windowBounce(int dx, int dy, int duration_ms = 350);
+    void createFramelessTitleBar();
+    void enableBackdrop();
+    void setBackdrop(const QString& key);
+    void windowBounce(int dx, int dy);
 
     // 界面元素指针：构造函数中统一创建，供其他成员函数访问
     QVBoxLayout* outerLayout = nullptr;
@@ -37,6 +45,7 @@ private:
     QLabel* subtitleLabel = nullptr;
     LineSpacedLabel* contentLabel = nullptr;
     QHBoxLayout* titleBarLayout = nullptr;
+    QWK::WidgetWindowAgent* windowAgent = nullptr;
 
     // 关闭按钮的 Normal/Hover 图标，eventFilter 中切换
     QIcon m_closeIconNormal;
@@ -44,15 +53,26 @@ private:
     // 启用特效的按键序列
     static const inline QVector<int> m_keySequence = {Qt::Key_Up,   Qt::Key_Up,   Qt::Key_Down,  Qt::Key_Down,
                                                       Qt::Key_Left, Qt::Key_Left, Qt::Key_Right, Qt::Key_Right};
+    // 按键序列当前匹配到的位置
+    int m_keyIndex = 0;
     // 是否已启用特效标识
     bool m_effectsEnabled = false;
     // 是否已启用背景透明标识
     bool m_translucentBackground = false;
-    // 系统版本标识
-    bool m_isWin7 = false;
-    bool m_isWin10or11 = false;
-    bool m_isWin11 = false;
-    bool m_gtWin11_22H2 = false;
-    // 8 = SM_CXFRAME 或 SM_CYFRAME(4) + SM_CXPADDEDBORDER(4)，用作 WM_NCHITTEST 边缘检测的缩放边界厚度
-    static const inline int BLUR_RADIUS = 8;
+    // 文字淡出后是否已为外层布局补过弹簧
+    bool m_stretchAdded = false;
+    // 系统版本：按发布顺序排列，用 >= 比较表达"某某及以上"
+    // 非 Windows、Win7 之前与 Win8/8.1 都归入 Unadapted，沿用 Qt 默认对话框
+    enum class WindowsVersion
+    {
+        Unadapted,
+        Win7,
+        Win10,
+        Win11,
+        Win11_22H2,
+    };
+    WindowsVersion m_winVersion = WindowsVersion::Unadapted;
+    // 方向键弹跳动画：连按时以当前位置为起点重新起跳，落点固定为一段弹跳结束时的位置
+    QPropertyAnimation* m_bounceAnimation = nullptr;
+    QPoint m_bounceHome;
 };

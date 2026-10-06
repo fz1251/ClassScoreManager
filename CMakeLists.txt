@@ -142,6 +142,7 @@ target_link_libraries(ClassScoreManager PRIVATE
     FluentUI3Style
     ExWidgets::ExWidgets
     Frameless::Frameless
+    QWindowKit::Widgets
 )
 
 if(WIN32)

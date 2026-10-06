@@ -56,9 +56,11 @@ FluentUIStyle 的 CMake 需要 `Qt5Svg`（或 Qt6 的 Svg 组件）。当前自�
       FluentUI3Style
       ExWidgets::ExWidgets
       Frameless::Frameless
+      QWindowKit::Widgets
   )
   ```
-- `AboutInfoDialog` 当前使用自己的手写 DWM 无边框标题栏实现；`Frameless::Frameless` 已构建并链接，但该对话框尚未改用它。
+- 主程序直接使用 QWindowKit 的 `QWK::WidgetWindowAgent`（`#include <QWKWidgets/widgetwindowagent.h>`）：`AboutInfoDialog` 在 Win10 及以上以它实现无边框窗口，整窗拖动、边缘缩放、DWM 帧扩展与窗口材质全部由它接管，因此 CMake 中除 `Frameless::Frameless` 外还显式链接 `QWindowKit::Widgets`。
+- `Frameless::Frameless` 的 `FluentTitleBar` / `FluentWindowFrame` 只接受 `QMainWindow*`，对话框类窗口不能使用该门面。
 - 对话框统一走 `ExContentDialog`：确认框用 `setContent` + 主副按钮，列表选择框用 `setContentWidget` 承载下拉框。头文件写作 `#include "excontentdialog.h"`。
 - 提示信息统一走 `ExInfoBar`：`MainWindow` 构造函数用 `ExInfoBarHost::setDefaultTarget(centralWidget)` 设定通知宿主，各处通过 `MainWindow::showNotification()` 弹出窗口级通知条；严重级别按「文件读写等操作失败 → `Error`、输入校验不通过 → `Warning`、操作完成 → `Success`、状态说明 → `Informational`」选取。头文件写作 `#include "exinfobarhost.h"`。
 
