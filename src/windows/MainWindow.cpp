@@ -14,6 +14,7 @@
 #include "../pages/StudentTableSidebar.h"
 #include "../pages/TemplateListPage.h"
 #include "../pages/WelcomePage.h"
+#include "../widgets/ScoreTableView.h"
 #include "AboutInfoDialog.h"
 #include "GroupNumberDialog.h"
 #include "ItemSelectionDialog.h"
@@ -40,6 +41,7 @@
 #include <QSizePolicy>
 #include <QStackedWidget>
 #include <QStatusBar>
+#include <QStringList>
 #include <QTabBar>
 #include <QTableView>
 #include <QTextStream>
@@ -107,9 +109,10 @@ MainWindow::MainWindow(QWidget* parent)
     searchModel = new StudentSearchModel(manager, this);
     studentTablePage->sidebar()->setStudentSearchModel(searchModel);
 
-    // 表格单元格委托
+    // 表格单元格委托：两个积分列支持输入即编辑与回车进入编辑
     tableView->setItemDelegateForColumn(ClassTableModel::CurrentRecord, new ScoreExprDelegate(this));
     tableView->setItemDelegateForColumn(ClassTableModel::ScoreTemplatePreview, new TemplateSpinBoxDelegate(this));
+    tableView->setInlineEditColumns({ClassTableModel::CurrentRecord, ClassTableModel::ScoreTemplatePreview});
 
     // 小组号列不可原地编辑，双击弹出设置小组对话框，与小组管理页共用同一个入口
     connect(tableView, &QTableView::doubleClicked, this, &MainWindow::editStudentGroup);

@@ -3,7 +3,7 @@
 #include <QWidget>
 
 class DragAutoScroller;
-class QTableView;
+class ScoreTableView;
 class StudentTableSidebar;
 
 class StudentTablePage : public QWidget
@@ -13,7 +13,7 @@ class StudentTablePage : public QWidget
 public:
     explicit StudentTablePage(QWidget* parent = nullptr);
 
-    QTableView* tableView() const;
+    ScoreTableView* tableView() const;
     StudentTableSidebar* sidebar() const;
 
 protected:
@@ -21,7 +21,7 @@ protected:
 
 private:
     // 界面元素指针：构造函数中统一创建，供其他成员函数访问
-    QTableView* m_tableView = nullptr;
+    ScoreTableView* m_tableView = nullptr;
     StudentTableSidebar* m_sidebar = nullptr;
     DragAutoScroller* m_dragAutoScroller = nullptr;
 };

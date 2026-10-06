@@ -42,6 +42,7 @@ src/
 │   ├── HomeActionCard.h/.cpp   # 欢迎页操作卡片
 │   ├── LineSpacedLabel.h/.cpp  # 可调节行距标签
 │   ├── OkCancelBox.h/.cpp      # 对话框底部的确定/取消按钮组
+│   ├── ScoreTableView.h/.cpp   # 学生表格视图：积分列的输入即编辑、回车进入编辑、提交后移到下一行同列
 │   ├── ShineLabel.h/.cpp       # 发光标题标签
 │   ├── StudentCard.h/.cpp      # 学生胶囊卡片：悬停动效、拖动（略放大的缩略图）、单击改组号
 │   └── UngroupedPanel.h/.cpp   # 未分组面板：单列卡片与毛玻璃取消分组蒙版
@@ -64,7 +65,7 @@ flowchart TD
     RecordModel[RecordListModel 记录列表模型]
     TemplateModel[TemplateListModel 模板列表模型]
     StudentPage[StudentTablePage]
-    TableView[QTableView 学生表格]
+    TableView[ScoreTableView 学生表格]
     Sidebar[StudentTableSidebar 侧栏]
     GroupPage[GroupBoardPage 小组管理页]
     Ungrouped[UngroupedPanel 未分组面板]

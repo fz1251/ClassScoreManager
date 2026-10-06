@@ -1,12 +1,12 @@
 #include "StudentTablePage.h"
 
 #include "../widgets/DragAutoScroller.h"
+#include "../widgets/ScoreTableView.h"
 #include "StudentTableSidebar.h"
 
 #include <QAbstractItemView>
 #include <QEvent>
 #include <QSplitter>
-#include <QTableView>
 #include <QVBoxLayout>
 
 namespace
@@ -29,7 +29,7 @@ StudentTablePage::StudentTablePage(QWidget* parent)
     rootLayout->addWidget(splitter);
 
     // 学生表格：支持内部拖动排序与整行选择
-    m_tableView = new QTableView(splitter);
+    m_tableView = new ScoreTableView(splitter);
     m_tableView->setMinimumWidth(320);
     m_tableView->setAcceptDrops(true);
     m_tableView->setDragEnabled(true);
@@ -38,8 +38,8 @@ StudentTablePage::StudentTablePage(QWidget* parent)
     m_tableView->setDefaultDropAction(Qt::MoveAction);
     m_tableView->setSelectionMode(QAbstractItemView::SingleSelection);
     m_tableView->setSelectionBehavior(QAbstractItemView::SelectRows);
-    // 选中单元格后直接敲键盘不再进入编辑，避免误覆盖内容；双击或按 F2/回车才编辑
-    m_tableView->setEditTriggers(QAbstractItemView::DoubleClicked | QAbstractItemView::EditKeyPressed);
+    // 输入即编辑只对积分列放行（见 ScoreTableView::setInlineEditColumns），其余列只能双击或按 F2 编辑
+    m_tableView->setEditTriggers(QAbstractItemView::DoubleClicked | QAbstractItemView::EditKeyPressed | QAbstractItemView::AnyKeyPressed);
     splitter->addWidget(m_tableView);
 
     // 表格滚动：按像素滚动；右侧滚动条不显示，滚动交给滚轮与拖动时的边缘自动滚动
@@ -56,7 +56,7 @@ StudentTablePage::StudentTablePage(QWidget* parent)
     splitter->addWidget(m_sidebar);
 }
 
-QTableView* StudentTablePage::tableView() const
+ScoreTableView* StudentTablePage::tableView() const
 {
     return m_tableView;
 }

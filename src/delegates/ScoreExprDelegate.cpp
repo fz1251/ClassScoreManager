@@ -3,8 +3,10 @@
 #include "exinfobar.h"
 #include "exinfobarhost.h"
 
+#include <QLineEdit>
 #include <QRegularExpression>
 #include <QRegularExpressionValidator>
+#include <QStringList>
 
 ScoreParseResult parseScoreExpression(const QString& expr)
 {
@@ -51,11 +53,6 @@ QWidget* ScoreExprDelegate::createEditor(QWidget* parent, const QStyleOptionView
     // 设置正则表达式验证器，父对象取行编辑本身，随编辑器一起销毁
     lineEdit->setValidator(new QRegularExpressionValidator(QRegularExpression(scoreRegExpStr), lineEdit));
     return lineEdit;
-}
-
-void ScoreExprDelegate::setEditorData(QWidget* editor, const QModelIndex& index) const
-{
-    static_cast<QLineEdit*>(editor)->setText(index.model()->data(index).toString());
 }
 
 void ScoreExprDelegate::setModelData(QWidget* editor, QAbstractItemModel* model, const QModelIndex& index) const

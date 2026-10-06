@@ -1,8 +1,6 @@
 #pragma once
 
-#include <QLineEdit>
 #include <QString>
-#include <QStringList>
 #include <QStyledItemDelegate>
 
 // 解析结果结构体
@@ -20,7 +18,6 @@ class ScoreExprDelegate : public QStyledItemDelegate
 public:
     ScoreExprDelegate(QObject* parent = nullptr);
     QWidget* createEditor(QWidget* parent, const QStyleOptionViewItem& option, const QModelIndex& index) const override;
-    void setEditorData(QWidget* editor, const QModelIndex& index) const override;
     void setModelData(QWidget* editor, QAbstractItemModel* model, const QModelIndex& index) const override;
 
 private:

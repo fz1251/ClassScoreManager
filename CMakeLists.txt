@@ -71,6 +71,7 @@ set(APP_SOURCES
     src/widgets/LineSpacedLabel.cpp
     src/windows/MainWindow.cpp
     src/widgets/OkCancelBox.cpp
+    src/widgets/ScoreTableView.cpp
     src/widgets/ShineLabel.cpp
     src/widgets/StudentCard.cpp
     src/windows/SumExportDialog.cpp
@@ -105,6 +106,7 @@ set(APP_HEADERS
     src/widgets/LineSpacedLabel.h
     src/windows/MainWindow.h
     src/widgets/OkCancelBox.h
+    src/widgets/ScoreTableView.h
     src/widgets/ShineLabel.h
     src/widgets/StudentCard.h
     src/windows/SumExportDialog.h
