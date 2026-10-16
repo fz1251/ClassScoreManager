@@ -27,7 +27,7 @@
 #include <QAction>
 #include <QDateTime>
 #include <QDir>
-#include <QFile>
+#include <QEventLoop>
 #include <QFileDialog>
 #include <QFileInfo>
 #include <QHBoxLayout>
@@ -38,14 +38,21 @@
 #include <QMenuBar>
 #include <QMessageBox>
 #include <QPushButton>
+#include <QSaveFile>
 #include <QSizePolicy>
 #include <QStackedWidget>
 #include <QStatusBar>
 #include <QStringList>
 #include <QTabBar>
 #include <QTableView>
-#include <QTextStream>
+#include <QTimer>
 #include <algorithm>
+
+namespace
+{
+// ExInfoBar 的入场动画约 400ms：同步写入期间事件循环停转，提示必须先完整画出来
+constexpr int kNoticeAnimationMs = 400;
+} // namespace
 
 MainWindow::MainWindow(QWidget* parent)
     : QMainWindow(parent)
@@ -662,24 +669,33 @@ void MainWindow::exportScoreSum(const QVector<int>& recordIndices)
     QString fileName = QFileDialog::getSaveFileName(this, tr("保存生成的文档"), QDir::currentPath(), tr("HTML Document (*.html)"));
     if(fileName.isEmpty())
         return;
-    QFile file(fileName);
+    const SortSettings curMode = dialog.getCurrentConfig();
+    const QByteArray html = ScoreSumReport::generateHtmlString(dataList, curMode).toUtf8();
+
+    // 写入在 GUI 线程同步进行，U 盘主控卡顿时会阻塞在这里；先让常驻提示画完，用户才知道是在写而不是死机
+    ExInfoBar* writingBar = ExInfoBarHost::defaultHost()->showInfoBar(ExInfoBar::Informational, tr("正在写入文件"), tr("请不要拔出设备"),
+                                                                      ExInfoBarHost::BottomRight, 0);
+    QEventLoop noticeLoop;
+    QTimer::singleShot(kNoticeAnimationMs, &noticeLoop, &QEventLoop::quit);
+    noticeLoop.exec(QEventLoop::ExcludeUserInputEvents);
+
+    // 先写同目录的临时文件，commit 成功才替换目标文件，写失败时磁盘上的旧文件保持原样
+    QSaveFile file(fileName);
     if(!file.open(QIODevice::WriteOnly))
     {
+        writingBar->dismiss();
         showNotification(ExInfoBar::Error, tr("错误"), tr("无法写入文件"));
         return;
     }
-    SortSettings curMode = dialog.getCurrentConfig();
-    QTextStream stream(&file);
-    // 显式指定 UTF-8 编码，避免中文按本地代码页写出
-    stream.setCodec("UTF-8");
-    stream << ScoreSumReport::generateHtmlString(dataList, curMode);
-    file.close();
-    if(file.error() != QFile::NoError || stream.status() != QTextStream::Ok)
+    const bool written = file.write(html) == html.size() && file.commit();
+    writingBar->dismiss();
+    if(!written)
     {
         showNotification(ExInfoBar::Error, tr("错误"), tr("无法写入文件，请检查磁盘空间与路径"));
         return;
     }
     manager->setPreviousSettings(curMode);
+    showNotification(ExInfoBar::Success, tr("导出成功"), tr("积分求和结果已保存到 %1").arg(QFileInfo(fileName).fileName()));
 }
 
 void MainWindow::exportSelectedRecords()

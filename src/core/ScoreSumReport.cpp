@@ -1,10 +1,13 @@
 #include "ScoreSumReport.h"
 
+#include <QObject>
+#include <QStringList>
 #include <algorithm>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
-//前向声明
+// 文件内部实现
 namespace
 {
 using namespace ScoreSumReport;
@@ -71,11 +74,8 @@ void sortStudents(std::vector<StudentSumData>& students, SortSpec spec, bool byG
                   return orderKey(a, byGroupOrder) < orderKey(b, byGroupOrder);
               });
     int curRank = 1;
-    for(auto& i : students)
-    {
-        i.rank = curRank;
-        curRank++;
-    }
+    for(auto& studentData : students)
+        studentData.rank = curRank++;
     // 按照传入的排序规格进行排序
     std::sort(students.begin(), students.end(), getStudentComparator(spec, byGroupOrder));
 }
@@ -83,8 +83,8 @@ void sortStudents(std::vector<StudentSumData>& students, SortSpec spec, bool byG
 void sortGroups(std::vector<GroupSumData>& groups, SortSpec groupSpec, SortSpec stuSpec)
 {
     // 组内学生按小组中的编号定次序
-    for(auto& i : groups)
-        sortStudents(i.members, stuSpec, true);
+    for(auto& groupData : groups)
+        sortStudents(groupData.members, stuSpec, true);
     // 排名按小组总分降序，同分时按组号定序
     std::sort(groups.begin(), groups.end(),
               [](const GroupSumData& a, const GroupSumData& b)
@@ -94,63 +94,25 @@ void sortGroups(std::vector<GroupSumData>& groups, SortSpec groupSpec, SortSpec 
                   return a.number < b.number;
               });
     int curRank = 1;
-    for(auto& i : groups)
-    {
-        i.rank = curRank;
-        curRank++;
-    }
+    for(auto& groupData : groups)
+        groupData.rank = curRank++;
     // 按照传入的排序规格进行排序
     std::sort(groups.begin(), groups.end(), getGroupComparator(groupSpec));
 }
 
-namespace student
+// 去掉模板源码中只为人眼阅读的缩进与空行
+QString stripIndent(const QString& html)
 {
-QString generate(std::vector<StudentSumData> dataList, bool showStudentNumber = false);
-} // namespace student
-namespace group
-{
-QString generate(std::vector<GroupSumData> dataList, bool showStudentNumber = false);
-
-} // namespace group
-} // namespace anonymous
-
-namespace ScoreSumReport
-{
-QString generateHtmlString(QVector<SummaryData> dataList, SortSettings mode)
-{
-    if(mode.useGroupModeFlag)
-    {
-        std::unordered_map<qint32, GroupSumData> groupMap;
-        for(const auto& i : dataList)
-        {
-            GroupSumData& curData = groupMap[i.groupNo];
-            curData.members.push_back(StudentSumData{i.name, i.studentNo, i.groupOrder, i.totalScore, 0});
-            curData.number = i.groupNo;
-            curData.score += i.totalScore;
-        }
-        std::vector<GroupSumData> groupList;
-        groupList.reserve(groupMap.size());
-        for(const auto& pair : groupMap)
-            groupList.push_back(pair.second);
-        sortGroups(groupList, mode.groupSpec, mode.groupStuSpec);
-        return group::generate(groupList, mode.showStudentNumberFlag);
-    }
-    else
-    {
-        std::vector<StudentSumData> studentList;
-        studentList.reserve(dataList.size());
-        for(const auto& i : dataList)
-            studentList.push_back({i.name, i.studentNo, i.groupOrder, i.totalScore, 0});
-        sortStudents(studentList, mode.studentSpec);
-        return student::generate(studentList, mode.showStudentNumberFlag);
-    }
+    QStringList lines = html.split(QLatin1Char('\n'));
+    for(QString& line : lines)
+        line = line.trimmed();
+    lines.removeAll(QString());
+    return lines.join(QLatin1Char('\n'));
 }
-} // namespace ScoreSumReport
-namespace
-{
+
 namespace student
 {
-const QString HTMLTemplate = QStringLiteral(R"(
+const QString HTMLTemplate = stripIndent(QStringLiteral(R"(
 <!doctype html>
 <html lang="zh-CN">
 <head>
@@ -236,9 +198,9 @@ const QString HTMLTemplate = QStringLiteral(R"(
       font-weight: 400;
     }
 
-    .positive-number { color: #16a34a !important; }
+    .positive-number { color: #15803d !important; }
     .negative-number { color: #dc2626 !important; }
-    .zero-number     { color: #9ca3af !important; }
+    .zero-number     { color: #6b7280 !important; }
   </style>
 </head>
 <body>
@@ -248,8 +210,8 @@ const QString HTMLTemplate = QStringLiteral(R"(
   </div>
 </body>
 </html>
-)");
-const QString HTMLStudentItem = QStringLiteral(R"(
+)"));
+const QString HTMLStudentItem = stripIndent(QStringLiteral(R"(
 <div class="student-item">
 %4
   <div class="student-name">%1</div>
@@ -258,29 +220,28 @@ const QString HTMLStudentItem = QStringLiteral(R"(
     <span class="score-unit">分</span>
   </div>
 </div>
-)");
-const QString HTMLStudentNumber = QStringLiteral(R"(
+)"));
+const QString HTMLStudentNumber = stripIndent(QStringLiteral(R"(
 <span class="student-no">%1</span>
-)");
+)"));
 QString generate(std::vector<StudentSumData> dataList, bool showStudentNumber)
 {
     auto getSumTextClass = [](qint32 num) -> QString
     {
         if(num > 0)
             return "positive-number";
-        else if(num < 0)
+        if(num < 0)
             return "negative-number";
-        else
-            return "zero-number";
+        return "zero-number";
     };
 
     QString bodyContent;
-    for(const auto& i : dataList)
+    for(const auto& studentData : dataList)
     {
-        bodyContent += HTMLStudentItem.arg(i.name.toHtmlEscaped())
-                           .arg(i.score)
-                           .arg(getSumTextClass(i.score))
-                           .arg(showStudentNumber ? HTMLStudentNumber.arg(i.number) : "");
+        bodyContent += HTMLStudentItem.arg(studentData.name.toHtmlEscaped())
+                           .arg(studentData.score)
+                           .arg(getSumTextClass(studentData.score))
+                           .arg(showStudentNumber ? HTMLStudentNumber.arg(studentData.number) : "");
     }
     return HTMLTemplate.arg(bodyContent);
 }
@@ -288,7 +249,7 @@ QString generate(std::vector<StudentSumData> dataList, bool showStudentNumber)
 
 namespace group
 {
-const QString HTMLTemplate = QStringLiteral(R"(
+const QString HTMLTemplate = stripIndent(QStringLiteral(R"(
 <!doctype html>
 <html lang="zh-CN">
 <head>
@@ -301,7 +262,7 @@ const QString HTMLTemplate = QStringLiteral(R"(
     }
 
     body {
-      font-family: system-ui, -apple-system, "Microsoft YaHei", "PingFang SC", sans-serif;
+      font-family: system-ui, "Microsoft YaHei", "PingFang SC", sans-serif;
       background: #e8ecf1;
       margin: 20px;
       color: #333;
@@ -436,9 +397,9 @@ const QString HTMLTemplate = QStringLiteral(R"(
       flex-shrink: 0;
     }
 
-    .positive-number { color: #16a34a !important; }
+    .positive-number { color: #15803d !important; }
     .negative-number { color: #dc2626 !important; }
-    .zero-number     { color: #9ca3af !important; }
+    .zero-number     { color: #6b7280 !important; }
   </style>
 </head>
 <body>
@@ -447,8 +408,8 @@ const QString HTMLTemplate = QStringLiteral(R"(
   </div>
 </body>
 </html>
-)");
-const QString HTMLGroupCard = QStringLiteral(R"(
+)"));
+const QString HTMLGroupCard = stripIndent(QStringLiteral(R"(
 <div class="group-card">
   <div class="card-header">
     <div class="header-left">
@@ -463,8 +424,8 @@ const QString HTMLGroupCard = QStringLiteral(R"(
     </div>
   </div>
 </div>
-)");
-const QString HTMLStudentItem = QStringLiteral(R"(
+)"));
+const QString HTMLStudentItem = stripIndent(QStringLiteral(R"(
 <div class="stat-item">
 %4
   <div class="stat-head">%1</div>
@@ -473,44 +434,79 @@ const QString HTMLStudentItem = QStringLiteral(R"(
     <div class="stat-unit">分</div>
   </div>
 </div>
-)");
-const QString HTMLStudentNumber = QStringLiteral(R"(
+)"));
+const QString HTMLStudentNumber = stripIndent(QStringLiteral(R"(
 <span class="student-no">%1</span>
-)");
+)"));
 QString generate(std::vector<GroupSumData> dataList, bool showStudentNumber)
 {
     auto getGroupName = [](qint32 num) -> QString
     {
         if(num == StudentInfo::NoGroup)
             return QObject::tr("未分组");
-        else
-            return QObject::tr("%1组").arg(num);
+        return QObject::tr("%1组").arg(num);
     };
 
     auto getSumTextClass = [](qint32 num) -> QString
     {
         if(num > 0)
             return "positive-number";
-        else if(num < 0)
+        if(num < 0)
             return "negative-number";
-        else
-            return "zero-number";
+        return "zero-number";
     };
 
     QString HTMLBody, groupContent;
-    for(const auto& i : dataList)
+    for(const auto& groupData : dataList)
     {
-        for(const auto& j : i.members)
+        for(const auto& member : groupData.members)
         {
-            groupContent += HTMLStudentItem.arg(j.name.toHtmlEscaped())
-                                .arg(j.score)
-                                .arg(getSumTextClass(j.score))
-                                .arg(showStudentNumber ? HTMLStudentNumber.arg(j.number) : "");
+            groupContent += HTMLStudentItem.arg(member.name.toHtmlEscaped())
+                                .arg(member.score)
+                                .arg(getSumTextClass(member.score))
+                                .arg(showStudentNumber ? HTMLStudentNumber.arg(member.number) : "");
         }
-        HTMLBody += HTMLGroupCard.arg(getGroupName(i.number)).arg(i.score).arg(getSumTextClass(i.score)).arg(i.rank).arg(groupContent);
+        HTMLBody += HTMLGroupCard.arg(getGroupName(groupData.number))
+                        .arg(groupData.score)
+                        .arg(getSumTextClass(groupData.score))
+                        .arg(groupData.rank)
+                        .arg(groupContent);
         groupContent.clear();
     }
     return HTMLTemplate.arg(HTMLBody);
 }
 } // namespace group
-} // namespace anonymous
+} // namespace
+
+namespace ScoreSumReport
+{
+QString generateHtmlString(const QVector<SummaryData>& dataList, const SortSettings& mode)
+{
+    if(mode.useGroupModeFlag)
+    {
+        std::unordered_map<qint32, GroupSumData> groupMap;
+        for(const auto& stu : dataList)
+        {
+            GroupSumData& curData = groupMap[stu.groupNo];
+            curData.members.push_back(StudentSumData{stu.name, stu.studentNo, stu.groupOrder, stu.totalScore, 0});
+            curData.number = stu.groupNo;
+            curData.score += stu.totalScore;
+        }
+        std::vector<GroupSumData> groupList;
+        groupList.reserve(groupMap.size());
+        for(auto& pair : groupMap)
+            groupList.push_back(std::move(pair.second));
+        sortGroups(groupList, mode.groupSpec, mode.groupStuSpec);
+        return group::generate(groupList, mode.showStudentNumberFlag);
+    }
+    else
+    {
+        std::vector<StudentSumData> studentList;
+        studentList.reserve(dataList.size());
+        for(const auto& stu : dataList)
+            studentList.push_back({stu.name, stu.studentNo, stu.groupOrder, stu.totalScore, 0});
+        sortStudents(studentList, mode.studentSpec);
+        return student::generate(studentList, mode.showStudentNumberFlag);
+    }
+}
+} // namespace ScoreSumReport

@@ -216,6 +216,8 @@ flowchart LR
     Sum --> Settings[ClassDataManager::setPreviousSettings 记住配置]
 ```
 
+写入前弹出不会自动消失的提示条（写入在 GUI 线程同步进行，U 盘主控卡顿时界面会无响应）；写出使用 `QSaveFile`，先写同目录临时文件、提交成功才替换目标文件，失败时磁盘上的旧文件保持原样。
+
 ### 4.6 搜索学生并跳转表格选区
 
 ```mermaid
