@@ -1,6 +1,5 @@
 #include "ClassDataManager.h"
 
-#include <QSaveFile>
 #include <algorithm>
 #include <qglobal.h>
 #include <utility>
@@ -10,22 +9,20 @@ ClassDataManager::ClassDataManager(QObject* parent)
 {
 }
 
-ClassDataManager::OpenResult ClassDataManager::openFile(const QString& openFilePath)
+ClassDataManager::OpenResult ClassDataManager::loadFromBytes(const QByteArray& data, const QString& sourcePath)
 {
-    clearRecordDraft();
-    QFile file(openFilePath);
-    if(!file.open(QIODevice::ReadOnly))
-        return {false, QObject::tr("无法打开名为%1的文件").arg(openFilePath)};
-    QDataStream stream(&file);
+    QDataStream stream(data);
     stream.setVersion(QDataStream::Qt_5_15);
 
     //先解析到局部变量，全部校验通过后再提交，避免解析失败留下半份数据与错误的文件路径
-    HeaderData newHeader;
+    HeaderData newHeader{};
     SortSettings newSettings;
     QVector<StudentInfo> newStudents;
     QVector<ScoreTemplate> newTemplates;
     QVector<ScoreRecord> newRecords;
     stream >> newHeader;
+    if(stream.status() != QDataStream::Ok)
+        return {false, QObject::tr("文件不完整，读取失败")};
     if(newHeader.fileHeader != CorrectFileHeader)
         return {false, QObject::tr("错误的文件头，文件格式不正确或已损坏")};
     stream >> newSettings;
@@ -42,22 +39,53 @@ ClassDataManager::OpenResult ClassDataManager::openFile(const QString& openFileP
         return {false, QObject::tr("积分模板信息不正确，应为%1条，实际为%2条").arg(newHeader.templateCount).arg(newTemplates.size())};
     if(newHeader.recordCount != newRecords.size())
         return {false, QObject::tr("积分记录信息不正确，应为%1条，实际为%2条").arg(newHeader.recordCount).arg(newRecords.size())};
-    file.close();
 
     //结构完整的前提下，字段级的不一致都可以就地修正
     const QStringList repairs = repairLoadedData(newStudents, newTemplates, newRecords);
-    filePath = openFilePath;
+    clearRecordDraft();
+    filePath = sourcePath;
     settings = newSettings;
     students = std::move(newStudents);
     templates = std::move(newTemplates);
     records = std::move(newRecords);
     m_hasData = true;
+    m_isNewFile = false;
     setDirty(!repairs.isEmpty());
     emit recordsChanged();
     emit templatesChanged();
     emit studentsChanged();
 
     return {true, repairs.join('\n')};
+}
+
+bool ClassDataManager::serializeTo(QByteArray& data) const
+{
+    data.clear();
+    QDataStream stream(&data, QIODevice::WriteOnly);
+    stream.setVersion(QDataStream::Qt_5_15);
+    stream << HeaderData{CorrectFileHeader, students.size(), templates.size(), records.size()};
+    stream << settings;
+    stream << students;
+    stream << templates;
+    stream << records;
+    return stream.status() == QDataStream::Ok;
+}
+
+bool ClassDataManager::markFileSaved(const QString& savedPath, const QByteArray& writtenData)
+{
+    filePath = savedPath;
+    m_isNewFile = false;
+
+    QByteArray currentData;
+    const bool unchanged = serializeTo(currentData) && currentData == writtenData;
+    const bool fullySaved = unchanged && !m_isRecordEditing;
+    setDirty(!fullySaved);
+    return fullySaved;
+}
+
+QString ClassDataManager::currentFilePath() const
+{
+    return filePath;
 }
 
 bool ClassDataManager::renumberOrder(QVector<StudentInfo>& students, QVector<int> indices, qint32 base, qint32 StudentInfo::* field)
@@ -146,37 +174,6 @@ void ClassDataManager::newFile()
     setDirty(true);
     emit recordsChanged();
     emit templatesChanged();
-}
-
-bool ClassDataManager::saveNewFile(const QString& saveFilePath)
-{
-    filePath = saveFilePath;
-    if(!saveFile())
-        return false;
-
-    m_isNewFile = false;
-    return true;
-}
-
-bool ClassDataManager::saveFile()
-{
-    //先写同目录的临时文件，commit成功才替换目标文件，写失败时磁盘上的旧文件保持原样
-    QSaveFile file(filePath);
-    if(!file.open(QIODevice::WriteOnly))
-        return false;
-    QDataStream stream(&file);
-    stream.setVersion(QDataStream::Qt_5_15);
-    stream << HeaderData{CorrectFileHeader, students.size(), templates.size(), records.size()};
-    stream << settings;
-    stream << students;
-    stream << templates;
-    stream << records;
-    if(stream.status() != QDataStream::Ok || !file.commit())
-        return false;
-
-    if(!this->isRecordUnsaved())
-        setDirty(false);
-    return true;
 }
 
 void ClassDataManager::closeFile()
@@ -346,6 +343,7 @@ void ClassDataManager::saveRecord()
     tempRecord.scores.clear();
     activatedTemplateIndex = -1;
     m_isRecordEditing = false;
+    setDirty(true);
     emit recordsChanged();
 }
 

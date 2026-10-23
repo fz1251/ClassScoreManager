@@ -2,7 +2,7 @@
 
 > 本文记录小组管理页（`src/pages/GroupBoardPage`）内部几个机制的当前做法与取舍：组色怎么取、拖放落点怎么判、重排怎么做动画、拖动周边的手感怎么给。
 > 涉及文件：`src/widgets/CardStyle.*`、`DragAutoScroller.*`、`FlowLayout.*`、`GroupCard.*`、`StudentCard.*`、`UngroupedPanel.*`。
-> 协作规则见根目录 `CLAUDE.md`，项目技术栈见 [project-context.md](project-context.md)。
+> 协作规则见根目录 `AGENTS.md`，项目技术栈见 [project-context.md](project-context.md)。
 
 ## 1. 组色：由组号决定
 

@@ -1,6 +1,7 @@
 #include "MainWindow.h"
 
 #include "../core/ClassDataManager.h"
+#include "../core/FileIoService.h"
 #include "../core/ScoreSumReport.h"
 #include "../delegates/ScoreExprDelegate.h"
 #include "../delegates/TemplateSpinBoxDelegate.h"
@@ -27,7 +28,6 @@
 #include <QAction>
 #include <QDateTime>
 #include <QDir>
-#include <QEventLoop>
 #include <QFileDialog>
 #include <QFileInfo>
 #include <QHBoxLayout>
@@ -38,7 +38,6 @@
 #include <QMenuBar>
 #include <QMessageBox>
 #include <QPushButton>
-#include <QSaveFile>
 #include <QSizePolicy>
 #include <QStackedWidget>
 #include <QStatusBar>
@@ -50,12 +49,13 @@
 
 namespace
 {
-// ExInfoBar 的入场动画约 400ms：同步写入期间事件循环停转，提示必须先完整画出来
-constexpr int kNoticeAnimationMs = 400;
+//文件操作超过该时间仍未完成时才显示常驻提示，避免快速操作一闪而过
+constexpr int kFileNoticeDelayMs = 150;
 } // namespace
 
 MainWindow::MainWindow(QWidget* parent)
     : QMainWindow(parent)
+    , fileIoService(new FileIoService(this))
     , manager(new ClassDataManager(this))
     , tableModel(new ClassTableModel(manager, this))
 {
@@ -235,6 +235,10 @@ MainWindow::MainWindow(QWidget* parent)
     connect(manager, &ClassDataManager::templatesChanged, this, &MainWindow::updateFilePreview);
     connect(manager, &ClassDataManager::dirtyStateChanged, this, &MainWindow::updateFilePreview);
 
+    // 文件 I/O 在独立线程执行，结果回到 GUI 线程后再提交数据与界面
+    connect(fileIoService, &FileIoService::readFinished, this, &MainWindow::onFileReadFinished);
+    connect(fileIoService, &FileIoService::writeFinished, this, &MainWindow::onFileWriteFinished);
+
     onFileClosed();
 }
 
@@ -278,17 +282,38 @@ void MainWindow::createMenus()
 
 void MainWindow::closeEvent(QCloseEvent* event)
 {
-    if(!confirmUnsavedChanges())
+    if(isFileTaskBusy())
     {
         event->ignore();
         return;
     }
-    event->accept();
+    if(!hasUnsavedChanges())
+    {
+        event->accept();
+        return;
+    }
+
+    switch(askSaveChanges())
+    {
+        case SaveChoice::Discard:
+            event->accept();
+            return;
+        case SaveChoice::Cancel:
+            event->ignore();
+            return;
+        case SaveChoice::Save:
+            event->ignore();
+            startSave(AfterSave::CloseWindow);
+            return;
+    }
 }
 
 /*文件操作入口*/
 void MainWindow::openFileDialog()
 {
+    if(isFileTaskBusy())
+        return;
+
     QString fileName = QFileDialog::getOpenFileName(this, tr("打开班级信息文件"), QDir::currentPath(), tr("班级信息文件(*.cls)"));
     if(fileName.isEmpty())
         return;
@@ -297,6 +322,9 @@ void MainWindow::openFileDialog()
 
 void MainWindow::createNewFile()
 {
+    if(isFileTaskBusy())
+        return;
+
     currentFileName = tr("新建班级");
     newFile();
     onFileLoaded();
@@ -304,8 +332,25 @@ void MainWindow::createNewFile()
 
 void MainWindow::closeFileWithConfirm()
 {
-    if(confirmUnsavedChanges())
+    if(isFileTaskBusy())
+        return;
+    if(!hasUnsavedChanges())
+    {
         closeFile();
+        return;
+    }
+
+    switch(askSaveChanges())
+    {
+        case SaveChoice::Discard:
+            closeFile();
+            return;
+        case SaveChoice::Cancel:
+            return;
+        case SaveChoice::Save:
+            startSave(AfterSave::CloseFile);
+            return;
+    }
 }
 
 /*学生操作入口*/
@@ -509,19 +554,12 @@ void MainWindow::syncListPageSelection()
 /*文件操作*/
 void MainWindow::openFile(const QString& filePath)
 {
-    const ClassDataManager::OpenResult result = manager->openFile(filePath);
-    if(!result.succeeded)
-    {
-        showNotification(ExInfoBar::Error, tr("打开文件失败"), result.message);
+    if(isFileTaskBusy())
         return;
-    }
-    currentFileName = QFileInfo(filePath).fileName();
-    //先重建表格的行映射再切页面，否则页面切换过程中的取数可能用到旧映射
-    resetTable();
-    onFileLoaded();
-    //修正过的数据与磁盘上的文件不同，按未保存处理，并把修正内容告知用户
-    if(!result.message.isEmpty())
-        showNotification(ExInfoBar::Warning, tr("文件已自动修正"), result.message);
+    if(!beginFileTask(FileTask::OpenClass, filePath))
+        return;
+    if(!fileIoService->readAll(filePath))
+        finishFileTask();
 }
 
 void MainWindow::newFile()
@@ -532,13 +570,22 @@ void MainWindow::newFile()
 
 bool MainWindow::saveFile()
 {
+    return startSave(AfterSave::None);
+}
+
+bool MainWindow::startSave(AfterSave after)
+{
+    if(isFileTaskBusy())
+        return false;
+
     if(manager->isRecordUnsaved())
     {
         ExContentDialog dialog(this);
         dialog.setTitle(tr("询问"));
         dialog.setContent(tr("当前有未完成编辑的积分记录，要保存并关闭它吗？"));
         dialog.setPrimaryButtonText(tr("保存并关闭"));
-        dialog.setSecondaryButtonText(tr("只保存文件"));
+        if(after == AfterSave::None)
+            dialog.setSecondaryButtonText(tr("只保存文件"));
         dialog.setCloseButtonText(tr("取消"));
         dialog.setDefaultButton(ExContentDialog::PrimaryBtn);
 
@@ -548,38 +595,215 @@ bool MainWindow::saveFile()
         if(result == ExContentDialog::Primary && !saveScoreRecord())
             return false;
     }
-    bool saved = false;
+
+    QString filePath;
     if(manager->isNewFile())
     {
-        const QString fileName = QFileDialog::getSaveFileName(this, tr("保存班级信息文件"), QDir::currentPath(), tr("班级信息文件(*.cls)"));
-        if(fileName.isEmpty())
+        filePath = QFileDialog::getSaveFileName(this, tr("保存班级信息文件"), QDir::currentPath(), tr("班级信息文件(*.cls)"));
+        if(filePath.isEmpty())
             return false;
-        saved = manager->saveNewFile(fileName);
-        if(saved)
-        {
-            currentFileName = QFileInfo(fileName).fileName();
-            updateFilePreview();
-        }
     }
     else
     {
-        saved = manager->saveFile();
+        filePath = manager->currentFilePath();
+        if(filePath.isEmpty())
+        {
+            showNotification(ExInfoBar::Error, tr("错误"), tr("当前文件路径为空，无法保存"));
+            return false;
+        }
     }
-    if(!saved)
+
+    QByteArray snapshot;
+    if(!manager->serializeTo(snapshot))
     {
-        showNotification(ExInfoBar::Error, tr("错误"), tr("无法写入文件，请检查路径是否可写"));
+        showNotification(ExInfoBar::Error, tr("错误"), tr("无法生成文件数据"));
         return false;
     }
-    showNotification(ExInfoBar::Success, tr("保存成功"), tr("班级信息已保存到 %1").arg(currentFileName));
+
+    if(!beginFileTask(FileTask::SaveClass, filePath))
+        return false;
+
+    pendingSaveSnapshot = snapshot;
+    afterSave = after;
+    if(!fileIoService->writeAll(filePath, snapshot))
+    {
+        pendingSaveSnapshot.clear();
+        afterSave = AfterSave::None;
+        finishFileTask();
+        return false;
+    }
     return true;
 }
 
 void MainWindow::closeFile()
 {
+    if(isFileTaskBusy())
+        return;
     manager->closeFile();
     currentFileName.clear();
     onFileClosed();
     resetTable();
+}
+
+/*文件任务与提示*/
+bool MainWindow::isFileTaskBusy() const
+{
+    return fileTask != FileTask::None;
+}
+
+bool MainWindow::beginFileTask(FileTask task, const QString& path)
+{
+    if(isFileTaskBusy())
+        return false;
+
+    fileTask = task;
+    taskPath = path;
+    const quint64 id = ++fileTaskId;
+    QTimer::singleShot(kFileNoticeDelayMs, this,
+                       [this, id]
+                       {
+                           if(fileTask == FileTask::None || fileTaskId != id)
+                               return;
+                           showFileNotice();
+                       });
+    return true;
+}
+
+void MainWindow::finishFileTask()
+{
+    fileTask = FileTask::None;
+    taskPath.clear();
+    hideFileNotice();
+}
+
+void MainWindow::showFileNotice()
+{
+    if(fileNoticeBar)
+        return;
+
+    fileNoticeBar =
+        ExInfoBarHost::defaultHost()->showInfoBar(ExInfoBar::Informational, fileNoticeTitle(), QString(), ExInfoBarHost::BottomRight, 0);
+    if(!fileNoticeBar)
+        return;
+    fileNoticeBar->setClosable(false);
+}
+
+void MainWindow::hideFileNotice()
+{
+    if(!fileNoticeBar)
+        return;
+    fileNoticeBar->dismiss();
+    fileNoticeBar = nullptr;
+}
+
+QString MainWindow::fileNoticeTitle() const
+{
+    switch(fileTask)
+    {
+        case FileTask::OpenClass:
+            return tr("正在读取文件…");
+        case FileTask::SaveClass:
+            return tr("正在保存文件…");
+        case FileTask::ExportReport:
+            return tr("正在导出文件…");
+        case FileTask::None:
+            break;
+    }
+    return QString();
+}
+
+void MainWindow::onFileReadFinished(const QString& path, const QByteArray& data, const QString& error)
+{
+    if(fileTask != FileTask::OpenClass || path != taskPath)
+        return;
+
+    if(!error.isEmpty())
+    {
+        finishFileTask();
+        showNotification(ExInfoBar::Error, tr("打开文件失败"), tr("无法打开名为%1的文件：%2").arg(path, error));
+        return;
+    }
+
+    const ClassDataManager::OpenResult result = manager->loadFromBytes(data, path);
+    finishFileTask();
+    if(!result.succeeded)
+    {
+        showNotification(ExInfoBar::Error, tr("打开文件失败"), result.message);
+        return;
+    }
+
+    currentFileName = QFileInfo(path).fileName();
+    //先重建表格的行映射再切页面，否则页面切换过程中的取数可能用到旧映射
+    resetTable();
+    onFileLoaded();
+    //修正过的数据与磁盘上的文件不同，按未保存处理，并把修正内容告知用户
+    if(!result.message.isEmpty())
+        showNotification(ExInfoBar::Warning, tr("文件已自动修正"), result.message);
+}
+
+void MainWindow::onFileWriteFinished(const QString& path, const QString& error)
+{
+    if(fileTask == FileTask::None || path != taskPath)
+        return;
+
+    if(fileTask == FileTask::SaveClass)
+    {
+        if(!error.isEmpty())
+        {
+            const QString message = error;
+            pendingSaveSnapshot.clear();
+            afterSave = AfterSave::None;
+            finishFileTask();
+            showNotification(ExInfoBar::Error, tr("保存失败"), tr("无法写入文件：%1").arg(message));
+            return;
+        }
+
+        const bool fullySaved = manager->markFileSaved(path, pendingSaveSnapshot);
+        currentFileName = QFileInfo(path).fileName();
+        updateFilePreview();
+
+        const AfterSave action = afterSave;
+        afterSave = AfterSave::None;
+        pendingSaveSnapshot.clear();
+        finishFileTask();
+
+        if(!fullySaved)
+        {
+            const QString message = manager->isRecordUnsaved() ? tr("当前积分记录草稿尚未保存") : tr("点击保存后的修改尚未保存");
+            showNotification(ExInfoBar::Warning, tr("文件已保存"), message);
+            return;
+        }
+
+        if(action == AfterSave::CloseWindow)
+        {
+            close();
+        }
+        else if(action == AfterSave::CloseFile)
+        {
+            closeFile();
+            showNotification(ExInfoBar::Success, tr("保存成功"), tr("班级信息已保存到 %1").arg(QFileInfo(path).fileName()));
+        }
+        else
+        {
+            showNotification(ExInfoBar::Success, tr("保存成功"), tr("班级信息已保存到 %1").arg(currentFileName));
+        }
+        return;
+    }
+
+    if(fileTask == FileTask::ExportReport)
+    {
+        if(!error.isEmpty())
+        {
+            const QString message = error;
+            finishFileTask();
+            showNotification(ExInfoBar::Error, tr("导出失败"), tr("无法写入文件：%1").arg(message));
+            return;
+        }
+
+        finishFileTask();
+        manager->setPreviousSettings(pendingExportSettings);
+        showNotification(ExInfoBar::Success, tr("导出成功"), tr("积分求和结果已保存到 %1").arg(QFileInfo(path).fileName()));
+    }
 }
 
 /*学生操作*/
@@ -650,8 +874,9 @@ void MainWindow::activateTemplate(int index)
 
 void MainWindow::exportScoreSum(const QVector<int>& recordIndices)
 {
-    if(recordIndices.isEmpty())
+    if(isFileTaskBusy() || recordIndices.isEmpty())
         return;
+
     SumExportDialog dialog(this, manager->getSettings());
     if(dialog.exec() != QDialog::Accepted)
         return;
@@ -672,34 +897,19 @@ void MainWindow::exportScoreSum(const QVector<int>& recordIndices)
     const SortSettings curMode = dialog.getCurrentConfig();
     const QByteArray html = ScoreSumReport::generateHtmlString(dataList, curMode).toUtf8();
 
-    // 写入在 GUI 线程同步进行，U 盘主控卡顿时会阻塞在这里；先让常驻提示画完，用户才知道是在写而不是死机
-    ExInfoBar* writingBar = ExInfoBarHost::defaultHost()->showInfoBar(ExInfoBar::Informational, tr("正在写入文件"), tr("请不要拔出设备"),
-                                                                      ExInfoBarHost::BottomRight, 0);
-    QEventLoop noticeLoop;
-    QTimer::singleShot(kNoticeAnimationMs, &noticeLoop, &QEventLoop::quit);
-    noticeLoop.exec(QEventLoop::ExcludeUserInputEvents);
+    if(!beginFileTask(FileTask::ExportReport, fileName))
+        return;
 
-    // 先写同目录的临时文件，commit 成功才替换目标文件，写失败时磁盘上的旧文件保持原样
-    QSaveFile file(fileName);
-    if(!file.open(QIODevice::WriteOnly))
-    {
-        writingBar->dismiss();
-        showNotification(ExInfoBar::Error, tr("错误"), tr("无法写入文件"));
-        return;
-    }
-    const bool written = file.write(html) == html.size() && file.commit();
-    writingBar->dismiss();
-    if(!written)
-    {
-        showNotification(ExInfoBar::Error, tr("错误"), tr("无法写入文件，请检查磁盘空间与路径"));
-        return;
-    }
-    manager->setPreviousSettings(curMode);
-    showNotification(ExInfoBar::Success, tr("导出成功"), tr("积分求和结果已保存到 %1").arg(QFileInfo(fileName).fileName()));
+    pendingExportSettings = curMode;
+    if(!fileIoService->writeAll(fileName, html))
+        finishFileTask();
 }
 
 void MainWindow::exportSelectedRecords()
 {
+    if(isFileTaskBusy())
+        return;
+
     const QList<QModelIndex> selectedRows = recordListPage->selectedRows();
     if(selectedRows.isEmpty())
         return;
@@ -956,12 +1166,14 @@ void MainWindow::clearTemplates()
     showNotification(ExInfoBar::Informational, tr("清空积分模板"), tr("已清空%1个积分模板").arg(templateCount));
 }
 
-/*通用确认：返回是否可以继续后续操作*/
-bool MainWindow::confirmUnsavedChanges()
+/*通用确认*/
+bool MainWindow::hasUnsavedChanges() const
 {
-    if(!manager->hasData() || !manager->isDirty() || manager->isEmptyNewFile())
-        return true;
+    return manager->hasData() && manager->isDirty() && !manager->isEmptyNewFile();
+}
 
+MainWindow::SaveChoice MainWindow::askSaveChanges()
+{
     ExContentDialog dialog(this);
     dialog.setTitle(tr("询问"));
     dialog.setContent(tr("要保存更改吗？"));
@@ -971,16 +1183,11 @@ bool MainWindow::confirmUnsavedChanges()
     dialog.setDefaultButton(ExContentDialog::PrimaryBtn);
 
     const ExContentDialog::ContentDialogResult result = dialog.showDialog();
-    if(result == ExContentDialog::None)
-        return false;
     if(result == ExContentDialog::Primary)
-    {
-        if(manager->isRecordUnsaved() && !saveScoreRecord())
-            return false;
-        if(!saveFile())
-            return false;
-    }
-    return true;
+        return SaveChoice::Save;
+    if(result == ExContentDialog::Secondary)
+        return SaveChoice::Discard;
+    return SaveChoice::Cancel;
 }
 
 bool MainWindow::confirmDestructiveOperation(const QString& action, const QString& description)

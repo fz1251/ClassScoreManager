@@ -1,9 +1,12 @@
 #pragma once
 
+#include "../core/DataTypes.h"
 #include "exinfobar.h"
 
+#include <QByteArray>
 #include <QCloseEvent>
 #include <QMainWindow>
+#include <QPointer>
 #include <QString>
 #include <QStringList>
 #include <QVector>
@@ -14,6 +17,7 @@ class QStackedWidget;
 class QTabBar;
 class ClassDataManager;
 class ClassTableModel;
+class FileIoService;
 class GroupBoardPage;
 class RecordListPage;
 class StudentSearchModel;
@@ -40,6 +44,28 @@ private:
         ScoreTemplatePage
     };
 
+    enum class FileTask
+    {
+        None,
+        OpenClass,
+        SaveClass,
+        ExportReport
+    };
+
+    enum class AfterSave
+    {
+        None,
+        CloseWindow,
+        CloseFile
+    };
+
+    enum class SaveChoice
+    {
+        Save,
+        Discard,
+        Cancel
+    };
+
     void createActions();
     void createMenus();
 
@@ -59,8 +85,19 @@ private:
     void openFile(const QString& filePath);
     void newFile();
     bool saveFile();
+    bool startSave(AfterSave after);
     void closeFileWithConfirm();
     void closeFile();
+
+    /*文件任务与提示*/
+    bool isFileTaskBusy() const;
+    bool beginFileTask(FileTask task, const QString& path);
+    void finishFileTask();
+    void showFileNotice();
+    void hideFileNotice();
+    QString fileNoticeTitle() const;
+    void onFileReadFinished(const QString& path, const QByteArray& data, const QString& error);
+    void onFileWriteFinished(const QString& path, const QString& error);
 
     /*学生操作*/
     void addStudentsDialog();
@@ -107,7 +144,8 @@ private:
     void showAboutQt();
 
     /*通用确认*/
-    bool confirmUnsavedChanges();
+    bool hasUnsavedChanges() const;
+    SaveChoice askSaveChanges();
     bool confirmDestructiveOperation(const QString& action, const QString& description);
 
     /*提示通知*/
@@ -122,7 +160,9 @@ private:
     QAction* action_CloseFile = nullptr;
     QAction* action_AboutApp = nullptr;
     QAction* action_AboutQt = nullptr;
+    QPointer<ExInfoBar> fileNoticeBar;
 
+    FileIoService* fileIoService = nullptr;
     ClassDataManager* manager = nullptr;
     ClassTableModel* tableModel = nullptr;
     StudentSearchModel* searchModel = nullptr;
@@ -131,6 +171,12 @@ private:
     RecordListPage* recordListPage = nullptr;
     TemplateListPage* templateListPage = nullptr;
     QString currentFileName;
+    FileTask fileTask = FileTask::None;
+    AfterSave afterSave = AfterSave::None;
+    quint64 fileTaskId = 0;
+    QString taskPath;
+    QByteArray pendingSaveSnapshot;
+    SortSettings pendingExportSettings;
     bool groupEditEnabled = true;
     int recordPreviewIndex = -1;
     int templatePreviewIndex = -1;

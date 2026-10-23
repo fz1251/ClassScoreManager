@@ -2,7 +2,7 @@
 
 > 本文记录本项目在 Windows 上字体渲染的取舍，以及支撑这些取舍的实测数据。
 > 涉及 `src/main.cpp` 的全局字体设置、`src/widgets/StudentCard.cpp` 的拖动缩略图，以及 Qt5 在 Windows 上的字体后端行为。
-> 主索引见 [README.md](README.md)，协作规则见根目录 `CLAUDE.md`。
+> 主索引见 [README.md](README.md)，协作规则见根目录 `AGENTS.md`。
 > 文中实测数据来自 Windows 7 SP1（100% 缩放）与 Windows 10 22H2（125% 缩放）两台机器上的专用测量程序。
 
 ## 1. 当前设置

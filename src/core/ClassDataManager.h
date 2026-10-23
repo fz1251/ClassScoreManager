@@ -2,7 +2,7 @@
 
 #include "DataTypes.h"
 
-#include <QFile>
+#include <QByteArray>
 #include <QObject>
 
 //班级信息管理和接口类
@@ -24,11 +24,13 @@ public:
     };
     explicit ClassDataManager(QObject* parent = nullptr);
     virtual ~ClassDataManager() = default;
-    //文件读写
-    OpenResult openFile(const QString& openFilePath);
+    //文件读写：内存字节与数据之间的转换，设备IO由窗口层调度
+    OpenResult loadFromBytes(const QByteArray& data, const QString& sourcePath);
+    bool serializeTo(QByteArray& data) const;
+    //写出成功后的提交：返回磁盘内容是否与当前内存数据完全一致
+    bool markFileSaved(const QString& savedPath, const QByteArray& writtenData);
+    QString currentFilePath() const;
     void newFile();
-    bool saveNewFile(const QString& saveFilePath);
-    bool saveFile();
     void closeFile();
     //文件状态
     bool hasData() const;

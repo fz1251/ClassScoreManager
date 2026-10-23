@@ -1,6 +1,6 @@
 # 编码约定
 
-> 本文件保存跨文件、跨模块的代码约定；协作规则与纯代码 UI 规范见根目录 `CLAUDE.md`，项目技术栈见 [project-context.md](project-context.md)。
+> 本文件保存跨文件、跨模块的代码约定；协作规则与纯代码 UI 规范见根目录 `AGENTS.md`，项目技术栈见 [project-context.md](project-context.md)。
 
 ## 整数类型：定长类型与 int 的边界
 

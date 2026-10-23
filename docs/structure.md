@@ -16,7 +16,9 @@ src/
 ├── main.cpp                    # 启动入口：DPI 设置、FluentUI3Style、字体、MainWindow
 ├── core/                       # 数据与业务核心
 │   ├── DataTypes.h             # 文件头、学生/模板/记录、排序设置及序列化
-│   ├── ClassDataManager.h/.cpp # 唯一数据源：学生与分组/模板/记录/草稿/排序设置/文件读写
+│   ├── ClassDataManager.h/.cpp # 唯一数据源：学生与分组/模板/记录/草稿/排序设置/字节序列化
+│   ├── FileIoService.h/.cpp    # 文件 I/O 门面：GUI 线程请求，worker 线程执行
+│   ├── FileIoWorker.h/.cpp     # worker：用 QFile/QSaveFile 整文件读写
 │   └── ScoreSumReport.h/.cpp   # 按排序设置生成积分求和 HTML 报告
 ├── models/                     # Qt Model/View 模型
 │   ├── ClassTableModel.h/.cpp   # 学生表格：列显隐、姓名编辑开关、查看索引、拖拽排序、只读的小组号列
@@ -79,8 +81,12 @@ flowchart TD
     SumExport[SumExportDialog]
     ItemSelect[ItemSelectionDialog]
     ScoreReport[ScoreSumReport]
+    FileIo[FileIoService 文件 I/O 门面]
+    Worker[FileIoWorker 工作线程]
 
-    MainWindow -->|持有并读写| Manager
+    MainWindow -->|持有并提交数据| Manager
+    MainWindow -->|读写文件| FileIo
+    FileIo -->|队列请求| Worker
     MainWindow -->|持有并设置| TableModel
     MainWindow -->|持有| SearchModel
     MainWindow -->|持有| StudentPage
@@ -129,10 +135,14 @@ flowchart TD
 
 ### 4.1 打开 / 新建文件
 
+打开文件时，设备读取在 worker 线程完成；字节回到 GUI 线程后才解析并提交数据。
+
 ```mermaid
 flowchart LR
     User[用户] -->|打开 .cls| Open[MainWindow::openFile]
-    Open --> Parse[ClassDataManager::openFile / newFile]
+    Open --> Read[FileIoService::readAll 工作线程读取]
+    Read --> Done[MainWindow::onFileReadFinished]
+    Done --> Parse[ClassDataManager::loadFromBytes]
     Parse --> Result{解析结果}
     Result -->|失败| Fail[提示错误并中止]
     Result -->|成功| Repair[字段归一化]
@@ -143,8 +153,9 @@ flowchart LR
     Emit --> TemplateModel[TemplateListModel 重置]
     Emit --> Preview[MainWindow::updateFilePreview]
     Preview --> Sidebar[侧栏文件信息块]
-    Open --> Reset[MainWindow::resetTable]
+    Parse -->|成功| Reset[MainWindow::resetTable]
     Reset --> TableModel[ClassTableModel::resetTable]
+    User -->|新建| NewFile[ClassDataManager::newFile]
 ```
 
 ### 4.2 新建 / 保存积分记录
@@ -212,11 +223,13 @@ flowchart LR
     Selected --> Dialog[SumExportDialog 选择排序配置]
     Dialog --> Sum[MainWindow::exportScoreSum 按选中记录累加每个学生分数]
     Sum --> Report[ScoreSumReport::generateHtmlString]
-    Report --> File[写出 HTML 文件]
-    Sum --> Settings[ClassDataManager::setPreviousSettings 记住配置]
+    Report --> Write[FileIoService::writeAll 工作线程写入]
+    Write --> Finish[MainWindow::onFileWriteFinished]
+    Finish -->|成功| Settings[ClassDataManager::setPreviousSettings 记住配置]
+    Finish -->|失败| Error[提示错误，不修改设置]
 ```
 
-写入前弹出不会自动消失的提示条（写入在 GUI 线程同步进行，U 盘主控卡顿时界面会无响应）；写出使用 `QSaveFile`，先写同目录临时文件、提交成功才替换目标文件，失败时磁盘上的旧文件保持原样。
+文件任务在独立线程执行，GUI 线程始终处理事件。任务超过 150ms 仍未完成时，右下角显示不可关闭的 `ExInfoBar`，只显示“正在读取/保存/导出文件”标题；完成或失败后关闭提示再弹 Toast。写出使用 `QSaveFile`，先写同目录临时文件、提交成功才替换目标文件，失败时磁盘上的旧文件保持原样。
 
 ### 4.6 搜索学生并跳转表格选区
 
@@ -259,12 +272,31 @@ flowchart LR
     Emit --> Reload[小组管理页按数据重建]
 ```
 
+### 4.9 保存班级信息
+
+```mermaid
+flowchart LR
+    Save[菜单保存或关闭确认] --> Guard{已有文件任务}
+    Guard -->|是| Ignore[直接返回]
+    Guard -->|否| Serialize[ClassDataManager::serializeTo 生成快照]
+    Serialize --> Write[FileIoService::writeAll 工作线程写入]
+    Write --> Finish[MainWindow::onFileWriteFinished]
+    Finish -->|成功| Commit[markFileSaved 比较快照并提交路径/脏状态]
+    Finish -->|失败| Error[保留原路径与脏状态，提示错误]
+    Commit -->|完全一致| Toast[成功 Toast 或关闭续作]
+    Commit -->|保存期间有新修改| KeepDirty[保持脏状态并提示]
+```
+
+保存开始时序列化一份字节快照交给 worker；写成功后重新序列化当前内存数据并与快照比较，只有完全一致且没有未保存的记录草稿时才清除脏标记。这样不必在保存期间锁住编辑，也不会把写盘开始后的新修改误判为已保存。
+
 ## 5. 状态归属
 
 | 状态 | 归属 |
 |---|---|
 | 学生（含小组号与组内顺序）、模板、记录、记录草稿、排序设置、脏标记 | `ClassDataManager` |
 | 当前文件名、记录/模板查看索引、小组信息编辑开关、页面会话状态 | `MainWindow` |
+| 当前文件任务、保存快照、延迟提示、关闭续作 | `MainWindow` |
+| 设备 I/O 与 worker 线程 | `FileIoService` / `FileIoWorker` |
 | 表格列显隐、行排序映射、姓名编辑开关、查看列渲染状态 | `ClassTableModel` |
 | 小组容器与学生卡片的归属、拖放落点与占位状态 | `GroupBoardPage` / `GroupCard` / `UngroupedPanel` |
 | 学生搜索关键字与匹配结果 | `StudentSearchModel` |

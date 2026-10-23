@@ -46,6 +46,8 @@ add_subdirectory(third_party/FluentUIStyle)
 
 set(APP_SOURCES
     src/core/ClassDataManager.cpp
+    src/core/FileIoService.cpp
+    src/core/FileIoWorker.cpp
     src/core/ScoreSumReport.cpp
     src/delegates/ScoreExprDelegate.cpp
     src/delegates/TemplateSpinBoxDelegate.cpp
@@ -81,6 +83,8 @@ set(APP_SOURCES
 set(APP_HEADERS
     src/core/ClassDataManager.h
     src/core/DataTypes.h
+    src/core/FileIoService.h
+    src/core/FileIoWorker.h
     src/core/ScoreSumReport.h
     src/delegates/ScoreExprDelegate.h
     src/delegates/TemplateSpinBoxDelegate.h
