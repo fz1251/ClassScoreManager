@@ -22,6 +22,7 @@
 #include "SumExportDialog.h"
 #include "excontentdialog.h"
 #include "exinfobarhost.h"
+#include "exprogressring.h"
 #include "fluentui3styleproperties.h"
 
 #include <QAbstractItemView>
@@ -51,6 +52,30 @@ namespace
 {
 //文件操作超过该时间仍未完成时才显示常驻提示，避免快速操作一闪而过
 constexpr int kFileNoticeDelayMs = 150;
+
+//提示条内容区约 46 逻辑像素，扣除上下内边距后实测 32 逻辑像素的进度环观感最佳
+constexpr int kBusyRingSide = 32;
+
+//提示条中的不确定进度环：包一层固定尺寸控件，避免 QProgressBar 默认的 120×120 sizeHint 撑高提示条
+class BusyRing final : public QWidget
+{
+public:
+    explicit BusyRing(QWidget* parent = nullptr)
+        : QWidget(parent)
+    {
+        auto* ring = new ExProgressRing(this);
+        ring->setRange(0, 0);
+        ring->setTextVisible(false);
+        ring->setFixedSize(kBusyRingSide, kBusyRingSide);
+        ring->setProperty(ProgressBarThicknessProperty, 3.0);
+        setFixedSize(kBusyRingSide, kBusyRingSide);
+    }
+
+    QSize sizeHint() const override
+    {
+        return QSize(kBusyRingSide, kBusyRingSide);
+    }
+};
 } // namespace
 
 MainWindow::MainWindow(QWidget* parent)
@@ -686,6 +711,9 @@ void MainWindow::showFileNotice()
     if(!fileNoticeBar)
         return;
     fileNoticeBar->setClosable(false);
+
+    //文件任务未在阈值时间内完成时，用不确定进度环表示仍在进行
+    fileNoticeBar->setActionWidget(new BusyRing);
 }
 
 void MainWindow::hideFileNotice()

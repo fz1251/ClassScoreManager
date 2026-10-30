@@ -63,7 +63,7 @@ FluentUIStyle 的 CMake 需要 `Qt5Svg`（或 Qt6 的 Svg 组件）。当前自�
 - `Frameless::Frameless` 的 `FluentTitleBar` / `FluentWindowFrame` 只接受 `QMainWindow*`，对话框类窗口不能使用该门面。
 - 对话框统一走 `ExContentDialog`：确认框用 `setContent` + 主副按钮，列表选择框用 `setContentWidget` 承载下拉框。头文件写作 `#include "excontentdialog.h"`。
 - 提示信息统一走 `ExInfoBar`：`MainWindow` 构造函数用 `ExInfoBarHost::setDefaultTarget(centralWidget)` 设定通知宿主，各处通过 `MainWindow::showNotification()` 弹出窗口级通知条；严重级别按「文件读写等操作失败 → `Error`、输入校验不通过 → `Warning`、操作完成 → `Success`、状态说明 → `Informational`」选取。头文件写作 `#include "exinfobarhost.h"`。
-- 文件读写进行中超过 150ms 时，在右下角显示不可关闭的 `Informational` 常驻通知条，只显示标题、不显示正文和进度条；完成或失败后先关闭它再显示结果 Toast。
+- 文件读写进行中超过 150ms 时，在右下角显示不可关闭的 `Informational` 常驻通知条，显示标题与不确定态进度环、不显示正文；完成或失败后先关闭它再显示结果 Toast。
 
 ### 构建产物位置
 
