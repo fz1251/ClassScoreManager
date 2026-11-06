@@ -1,5 +1,6 @@
 #include "AboutInfoDialog.h"
 
+#include "../widgets/CloseButton.h"
 #include "../widgets/LineSpacedLabel.h"
 #include "app_build_info.h"
 
@@ -28,13 +29,6 @@ constexpr int kBounceDurationMs = 350;
 // 标题栏到窗口边缘的留白：缩放边界厚度在 100% DPI 下为 SM_CXSIZEFRAME(4) + SM_CXPADDEDBORDER(4)，
 // Win32 度量随 DPI 放大、Qt 再除以 DPR，因此逻辑像素下恒为 8
 constexpr int kTitleBarMargin = 8;
-
-const QString closeButtonStyle = QStringLiteral(R"(
-#closeButton {
-    border: none;
-    background-color: transparent;
-}
-)");
 
 const QString modeButtonStyle = QStringLiteral(R"(
 #acrylicButton, #micaButton, #micaAltButton, #blurButton {
@@ -194,23 +188,15 @@ void AboutInfoDialog::createFramelessTitleBar()
     titleBarLayout->addStretch();
 
     // 无边框窗口的关闭按钮
-    const QSize buttonSize = {30, 30};
-    auto* closeButton = new QPushButton(this);
-    closeButton->setObjectName(QStringLiteral("closeButton"));
-    closeButton->setFocusPolicy(Qt::ClickFocus);
-    closeButton->setFixedSize(buttonSize);
-    closeButton->setIconSize(buttonSize);
-    m_closeIconNormal.addFile(":/icons/resources/about-dialog-close.svg");
-    m_closeIconHover.addFile(":/icons/resources/about-dialog-close-hovered.svg");
-    closeButton->setIcon(m_closeIconNormal);
-    closeButton->installEventFilter(this);
+    auto* closeButton = new CloseButton(this);
     windowAgent->setHitTestVisible(closeButton, true);
     titleBarLayout->addWidget(closeButton);
     connect(closeButton, &QPushButton::clicked, this, &AboutInfoDialog::close);
 
     outerLayout->addLayout(titleBarLayout);
 
-    setStyleSheet(m_winVersion >= WindowsVersion::Win11 ? closeButtonStyle + modeButtonStyle : closeButtonStyle);
+    if(m_winVersion >= WindowsVersion::Win11)
+        setStyleSheet(modeButtonStyle);
 }
 
 void AboutInfoDialog::keyPressEvent(QKeyEvent* event)
@@ -252,19 +238,6 @@ void AboutInfoDialog::keyPressEvent(QKeyEvent* event)
     }
 
     event->accept();
-}
-
-bool AboutInfoDialog::eventFilter(QObject* watched, QEvent* event)
-{
-    if(watched->objectName() == "closeButton")
-    {
-        QPushButton* btn = qobject_cast<QPushButton*>(watched);
-        if(event->type() == QEvent::Enter)
-            btn->setIcon(m_closeIconHover);
-        else if(event->type() == QEvent::Leave)
-            btn->setIcon(m_closeIconNormal);
-    }
-    return QDialog::eventFilter(watched, event);
 }
 
 void AboutInfoDialog::paintEvent(QPaintEvent* event)

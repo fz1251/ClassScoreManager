@@ -12,12 +12,15 @@ class StudentCard;
 class UngroupedPanel;
 class QScrollArea;
 
-//小组管理页：左侧未分组学生，右侧按组号排列的小组容器，拖放即完成分组
+//小组管理页：左侧按组号排列的小组容器，右侧未分组学生，拖放即完成分组
 class GroupBoardPage : public QWidget
 {
     Q_OBJECT
 public:
     explicit GroupBoardPage(ClassDataManager* manager, QWidget* parent = nullptr);
+
+    //搜索结果跳转：滚动到学生卡片并播放入场动画，未分组或组内都适用
+    void revealStudent(int studentIndex);
 
 public slots:
     //外部改动（打开/关闭文件、学生增删、表格页改小组号）后按数据重建

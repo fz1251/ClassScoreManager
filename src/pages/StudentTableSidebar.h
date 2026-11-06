@@ -3,13 +3,11 @@
 #include <QString>
 #include <QWidget>
 
+class ClickableLabel;
 class ExExpander;
-class QAbstractItemModel;
 class QLabel;
 class QLineEdit;
-class QListView;
 class QPushButton;
-class QResizeEvent;
 
 // 班级表格页右侧边栏：由多个 ExExpander 折叠块组成，只负责展示与发信号
 class StudentTableSidebar : public QWidget
@@ -27,7 +25,6 @@ public:
     void setTemplateNameDraft(const QString& name);
     void setRecordEditingInProgress(bool isEditing);
     void setStudentActionsEnabled(bool enabled);
-    void setStudentSearchModel(QAbstractItemModel* model);
     QString recordNameText() const;
     void setRecordNameText(const QString& text);
     void focusRecordNameEdit();
@@ -39,8 +36,7 @@ signals:
     void groupEditChanged(bool enabled);
     void addStudentsRequested();
     void deleteStudentRequested();
-    void studentSearchTextChanged(const QString& text);
-    void studentSearchResultActivated(int resultRow);
+    void searchStudentsRequested();
     void recordViewRequested();
     void recordPreviousRequested();
     void recordNextRequested();
@@ -56,14 +52,7 @@ signals:
     void templateNameUpdateRequested(const QString& name);
     void templateNameEditCancelled();
 
-protected:
-    void resizeEvent(QResizeEvent* event) override;
-
 private:
-    void updateRecordPreviewTitle();
-    void updateTemplatePreviewTitle();
-    void updateStudentSearchPanel();
-
     // 界面元素指针：构造函数中统一创建，供其他成员函数访问
     QLabel* fileNameLabel = nullptr;
     QLabel* studentCountLabel = nullptr;
@@ -71,13 +60,10 @@ private:
     QLabel* templateCountLabel = nullptr;
     QPushButton* addStudentButton = nullptr;
     QPushButton* deleteStudentButton = nullptr;
-    QLineEdit* studentSearchEdit = nullptr;
-    QListView* studentSearchView = nullptr;
-    QLabel* studentSearchHintLabel = nullptr;
+    QPushButton* searchStudentButton = nullptr;
     ExExpander* recordExpander = nullptr;
-    QLabel* recordPreviewLabel = nullptr;
+    ClickableLabel* recordPreviewLabel = nullptr;
     QLabel* recordPositionLabel = nullptr;
-    QPushButton* recordViewButton = nullptr;
     QPushButton* recordPreviousButton = nullptr;
     QPushButton* recordNextButton = nullptr;
     QPushButton* recordCloseButton = nullptr;
@@ -86,9 +72,8 @@ private:
     QLineEdit* recordNameEdit = nullptr;
     QPushButton* saveRecordButton = nullptr;
     ExExpander* templateExpander = nullptr;
-    QLabel* templatePreviewLabel = nullptr;
+    ClickableLabel* templatePreviewLabel = nullptr;
     QLabel* templatePositionLabel = nullptr;
-    QPushButton* templateViewButton = nullptr;
     QPushButton* templatePreviousButton = nullptr;
     QPushButton* templateNextButton = nullptr;
     QPushButton* templateCloseButton = nullptr;
@@ -96,7 +81,4 @@ private:
     QLineEdit* templateNameEdit = nullptr;
     QPushButton* templateUpdateButton = nullptr;
     QPushButton* templateDiscardButton = nullptr;
-
-    QString recordPreviewTitle;
-    QString templatePreviewTitle;
 };

@@ -10,6 +10,7 @@
 | QWindowKit | `third_party/FluentUIStyle/3rd/qwindowkit` | `Frameless` 依赖的无边框/标题栏基础设施 | 随 FluentUIStyle 一起编译 |
 | kissfft | `third_party/FluentUIStyle/3rd/kissfft` | ExWidgets 中频谱控件的 FFT 后端 | 编译为静态库 |
 | qmsetup | `third_party/FluentUIStyle/3rd/qwindowkit/qmsetup` | QWindowKit 的构建期辅助工具 | 主项目配置阶段自动构建并安装到构建目录 |
+| pinyin-data（字典数据） | `resources/pinyin.txt`（qrc 内嵌） | 拼音搜索的汉字→读音表 | 由 rcc 编入 exe，无运行期依赖 |
 
 ## 2. FluentUIStyle
 
@@ -122,13 +123,24 @@ add_subdirectory(third_party/FluentUIStyle/3rd/qwindowkit "${CMAKE_BINARY_DIR}/q
 - 本地副本的安装根目录为 `${CMAKE_BINARY_DIR}/_install`，配置/构建日志位于 `${CMAKE_BINARY_DIR}/_build/qmsetup_*.log`。
 - 主项目不需要直接链接或部署 qmsetup。
 
-## 6. 构建环境要求
+## 6. pinyin-data（拼音字典）
+
+- 仓库：https://github.com/mozillazg/pinyin-data
+- 版本：v0.15.0
+- 许可：MIT，Copyright (c) 2016 mozillazg；许可全文见 `resources/pinyin-data-LICENSE.txt`
+- 数据文件：`resources/pinyin.txt`，通过 `resources.qrc` 以别名 `:/pinyin/pinyin.txt` 编入 exe，运行期不需要额外文件
+- 数据规模：U+4E00–U+9FFF，20,924 字、27,317 读音、4,940 个多音字，单字最多 8 个读音；文件 216,412 字节
+- 格式：每行 `码点(4 位大写十六进制) 音节[,音节]`；读音已去调号，ü 记作 v
+- 匹配语义、数据统计口径与重新生成步骤见 [search.md](search.md)
+- 正式分发时随包携带 `resources/pinyin-data-LICENSE.txt`，或在第三方声明中列出该 MIT 许可
+
+## 7. 构建环境要求
 
 - FluentUIStyle、QWindowKit 和主项目统一使用 MSVC 2022 x64（`cl`），不得用 Strawberry Perl 自带的 GCC 编译。
 - 该环境由 `CMakePresets.json` 的隐藏预设 `msvc2022-x64-base` 提供（PATH/INCLUDE/LIB 已内置），普通终端与 VS Code 构建均直接使用预设，无需先进入 VS 开发环境。
 - 如果构建日志出现 `C:/dev/runtimes/StrawberryPerl/c/bin/c++.exe` 或 `gcc.exe`，说明构建目录被错误环境污染，删除该 build 目录后用预设重新配置。
 
-## 7. 更新 FluentUIStyle 子模块
+## 8. 更新 FluentUIStyle 子模块
 
 1. 确认子模块工作区干净，并与用户确认目标提交：
    ```bash
@@ -144,7 +156,8 @@ add_subdirectory(third_party/FluentUIStyle/3rd/qwindowkit "${CMAKE_BINARY_DIR}/q
 4. 完整构建 Debug/Release 两个预设验证；构建通过后由用户运行程序做视觉验证。
 5. 用户验证通过后，提交主仓库中的子模块指针变更；助手不执行 git commit。
 
-## 8. 打包注意事项
+## 9. 打包注意事项
 
 - 分发时把对应配置的 `bin/` 中全部 DLL 与 `ClassScoreManager.exe` 一起打包。
 - FluentUIStyle 的许可证与第三方声明分别在其根目录 `LICENSE`、`THIRD_PARTY_NOTICES.md`；正式分发时随包携带或按其要求署名。
+- pinyin-data 的 MIT 许可见 `resources/pinyin-data-LICENSE.txt`；正式分发时随包携带或在第三方声明中列出。

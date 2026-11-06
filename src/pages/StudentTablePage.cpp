@@ -6,30 +6,27 @@
 
 #include <QAbstractItemView>
 #include <QEvent>
-#include <QSplitter>
-#include <QVBoxLayout>
+#include <QHBoxLayout>
 
 namespace
 {
 //表格行矮、信息密度高，最大滚动速度降低，触发区稍宽
 constexpr DragAutoScroller::Config kAutoScrollConfig{16, 80, 400};
+//右侧栏固定宽度：两列按钮与名称输入框都能放下，不参与分栏拖动
+constexpr int kSidebarWidth = 320;
 }
 
 StudentTablePage::StudentTablePage(QWidget* parent)
     : QWidget(parent)
 {
-    // 页面根布局：表格与右侧边栏左右分栏
-    auto* rootLayout = new QVBoxLayout(this);
-    rootLayout->setContentsMargins(0, 0, 0, 0);
-
-    auto* splitter = new QSplitter(this);
-    splitter->setStretchFactor(0, 1);
-    splitter->setStretchFactor(1, 0);
-    splitter->setChildrenCollapsible(false);
-    rootLayout->addWidget(splitter);
+    // 页面根布局：表格占满剩余宽度，右侧边栏固定宽度
+    auto* rootLayout = new QHBoxLayout(this);
+    // 顶部 4px 与搜索窗格、记录页工具栏保持同一内容基线
+    rootLayout->setContentsMargins(0, 4, 0, 0);
+    rootLayout->setSpacing(0);
 
     // 学生表格：支持内部拖动排序与整行选择
-    m_tableView = new ScoreTableView(splitter);
+    m_tableView = new ScoreTableView(this);
     m_tableView->setMinimumWidth(320);
     m_tableView->setAcceptDrops(true);
     m_tableView->setDragEnabled(true);
@@ -40,7 +37,7 @@ StudentTablePage::StudentTablePage(QWidget* parent)
     m_tableView->setSelectionBehavior(QAbstractItemView::SelectRows);
     // 输入即编辑只对积分列放行（见 ScoreTableView::setInlineEditColumns），其余列只能双击或按 F2 编辑
     m_tableView->setEditTriggers(QAbstractItemView::DoubleClicked | QAbstractItemView::EditKeyPressed | QAbstractItemView::AnyKeyPressed);
-    splitter->addWidget(m_tableView);
+    rootLayout->addWidget(m_tableView, 1);
 
     // 表格滚动：按像素滚动；右侧滚动条不显示，滚动交给滚轮与拖动时的边缘自动滚动
     // item view 默认按整行滚动，滚动条的值是行号，同样的速度数字含义会变成“行/秒”，改成按像素后单位才和小组页一致
@@ -52,8 +49,9 @@ StudentTablePage::StudentTablePage(QWidget* parent)
     m_tableView->viewport()->installEventFilter(this);
 
     // 右侧边栏：文件信息、表格选项、学生操作、记录与模板折叠块
-    m_sidebar = new StudentTableSidebar(splitter);
-    splitter->addWidget(m_sidebar);
+    m_sidebar = new StudentTableSidebar(this);
+    m_sidebar->setFixedWidth(kSidebarWidth);
+    rootLayout->addWidget(m_sidebar);
 }
 
 ScoreTableView* StudentTablePage::tableView() const

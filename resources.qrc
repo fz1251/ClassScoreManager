@@ -1,4 +1,7 @@
 <RCC>
+    <qresource prefix="/pinyin">
+        <file alias="pinyin.txt">resources/pinyin.txt</file>
+    </qresource>
     <qresource prefix="/icons">
         <file>resources/about-dialog-close.svg</file>
         <file>resources/about-dialog-close-hovered.svg</file>

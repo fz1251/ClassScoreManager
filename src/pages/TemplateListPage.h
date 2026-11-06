@@ -20,6 +20,7 @@ public:
 
 signals:
     void createRequested();
+    void searchRequested();
     void deleteSelectedRequested();
     void clearRequested();
 
@@ -29,6 +30,7 @@ private:
     // 界面元素指针：构造函数中统一创建，供其他成员函数访问
     QListView* m_listView = nullptr;
     QPushButton* createButton = nullptr;
+    QPushButton* searchButton = nullptr;
     QPushButton* deleteButton = nullptr;
     QPushButton* clearButton = nullptr;
 };

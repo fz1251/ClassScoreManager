@@ -16,18 +16,20 @@ RecordListPage::RecordListPage(QWidget* parent)
     rootLayout->setContentsMargins(0, 0, 0, 0);
     rootLayout->setSpacing(0);
 
-    // 顶部工具行：新建、导出、删除选中、清空
+    // 顶部工具行：新建、导出、搜索、删除选中、清空
     auto* toolbarWidget = new QWidget(this);
     auto* toolbarLayout = new QHBoxLayout(toolbarWidget);
     toolbarLayout->setContentsMargins(8, 4, 8, 4);
     toolbarLayout->setSpacing(6);
 
     createButton = new QPushButton(tr("新建记录"), toolbarWidget);
-    exportButton = new QPushButton(tr("导出"), toolbarWidget);
+    exportButton = new QPushButton(tr("导出选中"), toolbarWidget);
+    searchButton = new QPushButton(tr("搜索"), toolbarWidget);
     deleteButton = new QPushButton(tr("删除选中"), toolbarWidget);
     clearButton = new QPushButton(tr("清空"), toolbarWidget);
     toolbarLayout->addWidget(createButton);
     toolbarLayout->addWidget(exportButton);
+    toolbarLayout->addWidget(searchButton);
     toolbarLayout->addWidget(deleteButton);
     toolbarLayout->addWidget(clearButton);
     toolbarLayout->addStretch();
@@ -41,6 +43,7 @@ RecordListPage::RecordListPage(QWidget* parent)
 
     connect(createButton, &QPushButton::clicked, this, &RecordListPage::createRequested);
     connect(exportButton, &QPushButton::clicked, this, &RecordListPage::exportRequested);
+    connect(searchButton, &QPushButton::clicked, this, &RecordListPage::searchRequested);
     connect(deleteButton, &QPushButton::clicked, this, &RecordListPage::deleteSelectedRequested);
     connect(clearButton, &QPushButton::clicked, this, &RecordListPage::clearRequested);
 }

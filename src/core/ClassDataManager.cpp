@@ -291,8 +291,7 @@ QString ClassDataManager::getTemplateDisplayName(int index) const
 
 QString ClassDataManager::getRecordDisplayName(int index) const
 {
-    const ScoreRecord& record = records.at(index);
-    return tr("%1 [%2]").arg(record.description).arg(record.saveTime.toString("yyyy/M/d"));
+    return records.at(index).description;
 }
 
 bool ClassDataManager::verifyTemplateName(const QString& templateName)

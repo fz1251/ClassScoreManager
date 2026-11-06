@@ -22,6 +22,7 @@ public:
 signals:
     void createRequested();
     void exportRequested();
+    void searchRequested();
     void deleteSelectedRequested();
     void clearRequested();
 
@@ -32,6 +33,7 @@ private:
     QListView* m_listView = nullptr;
     QPushButton* createButton = nullptr;
     QPushButton* exportButton = nullptr;
+    QPushButton* searchButton = nullptr;
     QPushButton* deleteButton = nullptr;
     QPushButton* clearButton = nullptr;
 };

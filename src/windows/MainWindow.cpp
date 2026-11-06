@@ -7,7 +7,7 @@
 #include "../delegates/TemplateSpinBoxDelegate.h"
 #include "../models/ClassTableModel.h"
 #include "../models/RecordListModel.h"
-#include "../models/StudentSearchModel.h"
+#include "../models/SearchListModel.h"
 #include "../models/TemplateListModel.h"
 #include "../pages/GroupBoardPage.h"
 #include "../pages/RecordListPage.h"
@@ -15,6 +15,7 @@
 #include "../pages/StudentTableSidebar.h"
 #include "../pages/TemplateListPage.h"
 #include "../pages/WelcomePage.h"
+#include "../widgets/SearchPane.h"
 #include "../widgets/ScoreTableView.h"
 #include "AboutInfoDialog.h"
 #include "GroupNumberDialog.h"
@@ -33,13 +34,16 @@
 #include <QFileInfo>
 #include <QHBoxLayout>
 #include <QInputDialog>
+#include <QItemSelectionModel>
 #include <QKeySequence>
 #include <QListView>
 #include <QMenu>
 #include <QMenuBar>
 #include <QMessageBox>
 #include <QPushButton>
+#include <QShortcut>
 #include <QSizePolicy>
+#include <QSplitter>
 #include <QStackedWidget>
 #include <QStatusBar>
 #include <QStringList>
@@ -76,6 +80,16 @@ public:
         return QSize(kBusyRingSide, kBusyRingSide);
     }
 };
+
+// 列表页搜索结果定位：清空原多选，选中目标行并放到视口中央
+void selectListRow(QListView* view, int row)
+{
+    if(!view || !view->model() || row < 0 || row >= view->model()->rowCount())
+        return;
+    const QModelIndex index = view->model()->index(row, 0);
+    view->selectionModel()->setCurrentIndex(index, QItemSelectionModel::ClearAndSelect | QItemSelectionModel::Rows);
+    view->scrollTo(index, QAbstractItemView::PositionAtCenter);
+}
 } // namespace
 
 MainWindow::MainWindow(QWidget* parent)
@@ -84,29 +98,15 @@ MainWindow::MainWindow(QWidget* parent)
     , manager(new ClassDataManager(this))
     , tableModel(new ClassTableModel(manager, this))
 {
-    resize(800, 600);
-    setMinimumSize(800, 600);
+    resize(960, 640);
+    setMinimumSize(900, 600);
     setWindowTitle(tr("班级积分管理系统"));
 
-    // 中央区域：导航栏在左，五个页面由堆叠窗口承载
+    // 中央区域：左侧导航栏、搜索窗格，右侧五个页面由堆叠窗口承载
     auto* centralWidget = new QWidget(this);
     auto* mainLayout = new QHBoxLayout(centralWidget);
     mainLayout->setSpacing(0);
     mainLayout->setContentsMargins(0, 0, 0, 0);
-
-    stackedWidget = new QStackedWidget(centralWidget);
-    mainLayout->addWidget(stackedWidget);
-
-    auto* welcomePage = new ::WelcomePage(stackedWidget);
-    studentTablePage = new ::StudentTablePage(stackedWidget);
-    groupBoardPage = new ::GroupBoardPage(manager, stackedWidget);
-    recordListPage = new RecordListPage(stackedWidget);
-    templateListPage = new TemplateListPage(stackedWidget);
-    stackedWidget->addWidget(welcomePage);
-    stackedWidget->addWidget(studentTablePage);
-    stackedWidget->addWidget(groupBoardPage);
-    stackedWidget->addWidget(recordListPage);
-    stackedWidget->addWidget(templateListPage);
 
     // 导航栏：文件打开后显示，切换班级信息、小组管理、积分记录、积分模板页
     navigationTabBar = new QTabBar(centralWidget);
@@ -119,7 +119,30 @@ MainWindow::MainWindow(QWidget* parent)
     navigationTabBar->addTab(tr("小组管理"));
     navigationTabBar->addTab(tr("积分记录"));
     navigationTabBar->addTab(tr("积分模板"));
-    mainLayout->insertWidget(0, navigationTabBar);
+    mainLayout->addWidget(navigationTabBar);
+
+    // 搜索窗格与页面堆叠是唯一可拖动的分栏；窗格默认关闭
+    contentSplitter = new QSplitter(Qt::Horizontal, centralWidget);
+    contentSplitter->setChildrenCollapsible(false);
+    searchPane = new SearchPane(contentSplitter);
+    stackedWidget = new QStackedWidget(contentSplitter);
+    contentSplitter->addWidget(searchPane);
+    contentSplitter->addWidget(stackedWidget);
+    contentSplitter->setStretchFactor(0, 0);
+    contentSplitter->setStretchFactor(1, 1);
+    mainLayout->addWidget(contentSplitter, 1);
+    searchPane->hide();
+
+    auto* welcomePage = new ::WelcomePage(stackedWidget);
+    studentTablePage = new ::StudentTablePage(stackedWidget);
+    groupBoardPage = new ::GroupBoardPage(manager, stackedWidget);
+    recordListPage = new RecordListPage(stackedWidget);
+    templateListPage = new TemplateListPage(stackedWidget);
+    stackedWidget->addWidget(welcomePage);
+    stackedWidget->addWidget(studentTablePage);
+    stackedWidget->addWidget(groupBoardPage);
+    stackedWidget->addWidget(recordListPage);
+    stackedWidget->addWidget(templateListPage);
 
     setCentralWidget(centralWidget);
     // 通知层挂在中央区，窗口级通知不会压住菜单栏
@@ -137,9 +160,9 @@ MainWindow::MainWindow(QWidget* parent)
     recordListPage->setListModel(recordModel);
     templateListPage->setListModel(templateModel);
 
-    // 学生搜索模型：侧栏展示匹配结果，MainWindow 负责把结果行换算成表格行
-    searchModel = new StudentSearchModel(manager, this);
-    studentTablePage->sidebar()->setStudentSearchModel(searchModel);
+    // 搜索模型：一个实例承载学生/记录/模板三种范围，窗格负责展示
+    searchModel = new SearchListModel(manager, this);
+    searchPane->setModel(searchModel);
 
     // 表格单元格委托：两个积分列支持输入即编辑与回车进入编辑
     tableView->setItemDelegateForColumn(ClassTableModel::CurrentRecord, new ScoreExprDelegate(this));
@@ -182,23 +205,56 @@ MainWindow::MainWindow(QWidget* parent)
                 groupEditEnabled = enabled;
             });
 
-    // 侧栏学生操作块：添加、删除学生
+    // 侧栏学生操作块：添加、删除、搜索学生
     connect(studentTablePage->sidebar(), &StudentTableSidebar::addStudentsRequested, this, &MainWindow::addStudentsDialog);
     connect(studentTablePage->sidebar(), &StudentTableSidebar::deleteStudentRequested, this, &MainWindow::deleteStudentDialog);
+    connect(studentTablePage->sidebar(), &StudentTableSidebar::searchStudentsRequested, this, &MainWindow::openSearchPane);
 
-    // 侧栏学生搜索：输入即时过滤，点击结果选中对应学生；学生集合与显示顺序变化后重新匹配
-    connect(studentTablePage->sidebar(), &StudentTableSidebar::studentSearchTextChanged, searchModel, &StudentSearchModel::setFilter);
-    connect(studentTablePage->sidebar(), &StudentTableSidebar::studentSearchResultActivated, this, &MainWindow::selectStudentFromSearch);
-    connect(tableModel, &QAbstractItemModel::modelReset, searchModel, &StudentSearchModel::refresh);
-    connect(tableModel, &QAbstractItemModel::rowsInserted, searchModel, &StudentSearchModel::refresh);
-    connect(tableModel, &QAbstractItemModel::rowsRemoved, searchModel, &StudentSearchModel::refresh);
-    connect(tableModel, &QAbstractItemModel::rowsMoved, searchModel, &StudentSearchModel::refresh);
+    // 搜索窗格：范围由当前页决定，结果按范围跳转到表格、小组卡片或列表
+    connect(searchPane, &SearchPane::searchTextChanged, searchModel, &SearchListModel::setFilter);
+    connect(searchPane, &SearchPane::resultActivated, this, &MainWindow::activateSearchResult);
+    connect(searchPane, &SearchPane::closeRequested, this,
+            [this]()
+            {
+                setSearchPaneVisible(false);
+            });
+    connect(stackedWidget, &QStackedWidget::currentChanged, this, &MainWindow::updateSearchScope);
+
+    // Ctrl+F 在任意页面打开搜索窗格；窗格已打开时只聚焦搜索框
+    auto* searchShortcut = new QShortcut(QKeySequence::Find, this);
+    connect(searchShortcut, &QShortcut::activated, this, &MainWindow::openSearchPane);
+
+    // 学生集合、显示顺序与姓名变化后重新匹配；只在学生范围刷新
+    connect(tableModel, &QAbstractItemModel::modelReset, this,
+            [this]()
+            {
+                if(searchModel->scope() == SearchScope::Student)
+                    searchModel->refresh();
+            });
+    connect(tableModel, &QAbstractItemModel::rowsInserted, this,
+            [this]()
+            {
+                if(searchModel->scope() == SearchScope::Student)
+                    searchModel->refresh();
+            });
+    connect(tableModel, &QAbstractItemModel::rowsRemoved, this,
+            [this]()
+            {
+                if(searchModel->scope() == SearchScope::Student)
+                    searchModel->refresh();
+            });
+    connect(tableModel, &QAbstractItemModel::rowsMoved, this,
+            [this]()
+            {
+                if(searchModel->scope() == SearchScope::Student)
+                    searchModel->refresh();
+            });
     // 表格行序变化后，小组管理页的未分组面板顺序也要跟着变
     connect(tableModel, &QAbstractItemModel::rowsMoved, groupBoardPage, &::GroupBoardPage::reload);
     connect(tableModel, &QAbstractItemModel::dataChanged, this,
             [this](const QModelIndex& topLeft, const QModelIndex&, const QVector<int>&)
             {
-                if(topLeft.column() == ClassTableModel::StudentName)
+                if(topLeft.column() == ClassTableModel::StudentName && searchModel->scope() == SearchScope::Student)
                     searchModel->refresh();
             });
 
@@ -238,6 +294,7 @@ MainWindow::MainWindow(QWidget* parent)
 
     // 记录列表页工具按钮
     connect(recordListPage, &RecordListPage::createRequested, this, &MainWindow::newScoreRecordFromList);
+    connect(recordListPage, &RecordListPage::searchRequested, this, &MainWindow::openSearchPane);
     connect(recordListPage, &RecordListPage::deleteSelectedRequested, this, &MainWindow::deleteSelectedRecords);
     connect(recordListPage, &RecordListPage::clearRequested, this, &MainWindow::clearRecordsWithConfirm);
 
@@ -245,6 +302,7 @@ MainWindow::MainWindow(QWidget* parent)
     connect(recordListPage, &RecordListPage::exportRequested, this, &MainWindow::exportSelectedRecords);
 
     connect(templateListPage, &TemplateListPage::createRequested, this, &MainWindow::newTemplateFromList);
+    connect(templateListPage, &TemplateListPage::searchRequested, this, &MainWindow::openSearchPane);
     connect(templateListPage, &TemplateListPage::deleteSelectedRequested, this, &MainWindow::deleteSelectedTemplates);
     connect(templateListPage, &TemplateListPage::clearRequested, this, &MainWindow::clearTemplatesWithConfirm);
 
@@ -494,6 +552,8 @@ void MainWindow::onFileClosed()
     action_NewFile->setDisabled(false);
     action_SaveFile->setDisabled(true);
     action_CloseFile->setDisabled(true);
+    setSearchPaneVisible(false);
+    searchPane->clearSearch();
 
     studentTablePage->sidebar()->setStudentActionsEnabled(false);
 
@@ -521,6 +581,7 @@ void MainWindow::resetTable()
     studentTablePage->sidebar()->setRecordNameText(QString());
     tableModel->resetTable();
     groupBoardPage->reload();
+    searchModel->refresh();
     updateRecordPreviewPanel();
     updateTemplatePreviewPanel();
 }
@@ -574,6 +635,91 @@ void MainWindow::syncListPageSelection()
         selectRow(recordListPage->listView(), recordPreviewIndex);
     else if(pageIndex == ScoreTemplatePage)
         selectRow(templateListPage->listView(), templatePreviewIndex);
+}
+
+void MainWindow::setSearchPaneVisible(bool visible)
+{
+    // 没有任何文件或停在欢迎页时窗格不能显示
+    const bool canShow = manager->hasData() && stackedWidget->currentIndex() != WelcomePage;
+    if(visible && !canShow)
+        visible = false;
+
+    if(searchPane->isVisible() != visible)
+    {
+        if(visible)
+        {
+            searchPane->show();
+            const int totalWidth = contentSplitter->width();
+            const int paneWidth = qBound(searchPane->minimumWidth(), searchPaneWidth, searchPane->maximumWidth());
+            contentSplitter->setSizes({paneWidth, qMax(0, totalWidth - paneWidth)});
+            updateSearchScope();
+            searchPane->focusSearch();
+        }
+        else
+        {
+            const QList<int> sizes = contentSplitter->sizes();
+            if(!sizes.isEmpty() && sizes.at(0) > 0)
+                searchPaneWidth = sizes.at(0);
+            searchPane->hide();
+        }
+    }
+}
+
+void MainWindow::openSearchPane()
+{
+    // 已经打开时只把焦点交给搜索框，保留当前查询
+    const bool wasVisible = searchPane->isVisible();
+    setSearchPaneVisible(true);
+    if(wasVisible)
+        searchPane->focusSearch();
+}
+
+void MainWindow::updateSearchScope()
+{
+    const int pageIndex = stackedWidget->currentIndex();
+    if(pageIndex == WelcomePage)
+    {
+        setSearchPaneVisible(false);
+        return;
+    }
+    if(!searchPane->isVisible())
+        return;
+
+    SearchScope scope = SearchScope::Student;
+    switch(pageIndex)
+    {
+        case StudentTablePage:
+        case GroupBoardPage:
+            scope = SearchScope::Student;
+            break;
+        case ScoreRecordPage:
+            scope = SearchScope::Record;
+            break;
+        case ScoreTemplatePage:
+            scope = SearchScope::Template;
+            break;
+        default:
+            return;
+    }
+
+    if(searchModel->scope() != scope)
+    {
+        searchPane->clearSearch();
+        searchModel->setScope(scope);
+    }
+
+    switch(scope)
+    {
+        case SearchScope::Student:
+            searchPane->setSearchContext(tr("搜索学生"), tr("暂无学生"), tr("未找到匹配的学生"));
+            break;
+        case SearchScope::Record:
+            searchPane->setSearchContext(tr("搜索积分记录"), tr("暂无记录"), tr("未找到匹配的记录"));
+            break;
+        case SearchScope::Template:
+            searchPane->setSearchContext(tr("搜索积分模板"), tr("暂无模板"), tr("未找到匹配的模板"));
+            break;
+    }
 }
 
 /*文件操作*/
@@ -863,17 +1009,41 @@ void MainWindow::editStudentGroup(const QModelIndex& index)
     tableModel->assignGroupNumber(index.row(), dialog.getGroupNumber());
 }
 
-void MainWindow::selectStudentFromSearch(int resultRow)
+void MainWindow::activateSearchResult(int row)
 {
-    const int studentIndex = searchModel->studentIndexAt(resultRow);
-    if(studentIndex < 0)
+    const int entryIndex = searchModel->entryIndexAt(row);
+    if(entryIndex < 0)
         return;
-    const int displayRow = tableModel->displayRowForStudent(studentIndex);
-    if(displayRow < 0)
-        return;
-    QTableView* tableView = studentTablePage->tableView();
-    tableView->selectRow(displayRow);
-    tableView->scrollTo(tableModel->index(displayRow, ClassTableModel::StudentName), QAbstractItemView::PositionAtCenter);
+
+    switch(searchModel->scope())
+    {
+        case SearchScope::Student:
+        {
+            const int pageIndex = stackedWidget->currentIndex();
+            if(pageIndex == GroupBoardPage)
+            {
+                groupBoardPage->revealStudent(entryIndex);
+                break;
+            }
+            if(pageIndex != StudentTablePage)
+                break;
+            const int displayRow = tableModel->displayRowForStudent(entryIndex);
+            if(displayRow < 0)
+                break;
+            QTableView* tableView = studentTablePage->tableView();
+            const QModelIndex targetIndex = tableModel->index(displayRow, ClassTableModel::StudentName);
+            tableView->setCurrentIndex(targetIndex);
+            tableView->selectRow(displayRow);
+            tableView->scrollTo(targetIndex, QAbstractItemView::PositionAtCenter);
+            break;
+        }
+        case SearchScope::Record:
+            selectListRow(recordListPage->listView(), entryIndex);
+            break;
+        case SearchScope::Template:
+            selectListRow(templateListPage->listView(), entryIndex);
+            break;
+    }
 }
 
 /*积分记录操作*/

@@ -14,7 +14,7 @@ class QDragLeaveEvent;
 class QDragMoveEvent;
 class QDropEvent;
 
-//左栏：未分组学生列表，同时是"取消分组"的拖放落点；栏面、表头与分隔线自绘
+//右栏：未分组学生列表，同时是"取消分组"的拖放落点；栏面、表头与分隔线自绘
 class UngroupedPanel : public QWidget, public CardHost
 {
     Q_OBJECT
@@ -27,6 +27,8 @@ public:
     void removeCard(StudentCard* card) override;
     void refreshHeader() override;
     void clearCards();
+    //搜索结果跳转：把指定卡片滚到可见位置
+    void revealCard(StudentCard* card);
 
     int cardCount() const;
 

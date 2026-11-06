@@ -13,6 +13,7 @@
 
 class QAction;
 class QModelIndex;
+class QSplitter;
 class QStackedWidget;
 class QTabBar;
 class ClassDataManager;
@@ -20,7 +21,8 @@ class ClassTableModel;
 class FileIoService;
 class GroupBoardPage;
 class RecordListPage;
-class StudentSearchModel;
+class SearchListModel;
+class SearchPane;
 class StudentTablePage;
 class TemplateListPage;
 
@@ -78,6 +80,8 @@ private:
     void updateRecordPreviewPanel();
     void updateTemplatePreviewPanel();
     void syncListPageSelection();
+    void setSearchPaneVisible(bool visible);
+    void updateSearchScope();
 
     /*文件操作*/
     void openFileDialog();
@@ -105,7 +109,10 @@ private:
     void importStudents(const QStringList& newNames);
     void removeStudent(int displayIndex, const QString& studentName);
     void editStudentGroup(const QModelIndex& index);
-    void selectStudentFromSearch(int resultRow);
+
+    /*搜索导航*/
+    void openSearchPane();
+    void activateSearchResult(int row);
 
     /*积分记录操作*/
     void createScoreRecordDraft();
@@ -153,6 +160,8 @@ private:
 
     // 界面元素指针：构造函数中统一创建，供其他成员函数访问
     QStackedWidget* stackedWidget = nullptr;
+    QSplitter* contentSplitter = nullptr;
+    SearchPane* searchPane = nullptr;
     QTabBar* navigationTabBar = nullptr;
     QAction* action_OpenFile = nullptr;
     QAction* action_NewFile = nullptr;
@@ -165,7 +174,7 @@ private:
     FileIoService* fileIoService = nullptr;
     ClassDataManager* manager = nullptr;
     ClassTableModel* tableModel = nullptr;
-    StudentSearchModel* searchModel = nullptr;
+    SearchListModel* searchModel = nullptr;
     ::StudentTablePage* studentTablePage = nullptr;
     ::GroupBoardPage* groupBoardPage = nullptr;
     RecordListPage* recordListPage = nullptr;
@@ -180,4 +189,5 @@ private:
     bool groupEditEnabled = true;
     int recordPreviewIndex = -1;
     int templatePreviewIndex = -1;
+    int searchPaneWidth = 240;
 };

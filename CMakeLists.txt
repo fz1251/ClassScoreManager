@@ -48,13 +48,14 @@ set(APP_SOURCES
     src/core/ClassDataManager.cpp
     src/core/FileIoService.cpp
     src/core/FileIoWorker.cpp
+    src/core/Pinyin.cpp
     src/core/ScoreSumReport.cpp
     src/delegates/ScoreExprDelegate.cpp
     src/delegates/TemplateSpinBoxDelegate.cpp
     src/main.cpp
     src/models/ClassTableModel.cpp
     src/models/RecordListModel.cpp
-    src/models/StudentSearchModel.cpp
+    src/models/SearchListModel.cpp
     src/models/TemplateListModel.cpp
     src/pages/GroupBoardPage.cpp
     src/pages/RecordListPage.cpp
@@ -64,6 +65,8 @@ set(APP_SOURCES
     src/pages/WelcomePage.cpp
     src/windows/AboutInfoDialog.cpp
     src/widgets/CardStyle.cpp
+    src/widgets/ClickableLabel.cpp
+    src/widgets/CloseButton.cpp
     src/widgets/DragAutoScroller.cpp
     src/widgets/FlowLayout.cpp
     src/widgets/GroupCard.cpp
@@ -73,6 +76,7 @@ set(APP_SOURCES
     src/widgets/LineSpacedLabel.cpp
     src/windows/MainWindow.cpp
     src/widgets/OkCancelBox.cpp
+    src/widgets/SearchPane.cpp
     src/widgets/ScoreTableView.cpp
     src/widgets/ShineLabel.cpp
     src/widgets/StudentCard.cpp
@@ -85,12 +89,13 @@ set(APP_HEADERS
     src/core/DataTypes.h
     src/core/FileIoService.h
     src/core/FileIoWorker.h
+    src/core/Pinyin.h
     src/core/ScoreSumReport.h
     src/delegates/ScoreExprDelegate.h
     src/delegates/TemplateSpinBoxDelegate.h
     src/models/ClassTableModel.h
     src/models/RecordListModel.h
-    src/models/StudentSearchModel.h
+    src/models/SearchListModel.h
     src/models/TemplateListModel.h
     src/pages/GroupBoardPage.h
     src/pages/RecordListPage.h
@@ -101,6 +106,8 @@ set(APP_HEADERS
     src/windows/AboutInfoDialog.h
     src/widgets/CardHost.h
     src/widgets/CardStyle.h
+    src/widgets/ClickableLabel.h
+    src/widgets/CloseButton.h
     src/widgets/DragAutoScroller.h
     src/widgets/FlowLayout.h
     src/widgets/GroupCard.h
@@ -110,6 +117,7 @@ set(APP_HEADERS
     src/widgets/LineSpacedLabel.h
     src/windows/MainWindow.h
     src/widgets/OkCancelBox.h
+    src/widgets/SearchPane.h
     src/widgets/ScoreTableView.h
     src/widgets/ShineLabel.h
     src/widgets/StudentCard.h

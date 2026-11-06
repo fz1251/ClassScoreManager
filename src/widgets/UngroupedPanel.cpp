@@ -186,7 +186,8 @@ UngroupedPanel::UngroupedPanel(QWidget* parent)
     setMinimumWidth(kPanelMinWidth);
 
     auto* rootLayout = new QVBoxLayout(this);
-    rootLayout->setContentsMargins(kEdgeMargin, kEdgeMargin, kEdgeMargin, kEdgeMargin);
+    //顶部 10px 与小组卡片的标题内边距一致，外层再让出 12px 与小组卡片顶边对齐
+    rootLayout->setContentsMargins(kEdgeMargin, 10, kEdgeMargin, kEdgeMargin);
     rootLayout->setSpacing(kHeaderSpacing);
 
     //表头：未分组人数
@@ -278,6 +279,12 @@ void UngroupedPanel::clearCards()
 void UngroupedPanel::refreshHeader()
 {
     m_headerLabel->setText(tr("未分组学生 (%1)").arg(cardCount()));
+}
+
+void UngroupedPanel::revealCard(StudentCard* card)
+{
+    if(card)
+        m_scrollArea->ensureWidgetVisible(card, 0, 0);
 }
 
 void UngroupedPanel::paintEvent(QPaintEvent*)

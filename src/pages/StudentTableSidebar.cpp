@@ -1,30 +1,24 @@
 #include "StudentTableSidebar.h"
 
+#include "../widgets/ClickableLabel.h"
 #include "exexpander.h"
 #include "exfonticon.h"
 #include "fluentui3styleproperties.h"
 
-#include <QAbstractItemModel>
 #include <QCheckBox>
 #include <QFont>
 #include <QFrame>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QLineEdit>
-#include <QListView>
 #include <QPushButton>
-#include <QResizeEvent>
 #include <QScrollArea>
-#include <QSizePolicy>
-#include <QStringList>
 #include <QVBoxLayout>
 #include <QVariant>
 
 StudentTableSidebar::StudentTableSidebar(QWidget* parent)
     : QWidget(parent)
 {
-    setMinimumWidth(250);
-
     // 侧栏根布局：滚动区域承载全部折叠块，避免全部展开时挤压表格
     auto* rootLayout = new QVBoxLayout(this);
     rootLayout->setContentsMargins(0, 0, 0, 0);
@@ -96,7 +90,7 @@ StudentTableSidebar::StudentTableSidebar(QWidget* parent)
     tableOptionsExpander->addContentWidget(tableOptionsBlock);
     contentLayout->addWidget(tableOptionsExpander);
 
-    // 学生操作折叠块：添加/删除学生按钮与按姓名搜索学生的结果列表，默认展开
+    // 学生操作折叠块：添加、删除、搜索学生按钮，默认展开
     auto* studentActionsExpander = new ExExpander(contentWidget);
     studentActionsExpander->setHeader(tr("学生操作"));
     studentActionsExpander->setExpandDirection(ExExpander::Down);
@@ -111,31 +105,17 @@ StudentTableSidebar::StudentTableSidebar(QWidget* parent)
     studentButtonLayout->setSpacing(6);
     addStudentButton = new QPushButton(tr("添加学生"), studentActionsBlock);
     deleteStudentButton = new QPushButton(tr("删除学生"), studentActionsBlock);
+    searchStudentButton = new QPushButton(tr("搜索学生"), studentActionsBlock);
     studentButtonLayout->addWidget(addStudentButton);
     studentButtonLayout->addWidget(deleteStudentButton);
+    studentButtonLayout->addWidget(searchStudentButton);
     studentActionsLayout->addLayout(studentButtonLayout);
-
-    // 搜索框：输入即时过滤，匹配结果由 StudentSearchModel 提供
-    studentSearchEdit = new QLineEdit(studentActionsBlock);
-    studentSearchEdit->setPlaceholderText(tr("输入姓名搜索学生"));
-    studentSearchEdit->setClearButtonEnabled(true);
-    studentActionsLayout->addWidget(studentSearchEdit);
-
-    // 结果列表：高度随结果数变化，无结果时整块隐藏
-    studentSearchView = new QListView(studentActionsBlock);
-    studentSearchView->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-    studentSearchView->setVisible(false);
-    studentActionsLayout->addWidget(studentSearchView);
-
-    studentSearchHintLabel = new QLabel(tr("未找到匹配的学生"), studentActionsBlock);
-    studentSearchHintLabel->setVisible(false);
-    studentActionsLayout->addWidget(studentSearchHintLabel);
 
     studentActionsExpander->addContentWidget(studentActionsBlock);
     studentActionsExpander->setExpanded(true);
     contentLayout->addWidget(studentActionsExpander);
 
-    // 积分记录折叠块：当前查看的记录与上一条/下一条/退出查看，默认展开
+    // 积分记录折叠块：点击提示选择记录，右侧为上一项/下一项/位置/关闭查看，默认展开
     recordExpander = new ExExpander(contentWidget);
     recordExpander->setHeader(tr("积分记录"));
     recordExpander->setExpandDirection(ExExpander::Down);
@@ -145,21 +125,11 @@ StudentTableSidebar::StudentTableSidebar(QWidget* parent)
     recordLayout->setContentsMargins(0, 0, 0, 0);
     recordLayout->setSpacing(6);
 
-    // 查看与退出查看按钮行：查看通过选择框指定要查看的记录，退出结束查看
-    auto* recordViewLayout = new QHBoxLayout;
-    recordViewLayout->setContentsMargins(0, 0, 0, 0);
-    recordViewLayout->setSpacing(6);
-    recordViewButton = new QPushButton(tr("查看积分记录"), recordBlock);
-    recordCloseButton = new QPushButton(tr("退出查看"), recordBlock);
-    recordViewLayout->addWidget(recordViewButton);
-    recordViewLayout->addWidget(recordCloseButton);
-    recordViewLayout->addStretch();
-    recordLayout->addLayout(recordViewLayout);
-
-    // 上一项/下一项按钮使用 Segoe Fluent Icons 字体；该字体已由 FluentUI3Style 加载
+    // 上一项/下一项/关闭按钮使用 Segoe Fluent Icons 字体；该字体已由 FluentUI3Style 加载
     constexpr char16_t chromeBackGlyph = static_cast<char16_t>(SegoeIcon::ChromeBack);
     constexpr char16_t chromeBackMirroredGlyph = static_cast<char16_t>(SegoeIcon::ChromeBackMirrored);
-    const auto createNavIconButton = [](char16_t glyph, const QString& tooltip, QWidget* parent)
+    constexpr char16_t chromeCloseGlyph = static_cast<char16_t>(SegoeIcon::ChromeClose);
+    const auto createIconButton = [](char16_t glyph, const QString& tooltip, QWidget* parent)
     {
         auto* button = new QPushButton(parent);
         QFont iconFont(QStringLiteral("Segoe Fluent Icons"));
@@ -169,36 +139,30 @@ StudentTableSidebar::StudentTableSidebar(QWidget* parent)
         button->setToolTip(tooltip);
         const int buttonSide = button->sizeHint().height();
         button->setFixedSize(buttonSide, buttonSide);
+        // 去掉 Fluent 按钮的常态底色与边框，悬停时只显示一层浅灰圆角
+        button->setStyleSheet(QStringLiteral(
+            "QPushButton { background: transparent; border: none; border-radius: 4px; padding: 0; }"
+            "QPushButton:hover { background: rgba(128, 128, 128, 26); }"
+            "QPushButton:pressed { background: rgba(128, 128, 128, 38); }"));
         return button;
     };
-    const auto createFluentTextButton = [](char16_t glyph, const QString& text, QWidget* parent)
-    {
-        auto* button = new QPushButton(parent);
-        QFont buttonFont = button->font();
-        QStringList fontFamilies;
-        fontFamilies << buttonFont.family() << QStringLiteral("Segoe Fluent Icons");
-        buttonFont.setFamilies(fontFamilies);
-        button->setFont(buttonFont);
-        button->setText(QString(QChar(glyph)) + QStringLiteral("  ") + text);
-        return button;
-    };
-
-    // 查看信息行：标题占满剩余空间，右侧依次为上一项、当前位置、下一项
+    // 查看行：左侧提示或记录名，右侧依次为上一项、当前位置、下一项与关闭查看
     auto* recordNavLayout = new QHBoxLayout;
     recordNavLayout->setContentsMargins(0, 0, 0, 0);
     recordNavLayout->setSpacing(6);
-    recordPreviewLabel = new QLabel(recordBlock);
-    recordPreviewLabel->setMinimumWidth(0);
-    recordPreviewLabel->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Preferred);
-    recordPreviewLabel->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
-    recordPreviousButton = createNavIconButton(chromeBackGlyph, tr("上一项"), recordBlock);
+    recordPreviewLabel = new ClickableLabel(recordBlock);
+    recordPreviousButton = createIconButton(chromeBackGlyph, tr("上一项"), recordBlock);
     recordPositionLabel = new QLabel(recordBlock);
     recordPositionLabel->setAlignment(Qt::AlignCenter);
-    recordNextButton = createNavIconButton(chromeBackMirroredGlyph, tr("下一项"), recordBlock);
+    recordNextButton = createIconButton(chromeBackMirroredGlyph, tr("下一项"), recordBlock);
+    recordCloseButton = createIconButton(chromeCloseGlyph, tr("退出查看"), recordBlock);
+    recordCloseButton->setFixedSize(24, 24);
     recordNavLayout->addWidget(recordPreviewLabel, 1);
     recordNavLayout->addWidget(recordPreviousButton);
     recordNavLayout->addWidget(recordPositionLabel);
     recordNavLayout->addWidget(recordNextButton);
+    recordNavLayout->addWidget(recordCloseButton);
+    recordNavLayout->setAlignment(recordCloseButton, Qt::AlignVCenter);
     recordLayout->addLayout(recordNavLayout);
 
     auto* recordActionLayout = new QHBoxLayout;
@@ -215,6 +179,7 @@ StudentTableSidebar::StudentTableSidebar(QWidget* parent)
     recordNameLayout->setSpacing(6);
     recordNameEdit = new QLineEdit(recordBlock);
     recordNameEdit->setPlaceholderText(tr("填写积分记录名称"));
+    recordNameEdit->setEnabled(false);
     saveRecordButton = new QPushButton(tr("保存积分记录"), recordBlock);
     recordNameLayout->addWidget(recordNameEdit, 1);
     recordNameLayout->addWidget(saveRecordButton);
@@ -224,7 +189,7 @@ StudentTableSidebar::StudentTableSidebar(QWidget* parent)
     recordExpander->setExpanded(true);
     contentLayout->addWidget(recordExpander);
 
-    // 积分模板折叠块：当前查看的模板、导航、名称编辑与更新/放弃，默认展开
+    // 积分模板折叠块：点击提示选择模板，右侧为上一项/下一项/位置/关闭查看，名称编辑与更新/放弃
     templateExpander = new ExExpander(contentWidget);
     templateExpander->setHeader(tr("积分模板"));
     templateExpander->setExpandDirection(ExExpander::Down);
@@ -234,33 +199,23 @@ StudentTableSidebar::StudentTableSidebar(QWidget* parent)
     templateLayout->setContentsMargins(0, 0, 0, 0);
     templateLayout->setSpacing(6);
 
-    // 查看与退出查看按钮行：查看通过选择框指定要查看的模板，退出结束查看
-    auto* templateViewLayout = new QHBoxLayout;
-    templateViewLayout->setContentsMargins(0, 0, 0, 0);
-    templateViewLayout->setSpacing(6);
-    templateViewButton = new QPushButton(tr("查看积分模板"), templateBlock);
-    templateCloseButton = new QPushButton(tr("退出查看"), templateBlock);
-    templateViewLayout->addWidget(templateViewButton);
-    templateViewLayout->addWidget(templateCloseButton);
-    templateViewLayout->addStretch();
-    templateLayout->addLayout(templateViewLayout);
-
-    // 查看信息行：标题占满剩余空间，右侧依次为上一项、当前位置、下一项
+    // 查看行：左侧提示或模板名，右侧依次为上一项、当前位置、下一项与关闭查看
     auto* templateNavLayout = new QHBoxLayout;
     templateNavLayout->setContentsMargins(0, 0, 0, 0);
     templateNavLayout->setSpacing(6);
-    templatePreviewLabel = new QLabel(templateBlock);
-    templatePreviewLabel->setMinimumWidth(0);
-    templatePreviewLabel->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Preferred);
-    templatePreviewLabel->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
-    templatePreviousButton = createNavIconButton(chromeBackGlyph, tr("上一项"), templateBlock);
+    templatePreviewLabel = new ClickableLabel(templateBlock);
+    templatePreviousButton = createIconButton(chromeBackGlyph, tr("上一项"), templateBlock);
     templatePositionLabel = new QLabel(templateBlock);
     templatePositionLabel->setAlignment(Qt::AlignCenter);
-    templateNextButton = createNavIconButton(chromeBackMirroredGlyph, tr("下一项"), templateBlock);
+    templateNextButton = createIconButton(chromeBackMirroredGlyph, tr("下一项"), templateBlock);
+    templateCloseButton = createIconButton(chromeCloseGlyph, tr("退出查看"), templateBlock);
+    templateCloseButton->setFixedSize(24, 24);
     templateNavLayout->addWidget(templatePreviewLabel, 1);
     templateNavLayout->addWidget(templatePreviousButton);
     templateNavLayout->addWidget(templatePositionLabel);
     templateNavLayout->addWidget(templateNextButton);
+    templateNavLayout->addWidget(templateCloseButton);
+    templateNavLayout->setAlignment(templateCloseButton, Qt::AlignVCenter);
     templateLayout->addLayout(templateNavLayout);
 
     newTemplateButton = new QPushButton(tr("新建积分模板"), templateBlock);
@@ -273,10 +228,8 @@ StudentTableSidebar::StudentTableSidebar(QWidget* parent)
     auto* templateNameButtonLayout = new QHBoxLayout;
     templateNameButtonLayout->setContentsMargins(0, 0, 0, 0);
     templateNameButtonLayout->setSpacing(6);
-    constexpr char16_t syncGlyph = static_cast<char16_t>(SegoeIcon::Sync);
-    constexpr char16_t revToggleKeyGlyph = static_cast<char16_t>(SegoeIcon::RevToggleKey);
-    templateUpdateButton = createFluentTextButton(syncGlyph, tr("更新名称"), templateBlock);
-    templateDiscardButton = createFluentTextButton(revToggleKeyGlyph, tr("放弃修改"), templateBlock);
+    templateUpdateButton = new QPushButton(tr("更新名称"), templateBlock);
+    templateDiscardButton = new QPushButton(tr("放弃修改"), templateBlock);
     templateNameButtonLayout->addWidget(templateUpdateButton);
     templateNameButtonLayout->addWidget(templateDiscardButton);
     templateLayout->addLayout(templateNameButtonLayout);
@@ -305,14 +258,9 @@ StudentTableSidebar::StudentTableSidebar(QWidget* parent)
 
     connect(addStudentButton, &QPushButton::clicked, this, &StudentTableSidebar::addStudentsRequested);
     connect(deleteStudentButton, &QPushButton::clicked, this, &StudentTableSidebar::deleteStudentRequested);
-    connect(studentSearchEdit, &QLineEdit::textChanged, this, &StudentTableSidebar::studentSearchTextChanged);
-    connect(studentSearchView, &QListView::clicked, this,
-            [this](const QModelIndex& index)
-            {
-                emit studentSearchResultActivated(index.row());
-            });
+    connect(searchStudentButton, &QPushButton::clicked, this, &StudentTableSidebar::searchStudentsRequested);
 
-    connect(recordViewButton, &QPushButton::clicked, this, &StudentTableSidebar::recordViewRequested);
+    connect(recordPreviewLabel, &ClickableLabel::clicked, this, &StudentTableSidebar::recordViewRequested);
     connect(recordPreviousButton, &QPushButton::clicked, this, &StudentTableSidebar::recordPreviousRequested);
     connect(recordNextButton, &QPushButton::clicked, this, &StudentTableSidebar::recordNextRequested);
     connect(recordCloseButton, &QPushButton::clicked, this, &StudentTableSidebar::recordPreviewCloseRequested);
@@ -320,7 +268,7 @@ StudentTableSidebar::StudentTableSidebar(QWidget* parent)
     connect(saveRecordButton, &QPushButton::clicked, this, &StudentTableSidebar::saveScoreRecordRequested);
     connect(applyTemplateButton, &QPushButton::clicked, this, &StudentTableSidebar::applyTemplateRequested);
 
-    connect(templateViewButton, &QPushButton::clicked, this, &StudentTableSidebar::templateViewRequested);
+    connect(templatePreviewLabel, &ClickableLabel::clicked, this, &StudentTableSidebar::templateViewRequested);
     connect(templatePreviousButton, &QPushButton::clicked, this, &StudentTableSidebar::templatePreviousRequested);
     connect(templateNextButton, &QPushButton::clicked, this, &StudentTableSidebar::templateNextRequested);
     connect(templateCloseButton, &QPushButton::clicked, this, &StudentTableSidebar::templatePreviewCloseRequested);
@@ -352,17 +300,17 @@ void StudentTableSidebar::setFileInfo(const QString& fileName, bool dirty, int s
 void StudentTableSidebar::setRecordPreview(const QString& displayText, const QString& positionText, bool hasPreview, bool canView,
                                            bool canPrevious, bool canNext)
 {
-    if(hasPreview)
-        recordPreviewTitle = displayText;
-    else
-        recordPreviewTitle = canView ? tr("尚未选择要查看的记录") : tr("暂无可查看的记录");
-    recordPreviewLabel->setToolTip(recordPreviewTitle);
-    updateRecordPreviewTitle();
+    const QString title = hasPreview ? displayText : (canView ? tr("点击选择要查看的积分记录") : tr("暂无可查看的记录"));
+    recordPreviewLabel->setText(title);
+    recordPreviewLabel->setToolTip(title);
+    recordPreviewLabel->setClickable(canView);
     recordPositionLabel->setText(hasPreview ? positionText : tr("-/-"));
-    recordViewButton->setEnabled(canView);
+    recordPreviousButton->setVisible(hasPreview);
+    recordPositionLabel->setVisible(hasPreview);
+    recordNextButton->setVisible(hasPreview);
+    recordCloseButton->setVisible(hasPreview);
     recordPreviousButton->setEnabled(hasPreview && canPrevious);
     recordNextButton->setEnabled(hasPreview && canNext);
-    recordCloseButton->setEnabled(hasPreview);
     if(hasPreview && !recordExpander->isExpanded())
         recordExpander->setExpanded(true);
 }
@@ -370,17 +318,17 @@ void StudentTableSidebar::setRecordPreview(const QString& displayText, const QSt
 void StudentTableSidebar::setTemplatePreview(const QString& displayText, const QString& positionText, bool hasPreview, bool canView,
                                              bool canPrevious, bool canNext)
 {
-    if(hasPreview)
-        templatePreviewTitle = displayText;
-    else
-        templatePreviewTitle = canView ? tr("尚未选择要查看的模板") : tr("暂无可查看的模板");
-    templatePreviewLabel->setToolTip(templatePreviewTitle);
-    updateTemplatePreviewTitle();
+    const QString title = hasPreview ? displayText : (canView ? tr("点击选择要查看的积分模板") : tr("暂无可查看的模板"));
+    templatePreviewLabel->setText(title);
+    templatePreviewLabel->setToolTip(title);
+    templatePreviewLabel->setClickable(canView);
     templatePositionLabel->setText(hasPreview ? positionText : tr("-/-"));
-    templateViewButton->setEnabled(canView);
+    templatePreviousButton->setVisible(hasPreview);
+    templatePositionLabel->setVisible(hasPreview);
+    templateNextButton->setVisible(hasPreview);
+    templateCloseButton->setVisible(hasPreview);
     templatePreviousButton->setEnabled(hasPreview && canPrevious);
     templateNextButton->setEnabled(hasPreview && canNext);
-    templateCloseButton->setEnabled(hasPreview);
     templateNameEdit->setEnabled(hasPreview);
     templateUpdateButton->setEnabled(hasPreview);
     templateDiscardButton->setEnabled(hasPreview);
@@ -395,45 +343,6 @@ void StudentTableSidebar::setTemplatePreview(const QString& displayText, const Q
     }
 }
 
-void StudentTableSidebar::resizeEvent(QResizeEvent* event)
-{
-    QWidget::resizeEvent(event);
-    updateRecordPreviewTitle();
-    updateTemplatePreviewTitle();
-}
-
-void StudentTableSidebar::updateRecordPreviewTitle()
-{
-    if(recordPreviewTitle.isEmpty())
-        recordPreviewTitle = tr("暂无可查看的记录");
-    recordPreviewLabel->setText(
-        recordPreviewLabel->fontMetrics().elidedText(recordPreviewTitle, Qt::ElideRight, qMax(0, recordPreviewLabel->width())));
-}
-
-void StudentTableSidebar::updateTemplatePreviewTitle()
-{
-    if(templatePreviewTitle.isEmpty())
-        templatePreviewTitle = tr("暂无可查看的模板");
-    templatePreviewLabel->setText(
-        templatePreviewLabel->fontMetrics().elidedText(templatePreviewTitle, Qt::ElideRight, qMax(0, templatePreviewLabel->width())));
-}
-
-void StudentTableSidebar::updateStudentSearchPanel()
-{
-    const QAbstractItemModel* model = studentSearchView->model();
-    const int resultCount = model ? model->rowCount() : 0;
-    const bool searching = !studentSearchEdit->text().trimmed().isEmpty();
-    studentSearchView->setVisible(resultCount > 0);
-    studentSearchHintLabel->setVisible(searching && resultCount == 0);
-    if(resultCount > 0)
-    {
-        // 列表高度跟随结果数，超过5项后由列表内部滚动
-        constexpr int maximumVisibleRows = 5;
-        const int rowHeight = studentSearchView->sizeHintForRow(0);
-        studentSearchView->setFixedHeight(rowHeight * qMin(resultCount, maximumVisibleRows) + 2 * studentSearchView->frameWidth());
-    }
-}
-
 void StudentTableSidebar::setTemplateNameDraft(const QString& name)
 {
     templateNameEdit->setText(name);
@@ -442,6 +351,7 @@ void StudentTableSidebar::setTemplateNameDraft(const QString& name)
 void StudentTableSidebar::setRecordEditingInProgress(bool isEditing)
 {
     newRecordButton->setEnabled(!isEditing);
+    recordNameEdit->setEnabled(isEditing);
     saveRecordButton->setEnabled(isEditing);
     applyTemplateButton->setEnabled(isEditing);
 }
@@ -450,13 +360,7 @@ void StudentTableSidebar::setStudentActionsEnabled(bool enabled)
 {
     addStudentButton->setEnabled(enabled);
     deleteStudentButton->setEnabled(enabled);
-}
-
-void StudentTableSidebar::setStudentSearchModel(QAbstractItemModel* model)
-{
-    studentSearchView->setModel(model);
-    connect(model, &QAbstractItemModel::modelReset, this, &StudentTableSidebar::updateStudentSearchPanel);
-    updateStudentSearchPanel();
+    searchStudentButton->setEnabled(enabled);
 }
 
 QString StudentTableSidebar::recordNameText() const

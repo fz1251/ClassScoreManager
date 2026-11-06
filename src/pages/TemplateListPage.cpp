@@ -16,16 +16,18 @@ TemplateListPage::TemplateListPage(QWidget* parent)
     rootLayout->setContentsMargins(0, 0, 0, 0);
     rootLayout->setSpacing(0);
 
-    // 顶部工具行：新建、删除选中、清空
+    // 顶部工具行：新建、搜索、删除选中、清空
     auto* toolbarWidget = new QWidget(this);
     auto* toolbarLayout = new QHBoxLayout(toolbarWidget);
     toolbarLayout->setContentsMargins(8, 4, 8, 4);
     toolbarLayout->setSpacing(6);
 
     createButton = new QPushButton(tr("新建模板"), toolbarWidget);
+    searchButton = new QPushButton(tr("搜索"), toolbarWidget);
     deleteButton = new QPushButton(tr("删除选中"), toolbarWidget);
     clearButton = new QPushButton(tr("清空"), toolbarWidget);
     toolbarLayout->addWidget(createButton);
+    toolbarLayout->addWidget(searchButton);
     toolbarLayout->addWidget(deleteButton);
     toolbarLayout->addWidget(clearButton);
     toolbarLayout->addStretch();
@@ -38,6 +40,7 @@ TemplateListPage::TemplateListPage(QWidget* parent)
     rootLayout->addWidget(m_listView, 1);
 
     connect(createButton, &QPushButton::clicked, this, &TemplateListPage::createRequested);
+    connect(searchButton, &QPushButton::clicked, this, &TemplateListPage::searchRequested);
     connect(deleteButton, &QPushButton::clicked, this, &TemplateListPage::deleteSelectedRequested);
     connect(clearButton, &QPushButton::clicked, this, &TemplateListPage::clearRequested);
 }

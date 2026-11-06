@@ -19,17 +19,18 @@ src/
 │   ├── ClassDataManager.h/.cpp # 唯一数据源：学生与分组/模板/记录/草稿/排序设置/字节序列化
 │   ├── FileIoService.h/.cpp    # 文件 I/O 门面：GUI 线程请求，worker 线程执行
 │   ├── FileIoWorker.h/.cpp     # worker：用 QFile/QSaveFile 整文件读写
+│   ├── Pinyin.h/.cpp           # 拼音匹配：文本归一化、字典加载、读音格 ε-NFA
 │   └── ScoreSumReport.h/.cpp   # 按排序设置生成积分求和 HTML 报告
 ├── models/                     # Qt Model/View 模型
 │   ├── ClassTableModel.h/.cpp   # 学生表格：列显隐、姓名编辑开关、查看索引、拖拽排序、只读的小组号列
 │   ├── RecordListModel.h/.cpp   # 积分记录列表模型：recordsChanged 后重置
-│   ├── StudentSearchModel.h/.cpp# 学生搜索列表模型：按姓名匹配，结果按表格显示顺序排列
+│   ├── SearchListModel.h/.cpp   # 搜索模型：学生/记录/模板三种范围，懒构建拼音匹配器
 │   └── TemplateListModel.h/.cpp # 积分模板列表模型：templatesChanged 后重置
 ├── pages/                      # 堆叠窗口页面（只建 UI、发信号，不含业务）
 │   ├── WelcomePage.h/.cpp      # 欢迎页：打开/新建两个入口卡片，使用 resources/icons 矢量图标
-│   ├── StudentTablePage.h/.cpp # 班级表格页：左表格 + 右侧 StudentTableSidebar；拖动排序时贴边自动滚动，右侧滚动条不显示
-│   ├── GroupBoardPage.h/.cpp   # 小组管理页：左未分组面板 + 右小组容器，拖放完成分组与组内排序，右栏拖动时贴边自动滚动
-│   ├── StudentTableSidebar.h/.cpp # 侧栏：5 个 ExExpander；学生块内提供姓名搜索与结果跳转，记录/模板块支持查看与上下项导航
+│   ├── StudentTablePage.h/.cpp # 班级表格页：左表格 + 右侧固定宽度 StudentTableSidebar；拖动排序时贴边自动滚动
+│   ├── GroupBoardPage.h/.cpp   # 小组管理页：左小组容器 + 右侧固定未分组面板，拖放完成分组与组内排序
+│   ├── StudentTableSidebar.h/.cpp # 侧栏：5 个 ExExpander；学生操作、记录/模板查看与上下项导航
 │   ├── RecordListPage.h/.cpp   # 记录列表页：顶部工具行 + 多选列表
 │   └── TemplateListPage.h/.cpp # 模板列表页：顶部工具行 + 多选列表
 ├── delegates/                  # 表格单元格委托
@@ -38,6 +39,8 @@ src/
 ├── widgets/                    # 自绘/复用控件
 │   ├── CardHost.h              # 卡片容器统一接口：插入/移除卡片、刷新标题、提供卡片底色
 │   ├── CardStyle.h/.cpp        # 小组卡片的尺寸与配色：按组号在 OKLCH 上取点生成组色
+│   ├── ClickableLabel.h/.cpp   # 可点击标签：按当前宽度省略文本、悬停灰底与指针光标
+│   ├── CloseButton.h/.cpp      # 通用关闭按钮：透明底、SVG 图标与悬停切换
 │   ├── DragAutoScroller.h/.cpp # 拖动时贴近滚动区边缘自动滚动：班级表格与小组容器列表共用
 │   ├── FlowLayout.h/.cpp       # 流式布局：换行、隐藏项补位、重排弹簧动画、单列模式
 │   ├── GroupCard.h/.cpp        # 小组容器：标题、落点判定与高亮、插入占位槽
@@ -45,11 +48,12 @@ src/
 │   ├── LineSpacedLabel.h/.cpp  # 可调节行距标签
 │   ├── OkCancelBox.h/.cpp      # 对话框底部的确定/取消按钮组
 │   ├── ScoreTableView.h/.cpp   # 学生表格视图：积分列的输入即编辑、回车进入编辑、提交后移到下一行同列
+│   ├── SearchPane.h/.cpp       # 左侧搜索窗格：范围标题、搜索框、结果列表/空状态与关闭按钮
 │   ├── ShineLabel.h/.cpp       # 发光标题标签
 │   ├── StudentCard.h/.cpp      # 学生胶囊卡片：悬停动效、拖动（略放大的缩略图）、单击改组号
 │   └── UngroupedPanel.h/.cpp   # 未分组面板：单列卡片与毛玻璃取消分组蒙版
 └── windows/                    # 主窗口与对话框（全部纯代码）
-    ├── MainWindow.h/.cpp       # 窗口层协调器：文件/关于菜单，页面、侧栏与模型的信号连接
+    ├── MainWindow.h/.cpp       # 窗口层协调器：文件/关于菜单，页面、搜索窗格与模型的信号连接
     ├── SumExportDialog.h/.cpp  # 积分导出对话框：排序配置 + OkCancelBox
     ├── GroupNumberDialog.h/.cpp # 设置小组号对话框：SpinBox + OkCancelBox
     ├── ItemSelectionDialog.h/.cpp # 列表选择入口：静态方法返回选中索引，基于 ExContentDialog
@@ -63,7 +67,9 @@ flowchart TD
     MainWindow[MainWindow 窗口层协调器]
     Manager[ClassDataManager 数据源]
     TableModel[ClassTableModel 学生表格模型]
-    SearchModel[StudentSearchModel 学生搜索模型]
+    SearchModel[SearchListModel 搜索模型]
+    SearchPane[SearchPane 搜索窗格]
+    Pinyin[Pinyin 读音格匹配]
     RecordModel[RecordListModel 记录列表模型]
     TemplateModel[TemplateListModel 模板列表模型]
     StudentPage[StudentTablePage]
@@ -88,7 +94,9 @@ flowchart TD
     MainWindow -->|读写文件| FileIo
     FileIo -->|队列请求| Worker
     MainWindow -->|持有并设置| TableModel
+    MainWindow -->|持有| SearchPane
     MainWindow -->|持有| SearchModel
+    MainWindow -->|切换范围 / 路由结果| SearchModel
     MainWindow -->|持有| StudentPage
     MainWindow -->|持有| GroupPage
     MainWindow -->|持有| RecordPage
@@ -114,8 +122,9 @@ flowchart TD
     RecordModel -->|读取| Manager
     TemplateModel -->|读取| Manager
     TableView -->|setModel| TableModel
-    Sidebar -->|setModel| SearchModel
-    TableModel -->|行序变化后重新匹配| SearchModel
+    SearchPane -->|setModel| SearchModel
+    SearchModel -->|构建匹配器| Pinyin
+    TableModel -->|行序 / 姓名变化后重新匹配| SearchModel
     TableModel -->|行序变化后重建卡片| GroupPage
     RecordPage -->|setListModel| RecordModel
     TemplatePage -->|setListModel| TemplateModel
@@ -126,6 +135,7 @@ flowchart TD
     Manager -->|recordsChanged / templatesChanged / dirtyStateChanged| RecordModel
     Manager -->|recordsChanged / templatesChanged / dirtyStateChanged| TemplateModel
     Manager -->|templatesChanged / dirtyStateChanged / recordsChanged| MainWindow
+    Manager -->|recordsChanged / templatesChanged| SearchModel
     Manager -->|studentsChanged| TableModel
     TableModel -->|groupAssignmentEdited| GroupPage
     TableModel -->|show/hideColumnRequested| TableView
@@ -147,7 +157,7 @@ flowchart LR
     Result -->|失败| Fail[提示错误并中止]
     Result -->|成功| Repair[字段归一化]
     Repair --> Warn[有修正则提示并置脏]
-    Repair --> Emit[发出 recordsChanged / templatesChanged]
+    Repair --> Emit[发出 recordsChanged / templatesChanged / studentsChanged]
     Warn --> Emit
     Emit --> RecordModel[RecordListModel 重置]
     Emit --> TemplateModel[TemplateListModel 重置]
@@ -155,6 +165,7 @@ flowchart LR
     Preview --> Sidebar[侧栏文件信息块]
     Parse -->|成功| Reset[MainWindow::resetTable]
     Reset --> TableModel[ClassTableModel::resetTable]
+    Reset --> SearchModel[SearchListModel::refresh 当前范围]
     User -->|新建| NewFile[ClassDataManager::newFile]
 ```
 
@@ -231,16 +242,23 @@ flowchart LR
 
 文件任务在独立线程执行，GUI 线程始终处理事件。任务超过 150ms 仍未完成时，右下角显示不可关闭的 `ExInfoBar`，标题为“正在读取/保存/导出文件”，操作区显示不确定态 `ExProgressRing`；完成或失败后关闭提示再弹 Toast。写出使用 `QSaveFile`，先写同目录临时文件、提交成功才替换目标文件，失败时磁盘上的旧文件保持原样。
 
-### 4.6 搜索学生并跳转表格选区
+### 4.6 导航窗格搜索与跳转
 
 ```mermaid
 flowchart LR
-    Input[侧栏搜索框输入] --> Model[StudentSearchModel::setFilter 按姓名匹配]
-    Model --> List[侧栏结果列表]
-    Click[点击结果项] --> Map[MainWindow::selectStudentFromSearch 换算学生索引与表格行]
-    Map --> Select[表格选中该行并滚动到可见位置]
-    Change[学生增删 / 拖动排序 / 改名] --> Model
+    Page[切换页面] --> Scope[MainWindow::updateSearchScope 映射范围]
+    Scope --> Model[SearchListModel::setScope 重建条目]
+    Input[窗格搜索框输入] --> Filter[SearchListModel::setFilter 归一化关键字]
+    Filter --> NFA[PinyinMatcher::matches 读音格匹配]
+    NFA --> List[窗格结果列表]
+    Click[点击 / 回车结果项] --> Route[MainWindow::activateSearchResult 按范围分流]
+    Route -->|学生页| Table[选中表格行并滚动到中央]
+    Route -->|小组页| Card[滚动到卡片并播放入场动画]
+    Route -->|记录 / 模板页| Row[选中列表行并滚动到中央]
+    Change[学生增删 / 排序 / 改名、记录或模板变化] --> Model
 ```
+
+学生页与小组页共用 `SearchScope::Student`：两页之间切换不重建模型、不清空查询，只有结果激活的目标不同。
 
 ### 4.7 拖放分组与组内排序
 
@@ -248,7 +266,7 @@ flowchart LR
 flowchart LR
     Drag[拖动学生卡片] --> Drop{落点}
     Drop -->|小组容器| Position[按插入位置落位]
-    Drop -->|左侧未分组面板| Cancel[取消该学生分组]
+    Drop -->|右侧未分组面板| Cancel[取消该学生分组]
     Position --> Move[ClassDataManager::moveStudentToGroup 更新组号与组内顺序]
     Cancel --> Move
     Move --> Same{分组与位置是否变化}
@@ -295,9 +313,10 @@ flowchart LR
 |---|---|
 | 学生（含小组号与组内顺序）、模板、记录、记录草稿、排序设置、脏标记 | `ClassDataManager` |
 | 当前文件名、记录/模板查看索引、小组信息编辑开关、页面会话状态 | `MainWindow` |
+| 搜索范围、窗格开关与宽度 | `MainWindow` |
+| 搜索关键字、当前范围条目与过滤结果、匹配器缓存 | `SearchListModel` |
 | 当前文件任务、保存快照、延迟提示、关闭续作 | `MainWindow` |
 | 设备 I/O 与 worker 线程 | `FileIoService` / `FileIoWorker` |
 | 表格列显隐、行排序映射、姓名编辑开关、查看列渲染状态 | `ClassTableModel` |
 | 小组容器与学生卡片的归属、拖放落点与占位状态 | `GroupBoardPage` / `GroupCard` / `UngroupedPanel` |
-| 学生搜索关键字与匹配结果 | `StudentSearchModel` |
 | 按钮可用性、折叠块展开状态、列表选中状态 | 各页面 / `StudentTableSidebar` |

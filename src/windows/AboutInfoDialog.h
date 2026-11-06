@@ -2,7 +2,6 @@
 
 #include <QDialog>
 #include <QHBoxLayout>
-#include <QIcon>
 #include <QKeyEvent>
 #include <QLabel>
 #include <QPaintEvent>
@@ -27,7 +26,6 @@ public:
 protected:
     void keyPressEvent(QKeyEvent* event) override;
     void paintEvent(QPaintEvent* event) override;
-    bool eventFilter(QObject* watched, QEvent* event) override;
     bool nativeEvent(const QByteArray& eventType, void* message, long* result) override;
 
 private slots:
@@ -47,9 +45,6 @@ private:
     QHBoxLayout* titleBarLayout = nullptr;
     QWK::WidgetWindowAgent* windowAgent = nullptr;
 
-    // 关闭按钮的 Normal/Hover 图标，eventFilter 中切换
-    QIcon m_closeIconNormal;
-    QIcon m_closeIconHover;
     // 启用特效的按键序列
     static const inline QVector<int> m_keySequence = {Qt::Key_Up,   Qt::Key_Up,   Qt::Key_Down,  Qt::Key_Down,
                                                       Qt::Key_Left, Qt::Key_Left, Qt::Key_Right, Qt::Key_Right};

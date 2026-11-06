@@ -11,13 +11,13 @@
 
 #include <QHBoxLayout>
 #include <QScrollArea>
-#include <QSplitter>
+#include <QVBoxLayout>
 #include <algorithm>
 
 namespace
 {
-constexpr int kUngroupedInitialWidth = 140; //左栏初始宽度，最小宽度由 UngroupedPanel 自己约束
-constexpr int kGroupAreaMinWidth = 220;     //右栏至少放得下一个小组容器和一张卡片
+constexpr int kUngroupedPanelWidth = 208; //右侧固定宽度：最长卡片、悬停留白与滚动条都能放下
+constexpr int kGroupAreaMinWidth = 220;   //小组区至少放得下一个小组容器和一张卡片
 //卡片信息密度低，自动滚动的速度要更高
 constexpr DragAutoScroller::Config kAutoScrollConfig{16, 60, 800};
 }
@@ -26,15 +26,16 @@ GroupBoardPage::GroupBoardPage(ClassDataManager* manager, QWidget* parent)
     : QWidget(parent)
     , m_manager(manager)
 {
-    //左边给导航栏留出间距；四周留白让左栏成为一张与其他卡片同套圆角的栏
+    //右侧留白让未分组栏成为一张与其他卡片同套圆角的栏；小组区贴靠左侧
     auto* rootLayout = new QHBoxLayout(this);
-    rootLayout->setContentsMargins(12, 12, 0, 12);
+    //顶部 4px 与搜索窗格、记录页工具栏保持同一内容基线；底部不留白，交给窗口裁剪
+    rootLayout->setContentsMargins(0, 4, 12, 0);
     rootLayout->setSpacing(0);
 
     m_ungroupedPanel = new UngroupedPanel(this);
     connect(m_ungroupedPanel, &UngroupedPanel::studentDropped, this, &GroupBoardPage::handleUngroupDrop);
 
-    //右侧：小组容器自上而下排列，每个容器占满整行
+    //小组区：小组容器自上而下排列，每个容器占满整行
     m_groupScrollArea = new QScrollArea(this);
     m_groupScrollArea->setWidgetResizable(true);
     m_groupScrollArea->setFrameShape(QFrame::NoFrame);
@@ -44,19 +45,22 @@ GroupBoardPage::GroupBoardPage(ClassDataManager* manager, QWidget* parent)
     m_groupContainer = new QWidget;
     m_groupLayout = new FlowLayout(m_groupContainer, 12, 10, 10);
     m_groupLayout->setSingleColumn(true);
+    //顶部不再叠加 12px，卡片顶边由页面根布局的 4px 决定；底部不留白，交给窗口裁剪
+    m_groupLayout->setContentsMargins(12, 0, 12, 0);
     m_groupScrollArea->setWidget(m_groupContainer);
 
-    //左右分栏可拖动，两侧都不会被压死
-    auto* splitter = new QSplitter(this);
-    splitter->setChildrenCollapsible(false);
-    splitter->addWidget(m_ungroupedPanel);
-    splitter->addWidget(m_groupScrollArea);
-    splitter->setStretchFactor(0, 0);
-    splitter->setStretchFactor(1, 1);
-    splitter->setSizes({kUngroupedInitialWidth, kGroupAreaMinWidth * 2});
-    rootLayout->addWidget(splitter);
+    //小组区占满剩余宽度；未分组栏固定贴右，顶边与小组区共用页面根布局的 4px
+    rootLayout->addWidget(m_groupScrollArea, 1);
+    auto* ungroupedColumn = new QWidget(this);
+    ungroupedColumn->setFixedWidth(kUngroupedPanelWidth);
+    auto* ungroupedLayout = new QVBoxLayout(ungroupedColumn);
+    ungroupedLayout->setContentsMargins(0, 0, 0, 0);
+    ungroupedLayout->setSpacing(0);
+    m_ungroupedPanel->setFixedWidth(kUngroupedPanelWidth);
+    ungroupedLayout->addWidget(m_ungroupedPanel, 1);
+    rootLayout->addWidget(ungroupedColumn);
 
-    //右侧小组列表在拖动时贴边自动滚动，与主界面表格共用同一套手感；左栏只是容器，不需要滚动
+    //小组列表在拖动时贴边自动滚动，与主界面表格共用同一套手感；未分组栏只是容器，不需要滚动
     m_groupAutoScroller = new DragAutoScroller(m_groupScrollArea, kAutoScrollConfig, this);
 }
 
@@ -96,6 +100,18 @@ void GroupBoardPage::reload()
               });
     for(int studentIndex : ungrouped)
         m_ungroupedPanel->insertCard(m_cards.value(studentIndex), -1);
+}
+
+void GroupBoardPage::revealStudent(int studentIndex)
+{
+    StudentCard* card = m_cards.value(studentIndex);
+    if(!card)
+        return;
+    if(auto* panel = dynamic_cast<UngroupedPanel*>(card->host()))
+        panel->revealCard(card);
+    else
+        m_groupScrollArea->ensureWidgetVisible(card, 0, 0);
+    card->playEnterAnimation();
 }
 
 StudentCard* GroupBoardPage::createCard(int studentIndex)
